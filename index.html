@@ -198,7 +198,7 @@ window.toggleSerie = function(id){
   div.style.display = div.style.display==="none"?"block":"none";
 };
 
-// MOSTRA + ORDINA
+// MOSTRA + ORDINA + GESTIONE INDICE
 function mostraFumetti(){
   if(!auth.currentUser) return;
   const search = ricerca.value.toLowerCase();
@@ -210,10 +210,10 @@ function mostraFumetti(){
   if(ordine==="serie_asc") query=query.orderBy("serie","asc");
   if(ordine==="serie_desc") query=query.orderBy("serie","desc");
 
-  query.get().then(snap=>{
+  query.get()
+  .then(snap => {
     fumetti.innerHTML="";
-    let tot=0,letti=0,nonletti=0,editori={};
-    let serieMap={};
+    let tot=0,letti=0,nonletti=0,editori={}, serieMap={};
 
     snap.forEach(doc=>{
       const f=doc.data();
@@ -225,7 +225,6 @@ function mostraFumetti(){
       serieMap[serieKey].push({id: doc.id,data: f});
     });
 
-    // genera DOM
     for(let s in serieMap){
       const serieId=s.replace(/\s+/g,'_');
       fumetti.innerHTML += `<div class="card">
@@ -246,12 +245,19 @@ function mostraFumetti(){
       });
     }
 
-    // statistiche
     let html=`<div class="stat">📚 Totale: ${tot}</div>
               <div class="stat">✅ Letti: ${letti}</div>
               <div class="stat">⏳ Non letti: ${nonletti}</div>`;
     for(let e in editori) html+=`<div class="stat">📦 ${e}: ${editori[e]}</div>`;
     statistiche.innerHTML=html;
+  })
+  .catch(err => {
+    console.error(err);
+    if(err.message.includes('index')){
+      alert("Firestore richiede un indice per questa query.\nClicca sul link nella console per crearlo.\nErrore: " + err.message);
+    } else {
+      alert("Errore Firestore: " + err.message);
+    }
   });
 }
 
