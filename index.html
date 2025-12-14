@@ -10,18 +10,28 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
-body { font-family: Arial, sans-serif; background: #f4f6f8; margin:0; padding:20px;}
-h1,h2 { text-align:center; }
+body { font-family: Arial, sans-serif; background:#f4f6f8; margin:0; padding:20px; transition: background 0.3s, color 0.3s; }
+h1,h2,h3,h4 { margin:5px 0; }
 .container { max-width:900px; margin:auto; }
-.card { background:white; border-radius:8px; padding:15px; margin:10px 0; box-shadow:0 2px 5px rgba(0,0,0,0.1);}
+.card { background:white; border-radius:8px; padding:15px; margin:10px 0; box-shadow:0 2px 5px rgba(0,0,0,0.1); transition: background 0.3s, color 0.3s; }
 input,select,button { padding:8px; margin:5px 0; width:100%; }
 button { cursor:pointer; }
-.stats { display:flex; gap:10px; flex-wrap:wrap;}
-.stat { background:#e8eef3; padding:10px; border-radius:6px;}
-.fumetto img { max-width:100px; margin-top:5px;}
-.badge { padding:4px 8px; border-radius:5px; color:white; font-size:12px;}
-.letto { background:green;}
-.nonletto { background:orange;}
+.stats { display:flex; gap:10px; flex-wrap:wrap; }
+.stat { background:#e8eef3; padding:10px; border-radius:6px; transition: background 0.3s, color 0.3s; }
+.fumetto img { max-width:100px; margin-top:5px; cursor:pointer; border-radius:4px; }
+.badge { padding:4px 8px; border-radius:5px; color:white; font-size:12px; }
+.letto { background:green; }
+.nonletto { background:orange; }
+.serie-header { cursor:pointer; }
+.serie-fumetti { margin-left:15px; display:none; }
+/* DARK MODE */
+body.dark { background:#1f1f1f; color:#f0f0f0; }
+body.dark .card { background:#2a2a2a; color:#f0f0f0; }
+body.dark .stat { background:#3a3a3a; color:#f0f0f0; }
+body.dark input, body.dark select { background:#3a3a3a; color:#f0f0f0; border:1px solid #555; }
+/* POPUP COVER */
+#coverPopup { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); justify-content:center; align-items:center; z-index:9999; }
+#coverPopup img { max-width:90%; max-height:90%; border-radius:8px; }
 </style>
 </head>
 
@@ -42,6 +52,8 @@ button { cursor:pointer; }
 <!-- APP -->
 <div id="app" style="display:none;">
   <button id="logoutBtn">Logout</button>
+  <button id="darkBtn">🌙 Dark Mode</button>
+  <button id="csvBtn">💾 Esporta CSV</button>
 
   <div class="card">
     <h2>Aggiungi / Modifica fumetto</h2>
@@ -74,6 +86,12 @@ button { cursor:pointer; }
 
   <div id="fumetti"></div>
 </div>
+
+<!-- POPUP COVER -->
+<div id="coverPopup" onclick="this.style.display='none'">
+  <img id="coverImg" src="">
+</div>
+
 </div>
 
 <script>
@@ -88,7 +106,6 @@ const firebaseConfig = {
   messagingSenderId: "854173216358",
   appId: "1:854173216358:web:3b0485ceab341046f907a7"
 };
-
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
@@ -101,6 +118,8 @@ const password = document.getElementById("password");
 const signupBtn = document.getElementById("signupBtn");
 const loginBtn = document.getElementById("loginBtn");
 const logoutBtn = document.getElementById("logoutBtn");
+const darkBtn = document.getElementById("darkBtn");
+const csvBtn = document.getElementById("csvBtn");
 
 const salvaBtn = document.getElementById("salvaBtn");
 const titolo = document.getElementById("titolo");
@@ -114,6 +133,9 @@ const ricerca = document.getElementById("ricerca");
 const ordinamento = document.getElementById("ordinamento");
 const fumetti = document.getElementById("fumetti");
 const statistiche = document.getElementById("statistiche");
+
+const coverPopup = document.getElementById("coverPopup");
+const coverImg = document.getElementById("coverImg");
 
 let editId = null;
 
@@ -134,6 +156,9 @@ auth.onAuthStateChanged(user=>{
   }
 });
 
+// DARK MODE
+darkBtn.onclick = ()=>{ document.body.classList.toggle("dark"); };
+
 // SALVA / AGGIORNA
 salvaBtn.onclick = function(){
   const data = {
@@ -146,7 +171,6 @@ salvaBtn.onclick = function(){
     copertina: copertina.value,
     letto: letto.checked
   };
-
   if(editId){
     db.collection("fumetti").doc(editId).set(data);
     editId=null;
@@ -154,9 +178,14 @@ salvaBtn.onclick = function(){
   }else{
     db.collection("fumetti").add(data);
   }
-
   [titolo,autore,serie,anno,editore,copertina].forEach(i=>i.value="");
   letto.checked=false;
+};
+
+// COLLAPSIBLE SERIE
+window.toggleSerie = function(id){
+  const div = document.getElementById(id);
+  div.style.display = div.style.display==="none"?"block":"none";
 };
 
 // MOSTRA + ORDINA
@@ -174,27 +203,38 @@ function mostraFumetti(){
   query.get().then(snap=>{
     fumetti.innerHTML="";
     let tot=0,letti=0,nonletti=0,editori={};
+    let serieMap={};
 
     snap.forEach(doc=>{
       const f=doc.data();
-      if(!f.titolo.toLowerCase().includes(search)&&!f.autore.toLowerCase().includes(search)) return;
-      tot++;
-      f.letto?letti++:nonletti++;
+      if(!f.titolo.toLowerCase().includes(search) && !f.autore.toLowerCase().includes(search)) return;
+      tot++; f.letto?letti++:nonletti++;
       editori[f.editore]=(editori[f.editore]||0)+1;
-
-      fumetti.innerHTML+=`
-      <div class="card fumetto">
-        <h3>${f.titolo}</h3>
-        <p>${f.autore} • ${f.anno}</p>
-        <p><strong>Serie:</strong> ${f.serie||"-"}</p>
-        <p><strong>Editore:</strong> ${f.editore}</p>
-        <span class="badge ${f.letto?'letto':'nonletto'}">${f.letto?'Letto':'Non letto'}</span><br>
-        ${f.copertina?`<img src="${f.copertina}">`:""}
-        <br>
-        <button onclick="modifica('${doc.id}')">Modifica</button>
-        <button onclick="elimina('${doc.id}')">Elimina</button>
-      </div>`;
+      const serieKey=f.serie||"Senza Serie";
+      if(!serieMap[serieKey]) serieMap[serieKey]=[];
+      serieMap[serieKey].push({id: doc.id,data: f});
     });
+
+    // genera DOM
+    for(let s in serieMap){
+      const serieId=s.replace(/\s+/g,'_');
+      fumetti.innerHTML += `<div class="card">
+        <h3 class="serie-header" onclick="toggleSerie('${serieId}')">▶️ ${s}</h3>
+        <div id="${serieId}" class="serie-fumetti"></div>
+      </div>`;
+      const serieDiv=document.getElementById(serieId);
+      serieMap[s].forEach(f=>{
+        serieDiv.innerHTML += `<div class="card fumetto">
+          <h4>${f.data.titolo}</h4>
+          <p>${f.data.autore} • ${f.data.anno}</p>
+          <span class="badge ${f.data.letto?'letto':'nonletto'}">${f.data.letto?'Letto':'Non letto'}</span><br>
+          ${f.data.copertina?`<img src="${f.data.copertina}" onclick="showCover('${f.data.copertina}')">`:""}
+          <br>
+          <button onclick="modifica('${f.id}')">Modifica</button>
+          <button onclick="elimina('${f.id}')">Elimina</button>
+        </div>`;
+      });
+    }
 
     // statistiche
     let html=`<div class="stat">📚 Totale: ${tot}</div>
@@ -225,10 +265,36 @@ window.modifica = function(id){
 };
 
 // Ricerca / Ordinamento
-ricerca.oninput = mostraFumetti;
-ordinamento.onchange = mostraFumetti;
+ricerca.oninput=mostraFumetti;
+ordinamento.onchange=mostraFumetti;
 
-}; // window.onload
+// CSV
+csvBtn.onclick=function(){
+  if(!auth.currentUser) return;
+  db.collection("fumetti").where("userId","==",auth.currentUser.uid).get().then(snap=>{
+    let csv="Titolo,Autore,Serie,Anno,Editore,Letto,Copertina\n";
+    snap.forEach(doc=>{
+      const f=doc.data();
+      csv += `"${f.titolo}","${f.autore}","${f.serie||""}",${f.anno},"${f.editore}","${f.letto}","${f.copertina}"\n`;
+    });
+    const blob = new Blob([csv],{type:"text/csv"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;
+    a.download="ComicZoo.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  });
+};
+
+// SHOW COVER POPUP
+window.showCover=function(url){
+  coverImg.src=url;
+  coverPopup.style.display="flex";
+};
+
+};
 </script>
 </body>
 </html>
