@@ -254,7 +254,9 @@ function mostraFumetti(){
       if(!match) return;
       tot++;
       if(f.stato) statiCount[f.stato]=(statiCount[f.stato]||0)+1;
-      possessoCount[f.possesso]=(possessoCount[f.possesso]||0)+1;
+      // Converte vecchi "In mio possesso" in "Celo"
+      const poss = f.possesso==="In mio possesso" ? "Celo" : f.possesso;
+      possessoCount[poss]=(possessoCount[poss]||0)+1;
 
       const c=f.codiceEditore||"Senza Codice";
       const e=f.editore||"Senza Editore";
@@ -287,10 +289,11 @@ function mostraFumetti(){
           grouped[c][e][s].forEach(f=>{
             const d=f.data.dataPubblicazione.toDate ? f.data.dataPubblicazione.toDate() : f.data.dataPubblicazione;
             const dataStr=`${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
+            const poss = f.data.possesso==="In mio possesso" ? "Celo" : f.data.possesso;
             sDiv.innerHTML+=`<div class="card fumetto">
               <h4>${f.data.titolo}</h4>
-              <p>${dataStr} • Stato: ${stelleStato(f.data.stato)} • ${f.data.possesso}</p>
-              ${f.data.copertina?`<img src="${f.data.copertina}" style="${f.data.possesso==='Manca'?'filter: grayscale(100%);':''}" onclick="showCover('${f.data.copertina}')">`:""}
+              <p>${dataStr} • Stato: ${stelleStato(f.data.stato)} • ${poss}</p>
+              ${f.data.copertina?`<img src="${f.data.copertina}" style="${poss==='Manca'?'filter: grayscale(100%);':''}" onclick="showCover('${f.data.copertina}')">`:""}
               <br>
               <button onclick="modifica('${f.id}')">Modifica</button>
               <button onclick="elimina('${f.id}')">Elimina</button>
@@ -330,7 +333,7 @@ window.modifica=function(id){
     anno.value=dPub.getFullYear();
     copertina.value=f.copertina;
     stato.value=f.stato || "Mint";
-    possesso.value=f.possesso;
+    possesso.value = f.possesso==="In mio possesso" ? "Celo" : f.possesso;
     stato.disabled = (possesso.value==="Manca");
     editId=id;
     salvaBtn.textContent="Aggiorna";
@@ -349,7 +352,8 @@ csvBtn.onclick=function(){
     snap.forEach(doc=>{
       const f=doc.data();
       const d=f.dataPubblicazione.toDate ? f.dataPubblicazione.toDate() : f.dataPubblicazione;
-      csv += `"${f.titolo}","${f.serie}","${f.codiceEditore}","${f.editore}",${d.getDate()},${d.getMonth()+1},${d.getFullYear()},"${f.stato||""}","${f.possesso}","${f.copertina}"\n`;
+      const poss = f.possesso==="In mio possesso" ? "Celo" : f.possesso;
+      csv += `"${f.titolo}","${f.serie}","${f.codiceEditore}","${f.editore}",${d.getDate()},${d.getMonth()+1},${d.getFullYear()},"${f.stato||""}","${poss}","${f.copertina}"\n`;
     });
     const blob=new Blob([csv],{type:"text/csv"});
     const url=URL.createObjectURL(blob);
