@@ -4,159 +4,225 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Collezione Fumetti</title>
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
 <style>
-body { font-family: Arial, sans-serif; margin: 20px; }
-input, button { margin: 5px; padding: 5px; }
-.fumetto { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
-img { max-width: 100px; display:block; margin-top:5px;}
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f6f8;
+    margin: 0;
+    padding: 20px;
+}
+h1, h2 {
+    text-align: center;
+}
+.container {
+    max-width: 900px;
+    margin: auto;
+}
+.card {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 10px 0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+input, button {
+    padding: 8px;
+    margin: 5px 0;
+}
+button {
+    cursor: pointer;
+}
+.stats {
+    display: flex;
+    gap: 10px;
+    justify-content: space-around;
+    flex-wrap: wrap;
+}
+.stat {
+    background: #e8eef3;
+    padding: 10px;
+    border-radius: 6px;
+}
+.fumetto img {
+    max-width: 100px;
+}
+.badge {
+    padding: 4px 8px;
+    border-radius: 5px;
+    color: white;
+    font-size: 12px;
+}
+.letto { background: green; }
+.nonletto { background: orange; }
 </style>
 </head>
+
 <body>
+<div class="container">
 
-<h1>Collezione Fumetti</h1>
+<h1>📚 Collezione Fumetti</h1>
 
-<div id="auth">
+<div id="auth" class="card">
     <h2>Login / Registrazione</h2>
-    <input type="email" id="email" placeholder="Email">
-    <input type="password" id="password" placeholder="Password">
+    <input type="email" id="email" placeholder="Email"><br>
+    <input type="password" id="password" placeholder="Password"><br>
     <button onclick="signup()">Registrati</button>
     <button onclick="login()">Accedi</button>
 </div>
 
 <div id="app" style="display:none;">
     <button onclick="logout()">Logout</button>
-    <h2>Aggiungi Fumetto</h2>
-    <input type="text" id="titolo" placeholder="Titolo">
-    <input type="text" id="autore" placeholder="Autore">
-    <input type="text" id="anno" placeholder="Anno">
-    <input type="text" id="editore" placeholder="Editore">
-    <input type="text" id="copertina" placeholder="Link copertina">
-    <button onclick="aggiungiFumetto()">Aggiungi</button>
 
-    <h2>Ricerca</h2>
-    <input type="text" id="ricerca" placeholder="Cerca per titolo o autore" oninput="mostraFumetti()">
+    <div class="card">
+        <h2>Aggiungi / Modifica fumetto</h2>
+        <input id="titolo" placeholder="Titolo"><br>
+        <input id="autore" placeholder="Autore"><br>
+        <input id="anno" placeholder="Anno"><br>
+        <input id="editore" placeholder="Editore"><br>
+        <input id="copertina" placeholder="Link copertina"><br>
+        <label>
+            <input type="checkbox" id="letto"> Letto
+        </label><br>
+        <button id="salvaBtn" onclick="aggiungiFumetto()">Salva</button>
+    </div>
 
-    <h2>La mia collezione</h2>
+    <div class="card">
+        <h2>📊 Statistiche</h2>
+        <div class="stats" id="statistiche"></div>
+    </div>
+
+    <div class="card">
+        <h2>🔍 Ricerca</h2>
+        <input id="ricerca" placeholder="Titolo o autore" oninput="mostraFumetti()">
+    </div>
+
     <div id="fumetti"></div>
+</div>
 </div>
 
 <script>
-const firebaseConfig = { 
-  apiKey : "AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI" , 
-  authDomain : "comiczoo.firebaseapp.com" , 
-  projectId : "comiczoo" , 
-  storageBucket : "comiczoo.firebasestorage.app" , 
-  messagingSenderId : "854173216358" , 
-  appId : "1:854173216358:web:3b0485ceab341046f907a7" 
+const firebaseConfig = {
+  apiKey: "AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",
+  authDomain: "comiczoo.firebaseapp.com",
+  projectId: "comiczoo",
+  storageBucket: "comiczoo.firebasestorage.app",
+  messagingSenderId: "854173216358",
+  appId: "1:854173216358:web:3b0485ceab341046f907a7"
 };
 
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Autenticazione
+let editId = null;
+
+// AUTH
 function signup() {
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
-    auth.createUserWithEmailAndPassword(email, password)
-        .then(() => alert("Registrazione completata"))
-        .catch(e => alert(e.message));
+  auth.createUserWithEmailAndPassword(
+    email.value, password.value
+  ).catch(e => alert(e.message));
 }
-
 function login() {
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
-    auth.signInWithEmailAndPassword(email, password)
-        .catch(e => alert(e.message));
+  auth.signInWithEmailAndPassword(
+    email.value, password.value
+  ).catch(e => alert(e.message));
 }
-
 function logout() {
-    auth.signOut();
+  auth.signOut();
 }
 
 auth.onAuthStateChanged(user => {
-    if(user){
-        document.getElementById("auth").style.display="none";
-        document.getElementById("app").style.display="block";
-        mostraFumetti();
-    } else {
-        document.getElementById("auth").style.display="block";
-        document.getElementById("app").style.display="none";
-    }
+  auth.style.display = user ? "none" : "block";
+  app.style.display = user ? "block" : "none";
+  if(user) mostraFumetti();
 });
 
-// Firestore
-function aggiungiFumetto(id=null) {
-    const titolo = document.getElementById("titolo").value;
-    const autore = document.getElementById("autore").value;
-    const anno = document.getElementById("anno").value;
-    const editore = document.getElementById("editore").value;
-    const copertina = document.getElementById("copertina").value;
-    const userId = auth.currentUser.uid;
+// CRUD
+function aggiungiFumetto() {
+  const data = {
+    userId: auth.currentUser.uid,
+    titolo: titolo.value,
+    autore: autore.value,
+    anno: anno.value,
+    editore: editore.value,
+    copertina: copertina.value,
+    letto: letto.checked
+  };
 
-    const data = { userId, titolo, autore, anno, editore, copertina };
-
-    if(id){
-        db.collection("fumetti").doc(id).set(data).then(resetForm);
-    } else {
-        db.collection("fumetti").add(data).then(resetForm);
-    }
+  if(editId){
+    db.collection("fumetti").doc(editId).set(data);
+    editId = null;
+    salvaBtn.textContent = "Salva";
+  } else {
+    db.collection("fumetti").add(data);
+  }
+  document.querySelectorAll("input").forEach(i => i.type==="checkbox" ? i.checked=false : i.value="");
 }
 
-function resetForm(){
-    document.getElementById("titolo").value="";
-    document.getElementById("autore").value="";
-    document.getElementById("anno").value="";
-    document.getElementById("editore").value="";
-    document.getElementById("copertina").value="";
-}
+function mostraFumetti() {
+  const search = ricerca.value.toLowerCase();
+  db.collection("fumetti")
+    .where("userId","==",auth.currentUser.uid)
+    .onSnapshot(snap => {
+      fumetti.innerHTML="";
+      let tot=0, letti=0, nonletti=0, editori={};
 
-function mostraFumetti(){
-    const userId = auth.currentUser.uid;
-    const ricerca = document.getElementById("ricerca").value.toLowerCase();
-
-    db.collection("fumetti").where("userId","==",userId)
-        .onSnapshot(snapshot=>{
-            const container=document.getElementById("fumetti");
-            container.innerHTML="";
-            snapshot.forEach(doc=>{
-                const f = doc.data();
-                if(f.titolo.toLowerCase().includes(ricerca) || f.autore.toLowerCase().includes(ricerca)){
-                    const div = document.createElement("div");
-                    div.className="fumetto";
-                    div.innerHTML = `<h3>${f.titolo}</h3>
-                        <p>Autore: ${f.autore}</p>
-                        <p>Anno: ${f.anno}</p>
-                        <p>Editore: ${f.editore}</p>
-                        ${f.copertina?`<img src="${f.copertina}">`:""}
-                        <button onclick="modificaFumetto('${doc.id}')">Modifica</button>
-                        <button onclick="eliminaFumetto('${doc.id}')">Elimina</button>`;
-                    container.appendChild(div);
-                }
-            });
-        });
-}
-
-function eliminaFumetto(id){
-    if(confirm("Eliminare questo fumetto?")){
-        db.collection("fumetti").doc(id).delete();
-    }
-}
-
-function modificaFumetto(id){
-    db.collection("fumetti").doc(id).get().then(doc=>{
+      snap.forEach(doc => {
         const f = doc.data();
-        document.getElementById("titolo").value = f.titolo;
-        document.getElementById("autore").value = f.autore;
-        document.getElementById("anno").value = f.anno;
-        document.getElementById("editore").value = f.editore;
-        document.getElementById("copertina").value = f.copertina;
-        // Dopo modifica, salva sullo stesso doc
-        document.querySelector("button[onclick='aggiungiFumetto()']").setAttribute("onclick",`aggiungiFumetto('${id}')`);
+        if(!f.titolo.toLowerCase().includes(search) &&
+           !f.autore.toLowerCase().includes(search)) return;
+
+        tot++;
+        f.letto ? letti++ : nonletti++;
+        editori[f.editore] = (editori[f.editore]||0)+1;
+
+        fumetti.innerHTML += `
+        <div class="card fumetto">
+          <h3>${f.titolo}</h3>
+          <p>${f.autore} • ${f.anno} • ${f.editore}</p>
+          <span class="badge ${f.letto?'letto':'nonletto'}">
+            ${f.letto?'Letto':'Non letto'}
+          </span>
+          ${f.copertina?`<img src="${f.copertina}">`:""}
+          <br>
+          <button onclick="modifica('${doc.id}')">Modifica</button>
+          <button onclick="elimina('${doc.id}')">Elimina</button>
+        </div>`;
+      });
+
+      let html = `
+        <div class="stat">📚 Totale: ${tot}</div>
+        <div class="stat">✅ Letti: ${letti}</div>
+        <div class="stat">⏳ Non letti: ${nonletti}</div>`;
+      for(let e in editori){
+        html += `<div class="stat">📦 ${e}: ${editori[e]}</div>`;
+      }
+      statistiche.innerHTML = html;
     });
+}
+
+function elimina(id){
+  if(confirm("Eliminare?"))
+    db.collection("fumetti").doc(id).delete();
+}
+
+function modifica(id){
+  db.collection("fumetti").doc(id).get().then(d=>{
+    const f=d.data();
+    titolo.value=f.titolo;
+    autore.value=f.autore;
+    anno.value=f.anno;
+    editore.value=f.editore;
+    copertina.value=f.copertina;
+    letto.checked=f.letto;
+    editId=id;
+    salvaBtn.textContent="Aggiorna";
+  });
 }
 </script>
 </body>
