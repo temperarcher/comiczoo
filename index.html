@@ -114,7 +114,7 @@ body.dark input, body.dark select { background:#3a3a3a; color:#f0f0f0; border:1p
 <script>
 window.onload = function(){
 
-// 🔥 FIREBASE CONFIG
+// FIREBASE CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",
   authDomain: "comiczoo.firebaseapp.com",
@@ -127,7 +127,7 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// ---- DOM ----
+// DOM
 const authDiv = document.getElementById("auth");
 const appDiv = document.getElementById("app");
 const email = document.getElementById("email");
@@ -158,12 +158,12 @@ const coverImg = document.getElementById("coverImg");
 
 let editId = null;
 
-// ---- AUTH ----
+// AUTH
 signupBtn.onclick = ()=>{ auth.createUserWithEmailAndPassword(email.value,password.value).catch(e=>alert(e.message)); };
 loginBtn.onclick = ()=>{ auth.signInWithEmailAndPassword(email.value,password.value).catch(e=>alert(e.message)); };
 logoutBtn.onclick = ()=>{ auth.signOut(); };
 
-// ---- LOGIN / LOGOUT UI ----
+// LOGIN / LOGOUT UI
 auth.onAuthStateChanged(user=>{
   if(user){
     authDiv.style.display="none";
@@ -175,21 +175,19 @@ auth.onAuthStateChanged(user=>{
   }
 });
 
-// ---- DARK MODE ----
+// DARK MODE
 darkBtn.onclick = ()=>{ document.body.classList.toggle("dark"); };
 
-// ---- COLLAPSIBLE GENERICO ----
+// COLLAPSIBLE
 window.toggleCollapse=function(id){
   const div=document.getElementById(id);
   div.style.display = div.style.display==="none"?"block":"none";
 };
 
-// ---- DISABILITA STATO SE Manca ----
-possesso.onchange = () => {
-  stato.disabled = (possesso.value==="Manca");
-};
+// DISABILITA STATO SE Manca
+possesso.onchange = () => { stato.disabled = (possesso.value==="Manca"); };
 
-// ---- SALVA / AGGIORNA ----
+// SALVA / AGGIORNA
 salvaBtn.onclick = async function(){
   if(!auth.currentUser){ alert("Non sei loggato"); return; }
   if(!titolo.value){ alert("Titolo obbligatorio"); return; }
@@ -225,9 +223,9 @@ salvaBtn.onclick = async function(){
   }
 };
 
-// ---- STELLINE COLORATE ----
+// STELLINE COLORATE (ogni stella in span separato)
 function stelleStato(stato){
-  if(!stato) return ""; 
+  if(!stato) return "";
   let num=0, color="white";
   switch(stato){
     case "Mint": num=5; color="gold"; break;
@@ -238,17 +236,16 @@ function stelleStato(stato){
   }
   let html = "";
   for(let i=0;i<num;i++){
-    html += `<span style="color:${color};">⭐</span>`;
+    html += `<span style="color:${color}">⭐</span>`;
   }
   return html;
 }
 
-// ---- MOSTRA FUMETTI ----
+// MOSTRA FUMETTI
 function mostraFumetti(){
   if(!auth.currentUser) return;
   const search = ricerca.value.toLowerCase();
-  db.collection("fumetti").where("userId","==",auth.currentUser.uid).get()
-  .then(snap=>{
+  db.collection("fumetti").where("userId","==",auth.currentUser.uid).get().then(snap=>{
     fumetti.innerHTML="";
     let tot=0, statiCount={}, possessoCount={}, grouped={};
 
@@ -273,20 +270,15 @@ function mostraFumetti(){
 
     for(let c in grouped){
       const cId="code_"+c.replace(/\s+/g,'_');
-      fumetti.innerHTML+=`<div class="card">
-        <h3 class="collapse-header" onclick="toggleCollapse('${cId}')">▶️ ${c}</h3>
-        <div id="${cId}" class="collapse-content"></div>
-      </div>`;
+      fumetti.innerHTML+=`<div class="card"><h3 class="collapse-header" onclick="toggleCollapse('${cId}')">▶️ ${c}</h3><div id="${cId}" class="collapse-content"></div></div>`;
       const cDiv=document.getElementById(cId);
       for(let e in grouped[c]){
         const eId=cId+"_"+e.replace(/\s+/g,'_');
-        cDiv.innerHTML+=`<h4 class="collapse-header" onclick="toggleCollapse('${eId}')">▶️ ${e}</h4>
-                          <div id="${eId}" class="collapse-content"></div>`;
+        cDiv.innerHTML+=`<h4 class="collapse-header" onclick="toggleCollapse('${eId}')">▶️ ${e}</h4><div id="${eId}" class="collapse-content"></div>`;
         const eDiv=document.getElementById(eId);
         for(let s in grouped[c][e]){
-          const sId=eId+"_"+s.replace(/\s+/g,'_');
-          eDiv.innerHTML+=`<h5 class="collapse-header" onclick="toggleCollapse('${sId}')">▶️ ${s}</h5>
-                            <div id="${sId}" class="collapse-content"></div>`;
+          const sId=eDiv.id+"_"+s.replace(/\s+/g,'_');
+          eDiv.innerHTML+=`<h5 class="collapse-header" onclick="toggleCollapse('${sId}')">▶️ ${s}</h5><div id="${sId}" class="collapse-content"></div>`;
           const sDiv=document.getElementById(sId);
           grouped[c][e][s].sort((a,b)=>new Date(b.data.dataPubblicazione)-new Date(a.data.dataPubblicazione));
           grouped[c][e][s].forEach(f=>{
@@ -294,15 +286,45 @@ function mostraFumetti(){
             const dataStr=`${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
             const poss = f.data.possesso==="In mio possesso" ? "Celo" : f.data.possesso;
             const grayscale = poss==='Manca' ? 'filter: grayscale(100%);' : '';
-            sDiv.innerHTML+=`<div class="card fumetto">
-              <h4>${f.data.titolo}</h4>
-              <p>${dataStr} • Stato: ${stelleStato(f.data.stato)} • ${poss}</p>
-              ${f.data.copertina?`<img src="${f.data.copertina}" style="${grayscale}" onclick="showCover('${f.data.copertina}')">`:""}
-              <br>
-              <button onclick="modifica('${f.id}')">Modifica</button>
-              <button onclick="elimina('${f.id}')">Elimina</button>
-            </div>`;
+
+            const cardDiv=document.createElement("div");
+            cardDiv.className="card fumetto";
+
+            const h4=document.createElement("h4");
+            h4.textContent=f.data.titolo;
+            cardDiv.appendChild(h4);
+
+            const p=document.createElement("p");
+            p.textContent=`${dataStr} • Possesso: ${poss} • Stato: `;
+            if(f.data.stato){
+              const span=document.createElement("span");
+              span.innerHTML=stelleStato(f.data.stato);
+              p.appendChild(span);
+            }
+            cardDiv.appendChild(p);
+
+            if(f.data.copertina){
+              const img=document.createElement("img");
+              img.src=f.data.copertina;
+              img.style=grayscale;
+              img.onclick=()=>{ coverImg.src=f.data.copertina; coverPopup.style.display="flex"; };
+              cardDiv.appendChild(img);
+            }
+
+            const btnMod=document.createElement("button");
+            btnMod.textContent="Modifica";
+            btnMod.onclick=()=>{ modifica(f.id); };
+            cardDiv.appendChild(btnMod);
+
+            const btnEl=document.createElement("button");
+            btnEl.textContent="Elimina";
+            btnEl.onclick=()=>{ elimina(f.id); };
+            cardDiv.appendChild(btnEl);
+
+            sDiv.appendChild(cardDiv);
           });
+
+          // auto expand
           if(grouped[c][e][s].some(f=>f.match)){
             sDiv.style.display="block";
             document.getElementById(eId).style.display="block";
@@ -320,10 +342,10 @@ function mostraFumetti(){
   });
 }
 
-// ---- ELIMINA ----
+// ELIMINA
 window.elimina=function(id){ if(confirm("Eliminare questo fumetto?")) db.collection("fumetti").doc(id).delete(); };
 
-// ---- MODIFICA ----
+// MODIFICA
 window.modifica=function(id){
   db.collection("fumetti").doc(id).get().then(d=>{
     const f=d.data();
@@ -331,7 +353,7 @@ window.modifica=function(id){
     serie.value=f.serie;
     editore.value=f.editore;
     codiceEditore.value=f.codiceEditore;
-    const dPub=f.dataPubblicazione.toDate ? f.dataPubblicazione.toDate() : f.data.dataPubblicazione;
+    const dPub=f.dataPubblicazione.toDate ? f.dataPubblicazione.toDate() : f.dataPubblicazione;
     giorno.value=dPub.getDate();
     mese.value=dPub.getMonth()+1;
     anno.value=dPub.getFullYear();
@@ -345,10 +367,10 @@ window.modifica=function(id){
   });
 };
 
-// ---- RICERCA ----
+// RICERCA
 ricerca.oninput=mostraFumetti;
 
-// ---- CSV ----
+// CSV
 csvBtn.onclick=function(){
   if(!auth.currentUser) return;
   db.collection("fumetti").where("userId","==",auth.currentUser.uid).get().then(snap=>{
@@ -368,12 +390,6 @@ csvBtn.onclick=function(){
     a.click();
     document.body.removeChild(a);
   });
-};
-
-// ---- SHOW COVER POPUP ----
-window.showCover=function(url){
-  coverImg.src=url;
-  coverPopup.style.display="flex";
 };
 
 };
