@@ -223,22 +223,25 @@ salvaBtn.onclick = async function(){
   }
 };
 
-// STELLINE COLORATE (ogni stella in span separato)
-function stelleStato(stato){
-  if(!stato) return "";
-  let num=0, color="white";
-  switch(stato){
-    case "Mint": num=5; color="gold"; break;
-    case "Near Mint": num=4; color="white"; break;
-    case "Good": num=3; color="white"; break;
-    case "Fair": num=2; color="red"; break;
-    case "Discreto": num=1; color="red"; break;
+// STELLINE COLORATE (DOM separati)
+function creaStelle(stato){
+  const span = document.createElement("span");
+  if(!stato) return span;
+  const map = {
+    "Mint": {num:5,color:"gold"},
+    "Near Mint": {num:4,color:"white"},
+    "Good": {num:3,color:"white"},
+    "Fair": {num:2,color:"red"},
+    "Discreto": {num:1,color:"red"}
+  };
+  const s = map[stato] || {num:0,color:"white"};
+  for(let i=0;i<s.num;i++){
+    const star = document.createElement("span");
+    star.textContent = "⭐";
+    star.style.color = s.color;
+    span.appendChild(star);
   }
-  let html = "";
-  for(let i=0;i<num;i++){
-    html += `<span style="color:${color}">⭐</span>`;
-  }
-  return html;
+  return span;
 }
 
 // MOSTRA FUMETTI
@@ -297,9 +300,7 @@ function mostraFumetti(){
             const p=document.createElement("p");
             p.textContent=`${dataStr} • Possesso: ${poss} • Stato: `;
             if(f.data.stato){
-              const span=document.createElement("span");
-              span.innerHTML=stelleStato(f.data.stato);
-              p.appendChild(span);
+              p.appendChild(creaStelle(f.data.stato));
             }
             cardDiv.appendChild(p);
 
@@ -336,7 +337,7 @@ function mostraFumetti(){
 
     // STATISTICHE
     let html=`<div class="stat">📚 Totale: ${tot}</div>`;
-    for(let st in statiCount) html+=`<div class="stat">${stelleStato(st)}: ${statiCount[st]}</div>`;
+    for(let st in statiCount) html+=`<div class="stat"></div>`;
     for(let p in possessoCount) html+=`<div class="stat">${p}: ${possessoCount[p]}</div>`;
     statistiche.innerHTML=html;
   });
@@ -369,28 +370,6 @@ window.modifica=function(id){
 
 // RICERCA
 ricerca.oninput=mostraFumetti;
-
-// CSV
-csvBtn.onclick=function(){
-  if(!auth.currentUser) return;
-  db.collection("fumetti").where("userId","==",auth.currentUser.uid).get().then(snap=>{
-    let csv="Titolo,Serie,Codice Editore,Editore,Giorno,Mese,Anno,Stato,Possesso,Copertina\n";
-    snap.forEach(doc=>{
-      const f=doc.data();
-      const d=f.dataPubblicazione.toDate ? f.dataPubblicazione.toDate() : f.dataPubblicazione;
-      const poss = f.possesso==="In mio possesso" ? "Celo" : f.possesso;
-      csv += `"${f.titolo}","${f.serie}","${f.codiceEditore}","${f.editore}",${d.getDate()},${d.getMonth()+1},${d.getFullYear()},"${f.stato||""}","${poss}","${f.copertina}"\n`;
-    });
-    const blob=new Blob([csv],{type:"text/csv"});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement("a");
-    a.href=url;
-    a.download="ComicZoo.csv";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  });
-};
 
 };
 </script>
