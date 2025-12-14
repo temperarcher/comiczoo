@@ -19,7 +19,7 @@ button { cursor:pointer; }
 .stats { display:flex; gap:10px; flex-wrap:wrap; }
 .stat { background:#e8eef3; padding:10px; border-radius:6px; transition: background 0.3s, color 0.3s; }
 .fumetto img { max-width:100px; margin-top:5px; cursor:pointer; border-radius:4px; transition: filter 0.3s; }
-.collapse-header { cursor:pointer; user-select:none; }
+.collapse-header { cursor:pointer; user-select:none; font-weight:bold; }
 .collapse-content { margin-left:15px; display:none; }
 body.dark { background:#1f1f1f; color:#f0f0f0; }
 body.dark .card { background:#2a2a2a; color:#f0f0f0; }
@@ -51,46 +51,57 @@ body.dark input, body.dark select { background:#3a3a3a; color:#f0f0f0; border:1p
   <button id="darkBtn">🌙 Dark Mode</button>
   <button id="csvBtn">💾 Esporta CSV</button>
 
+  <!-- COLLAPSIBLE RICERCA -->
   <div class="card">
-    <h2>Aggiungi / Modifica fumetto</h2>
-    <input id="titolo" placeholder="Titolo">
-    <input id="serie" placeholder="Serie">
-    <input id="editore" placeholder="Casa Editrice">
-    <input id="codiceEditore" placeholder="Codice Casa Editrice">
-    <label>Data pubblicazione:</label>
-    <input id="giorno" type="number" min="1" max="31" placeholder="Giorno">
-    <input id="mese" type="number" min="1" max="12" placeholder="Mese">
-    <input id="anno" type="number" placeholder="Anno">
-    <input id="copertina" placeholder="Link copertina">
-    <label>Stato di conservazione:
-      <select id="stato">
-        <option value="Mint">Mint ⭐⭐⭐⭐⭐</option>
-        <option value="Near Mint">Near Mint ⭐⭐⭐⭐</option>
-        <option value="Good">Good ⭐⭐⭐</option>
-        <option value="Fair">Fair ⭐⭐</option>
-        <option value="Discreto">Discreto ⭐</option>
-      </select>
-    </label>
-    <label>Possesso:
-      <select id="possesso">
-        <option value="In mio possesso">In mio possesso</option>
-        <option value="Manca">Manca</option>
-      </select>
-    </label>
-    <button id="salvaBtn">Salva</button>
+    <h2 class="collapse-header" onclick="toggleCollapse('ricercaDiv')">🔍 Ricerca</h2>
+    <div id="ricercaDiv" class="collapse-content">
+      <input id="ricerca" placeholder="Titolo, Serie o Casa Editrice">
+    </div>
   </div>
 
+  <!-- COLLAPSIBLE STATISTICHE -->
   <div class="card">
-    <h2>📊 Statistiche</h2>
-    <div class="stats" id="statistiche"></div>
+    <h2 class="collapse-header" onclick="toggleCollapse('statDiv')">📊 Statistiche</h2>
+    <div id="statDiv" class="collapse-content">
+      <div class="stats" id="statistiche"></div>
+    </div>
   </div>
 
+  <!-- COLLAPSIBLE FORM -->
   <div class="card">
-    <h2>🔍 Ricerca</h2>
-    <input id="ricerca" placeholder="Titolo, Serie o Casa Editrice">
+    <h2 class="collapse-header" onclick="toggleCollapse('formDiv')">➕ Aggiungi / Modifica fumetto</h2>
+    <div id="formDiv" class="collapse-content">
+      <input id="titolo" placeholder="Titolo">
+      <input id="serie" placeholder="Serie">
+      <input id="editore" placeholder="Casa Editrice">
+      <input id="codiceEditore" placeholder="Codice Casa Editrice">
+      <label>Data pubblicazione:</label>
+      <input id="giorno" type="number" min="1" max="31" placeholder="Giorno">
+      <input id="mese" type="number" min="1" max="12" placeholder="Mese">
+      <input id="anno" type="number" placeholder="Anno">
+      <input id="copertina" placeholder="Link copertina">
+      <label>Stato di conservazione:
+        <select id="stato">
+          <option value="Mint">Mint ⭐⭐⭐⭐⭐</option>
+          <option value="Near Mint">Near Mint ⭐⭐⭐⭐</option>
+          <option value="Good">Good ⭐⭐⭐</option>
+          <option value="Fair">Fair ⭐⭐</option>
+          <option value="Discreto">Discreto ⭐</option>
+        </select>
+      </label>
+      <label>Possesso:
+        <select id="possesso">
+          <option value="In mio possesso">In mio possesso</option>
+          <option value="Manca">Manca</option>
+        </select>
+      </label>
+      <button id="salvaBtn">Salva</button>
+    </div>
   </div>
 
+  <!-- FUMETTI -->
   <div id="fumetti"></div>
+
 </div>
 
 <!-- POPUP COVER -->
@@ -167,6 +178,12 @@ auth.onAuthStateChanged(user=>{
 // DARK MODE
 darkBtn.onclick = ()=>{ document.body.classList.toggle("dark"); };
 
+// COLLAPSIBLE GENERICO
+window.toggleCollapse=function(id){
+  const div=document.getElementById(id);
+  div.style.display = div.style.display==="none"?"block":"none";
+};
+
 // DISABILITA STATO SE Manca
 possesso.onchange = () => {
   stato.disabled = (possesso.value==="Manca");
@@ -208,12 +225,6 @@ salvaBtn.onclick = async function(){
   }
 };
 
-// COLLAPSIBLE
-window.toggleCollapse=function(id){
-  const div=document.getElementById(id);
-  div.style.display = div.style.display==="none"?"block":"none";
-};
-
 // STELLINE COLORATE
 function stelleStato(stato){
   if(!stato) return ""; 
@@ -228,7 +239,7 @@ function stelleStato(stato){
   return `<span style="color:${s.color}">${'⭐'.repeat(s.num)}</span>`;
 }
 
-// MOSTRA + ORDINA
+// MOSTRA FUMETTI
 function mostraFumetti(){
   if(!auth.currentUser) return;
   const search = ricerca.value.toLowerCase();
@@ -239,7 +250,8 @@ function mostraFumetti(){
 
     snap.forEach(doc=>{
       const f=doc.data();
-      if(search && !(f.serie.toLowerCase().includes(search) || f.editore.toLowerCase().includes(search))) return;
+      const match = !search || f.serie.toLowerCase().includes(search) || f.editore.toLowerCase().includes(search) || f.titolo.toLowerCase().includes(search);
+      if(!match) return;
       tot++;
       if(f.stato) statiCount[f.stato]=(statiCount[f.stato]||0)+1;
       possessoCount[f.possesso]=(possessoCount[f.possesso]||0)+1;
@@ -251,7 +263,7 @@ function mostraFumetti(){
       if(!grouped[c]) grouped[c]={};
       if(!grouped[c][e]) grouped[c][e]={};
       if(!grouped[c][e][s]) grouped[c][e][s]=[];
-      grouped[c][e][s].push({id:doc.id,data:f});
+      grouped[c][e][s].push({id:doc.id,data:f,match});
     });
 
     for(let c in grouped){
@@ -289,15 +301,21 @@ function mostraFumetti(){
               <button onclick="elimina('${f.id}')">Elimina</button>
             </div>`;
           });
+          // ESPANSIONE AUTOMATICA se corrisponde ricerca
+          if(grouped[c][e][s].some(f=>f.match)){
+            sDiv.style.display="block";
+            document.getElementById(eId).style.display="block";
+            document.getElementById(cId).style.display="block";
+          }
         }
       }
     }
 
+    // STATISTICHE
     let html=`<div class="stat">📚 Totale: ${tot}</div>`;
     for(let st in statiCount) html+=`<div class="stat">${stelleStato(st)}: ${statiCount[st]}</div>`;
     for(let p in possessoCount) html+=`<div class="stat">${p}: ${possessoCount[p]}</div>`;
     statistiche.innerHTML=html;
-
   });
 }
 
@@ -322,6 +340,7 @@ window.modifica=function(id){
     stato.disabled = (possesso.value==="Manca");
     editId=id;
     salvaBtn.textContent="Aggiorna";
+    toggleCollapse('formDiv'); // apre automaticamente il form
   });
 };
 
