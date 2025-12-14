@@ -159,27 +159,37 @@ auth.onAuthStateChanged(user=>{
 // DARK MODE
 darkBtn.onclick = ()=>{ document.body.classList.toggle("dark"); };
 
-// SALVA / AGGIORNA
-salvaBtn.onclick = function(){
+// SALVA / AGGIORNA CON CONTROLLO ERRORI
+salvaBtn.onclick = async function(){
+  if(!auth.currentUser){ alert("Non sei loggato"); return; }
+  if(!titolo.value || !autore.value){ alert("Titolo e Autore obbligatori"); return; }
+
   const data = {
     userId: auth.currentUser.uid,
     titolo: titolo.value,
     autore: autore.value,
-    serie: serie.value,
-    anno: parseInt(anno.value),
-    editore: editore.value,
-    copertina: copertina.value,
+    serie: serie.value || "",
+    anno: anno.value ? parseInt(anno.value) : null,
+    editore: editore.value || "",
+    copertina: copertina.value || "",
     letto: letto.checked
   };
-  if(editId){
-    db.collection("fumetti").doc(editId).set(data);
-    editId=null;
-    salvaBtn.textContent="Salva";
-  }else{
-    db.collection("fumetti").add(data);
+
+  try{
+    if(editId){
+      await db.collection("fumetti").doc(editId).set(data);
+      editId=null;
+      salvaBtn.textContent="Salva";
+    }else{
+      await db.collection("fumetti").add(data);
+    }
+    [titolo,autore,serie,anno,editore,copertina].forEach(i=>i.value="");
+    letto.checked=false;
+    mostraFumetti();
+  } catch(err){
+    alert("Errore salvataggio: "+err.message);
+    console.error(err);
   }
-  [titolo,autore,serie,anno,editore,copertina].forEach(i=>i.value="");
-  letto.checked=false;
 };
 
 // COLLAPSIBLE SERIE
