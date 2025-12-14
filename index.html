@@ -127,7 +127,7 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// DOM
+// ---- DOM ----
 const authDiv = document.getElementById("auth");
 const appDiv = document.getElementById("app");
 const email = document.getElementById("email");
@@ -158,12 +158,12 @@ const coverImg = document.getElementById("coverImg");
 
 let editId = null;
 
-// AUTH
+// ---- AUTH ----
 signupBtn.onclick = ()=>{ auth.createUserWithEmailAndPassword(email.value,password.value).catch(e=>alert(e.message)); };
 loginBtn.onclick = ()=>{ auth.signInWithEmailAndPassword(email.value,password.value).catch(e=>alert(e.message)); };
 logoutBtn.onclick = ()=>{ auth.signOut(); };
 
-// LOGIN / LOGOUT UI
+// ---- LOGIN / LOGOUT UI ----
 auth.onAuthStateChanged(user=>{
   if(user){
     authDiv.style.display="none";
@@ -175,21 +175,21 @@ auth.onAuthStateChanged(user=>{
   }
 });
 
-// DARK MODE
+// ---- DARK MODE ----
 darkBtn.onclick = ()=>{ document.body.classList.toggle("dark"); };
 
-// COLLAPSIBLE GENERICO
+// ---- COLLAPSIBLE GENERICO ----
 window.toggleCollapse=function(id){
   const div=document.getElementById(id);
   div.style.display = div.style.display==="none"?"block":"none";
 };
 
-// DISABILITA STATO SE Manca
+// ---- DISABILITA STATO SE Manca ----
 possesso.onchange = () => {
   stato.disabled = (possesso.value==="Manca");
 };
 
-// SALVA / AGGIORNA
+// ---- SALVA / AGGIORNA ----
 salvaBtn.onclick = async function(){
   if(!auth.currentUser){ alert("Non sei loggato"); return; }
   if(!titolo.value){ alert("Titolo obbligatorio"); return; }
@@ -225,7 +225,7 @@ salvaBtn.onclick = async function(){
   }
 };
 
-// STELLINE COLORATE
+// ---- STELLINE COLORATE ----
 function stelleStato(stato){
   if(!stato) return ""; 
   const map = {
@@ -239,7 +239,7 @@ function stelleStato(stato){
   return `<span style="color:${s.color}">${'⭐'.repeat(s.num)}</span>`;
 }
 
-// MOSTRA FUMETTI
+// ---- MOSTRA FUMETTI ----
 function mostraFumetti(){
   if(!auth.currentUser) return;
   const search = ricerca.value.toLowerCase();
@@ -283,25 +283,19 @@ function mostraFumetti(){
           eDiv.innerHTML+=`<h5 class="collapse-header" onclick="toggleCollapse('${sId}')">▶️ ${s}</h5>
                             <div id="${sId}" class="collapse-content"></div>`;
           const sDiv=document.getElementById(sId);
-          // ORDINA per data decrescente
-          grouped[c][e][s].sort((a,b)=>{
-            return new Date(b.data.dataPubblicazione) - new Date(a.data.dataPubblicazione);
-          });
+          grouped[c][e][s].sort((a,b)=>new Date(b.data.dataPubblicazione)-new Date(a.data.dataPubblicazione));
           grouped[c][e][s].forEach(f=>{
             const d=f.data.dataPubblicazione.toDate ? f.data.dataPubblicazione.toDate() : f.data.dataPubblicazione;
             const dataStr=`${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
             sDiv.innerHTML+=`<div class="card fumetto">
               <h4>${f.data.titolo}</h4>
               <p>${dataStr} • Stato: ${stelleStato(f.data.stato)} • ${f.data.possesso}</p>
-              ${f.data.copertina?`<img src="${f.data.copertina}" 
-              style="${f.data.possesso==='Manca'?'filter: grayscale(100%);':''}" 
-              onclick="showCover('${f.data.copertina}')">`:""}
+              ${f.data.copertina?`<img src="${f.data.copertina}" style="${f.data.possesso==='Manca'?'filter: grayscale(100%);':''}" onclick="showCover('${f.data.copertina}')">`:""}
               <br>
               <button onclick="modifica('${f.id}')">Modifica</button>
               <button onclick="elimina('${f.id}')">Elimina</button>
             </div>`;
           });
-          // ESPANSIONE AUTOMATICA se corrisponde ricerca
           if(grouped[c][e][s].some(f=>f.match)){
             sDiv.style.display="block";
             document.getElementById(eId).style.display="block";
@@ -319,10 +313,10 @@ function mostraFumetti(){
   });
 }
 
-// ELIMINA
+// ---- ELIMINA ----
 window.elimina=function(id){ if(confirm("Eliminare questo fumetto?")) db.collection("fumetti").doc(id).delete(); };
 
-// MODIFICA
+// ---- MODIFICA ----
 window.modifica=function(id){
   db.collection("fumetti").doc(id).get().then(d=>{
     const f=d.data();
@@ -340,14 +334,14 @@ window.modifica=function(id){
     stato.disabled = (possesso.value==="Manca");
     editId=id;
     salvaBtn.textContent="Aggiorna";
-    toggleCollapse('formDiv'); // apre automaticamente il form
+    toggleCollapse('formDiv'); 
   });
 };
 
-// Ricerca
+// ---- RICERCA ----
 ricerca.oninput=mostraFumetti;
 
-// CSV
+// ---- CSV ----
 csvBtn.onclick=function(){
   if(!auth.currentUser) return;
   db.collection("fumetti").where("userId","==",auth.currentUser.uid).get().then(snap=>{
@@ -368,6 +362,13 @@ csvBtn.onclick=function(){
   });
 };
 
-// SHOW COVER POPUP
+// ---- SHOW COVER POPUP ----
 window.showCover=function(url){
-  cover
+  coverImg.src=url;
+  coverPopup.style.display="flex";
+};
+
+};
+</script>
+</body>
+</html>
