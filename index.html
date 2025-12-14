@@ -253,9 +253,8 @@ function mostraFumetti(){
       const match = !search || f.serie.toLowerCase().includes(search) || f.editore.toLowerCase().includes(search) || f.titolo.toLowerCase().includes(search);
       if(!match) return;
       tot++;
-      if(f.stato) statiCount[f.stato]=(statiCount[f.stato]||0)+1;
-      // Converte vecchi "In mio possesso" in "Celo"
       const poss = f.possesso==="In mio possesso" ? "Celo" : f.possesso;
+      if(f.stato) statiCount[f.stato]=(statiCount[f.stato]||0)+1;
       possessoCount[poss]=(possessoCount[poss]||0)+1;
 
       const c=f.codiceEditore||"Senza Codice";
@@ -290,10 +289,11 @@ function mostraFumetti(){
             const d=f.data.dataPubblicazione.toDate ? f.data.dataPubblicazione.toDate() : f.data.dataPubblicazione;
             const dataStr=`${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
             const poss = f.data.possesso==="In mio possesso" ? "Celo" : f.data.possesso;
+            const grayscale = poss==='Manca' ? 'filter: grayscale(100%);' : '';
             sDiv.innerHTML+=`<div class="card fumetto">
               <h4>${f.data.titolo}</h4>
               <p>${dataStr} • Stato: ${stelleStato(f.data.stato)} • ${poss}</p>
-              ${f.data.copertina?`<img src="${f.data.copertina}" style="${poss==='Manca'?'filter: grayscale(100%);':''}" onclick="showCover('${f.data.copertina}')">`:""}
+              ${f.data.copertina?`<img src="${f.data.copertina}" style="${grayscale}" onclick="showCover('${f.data.copertina}')">`:""}
               <br>
               <button onclick="modifica('${f.id}')">Modifica</button>
               <button onclick="elimina('${f.id}')">Elimina</button>
@@ -327,7 +327,7 @@ window.modifica=function(id){
     serie.value=f.serie;
     editore.value=f.editore;
     codiceEditore.value=f.codiceEditore;
-    const dPub=f.dataPubblicazione.toDate ? f.dataPubblicazione.toDate() : f.dataPubblicazione;
+    const dPub=f.dataPubblicazione.toDate ? f.dataPubblicazione.toDate() : f.data.dataPubblicazione;
     giorno.value=dPub.getDate();
     mese.value=dPub.getMonth()+1;
     anno.value=dPub.getFullYear();
