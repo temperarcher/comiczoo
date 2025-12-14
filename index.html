@@ -236,7 +236,11 @@ function stelleStato(stato){
     case "Fair": num=2; color="red"; break;
     case "Discreto": num=1; color="red"; break;
   }
-  return `<span style="color:${color}">${'⭐'.repeat(num)}</span>`;
+  let html = "";
+  for(let i=0;i<num;i++){
+    html += `<span style="color:${color};">⭐</span>`;
+  }
+  return html;
 }
 
 // ---- MOSTRA FUMETTI ----
@@ -327,7 +331,7 @@ window.modifica=function(id){
     serie.value=f.serie;
     editore.value=f.editore;
     codiceEditore.value=f.codiceEditore;
-    const dPub=f.dataPubblicazione.toDate ? f.dataPubblicazione.toDate() : f.dataPubblicazione;
+    const dPub=f.dataPubblicazione.toDate ? f.dataPubblicazione.toDate() : f.data.dataPubblicazione;
     giorno.value=dPub.getDate();
     mese.value=dPub.getMonth()+1;
     anno.value=dPub.getFullYear();
