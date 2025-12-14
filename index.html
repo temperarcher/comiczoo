@@ -131,7 +131,7 @@ auth.onAuthStateChanged(user=>{
   if(user){
     authDiv.style.display="none";
     appDiv.style.display="block";
-    loadFumetti();
+    loadFumettiRealtime(); // realtime listener
   } else {
     authDiv.style.display="block";
     appDiv.style.display="none";
@@ -156,57 +156,58 @@ async function salvaFumetto(){
   titolo.value=serie.value=editore.value=codice.value=giorno.value=mese.value=anno.value=copertina.value="";
   possesso.value="In mio possesso";
   stato.value="Mint";
-  loadFumetti();
 }
 
-/* CARICA FUMETTI */
-async function loadFumetti(){
+/* LISTA IN TEMPO REALE */
+function loadFumettiRealtime(){
+  const user = auth.currentUser;
+  if(!user) return;
+  db.collection("fumetti")
+    .where("uid","==",user.uid)
+    .onSnapshot(snap=>{
+      renderFumetti(snap);
+    });
+}
+
+/* RENDER FUMETTI */
+function renderFumetti(snap){
   const list=document.getElementById("list");
   list.innerHTML="";
-  try{
-    const snap=await db.collection("fumetti")
-                       .where("uid","==",auth.currentUser.uid)
-                       .orderBy("data","desc")
-                       .get();
-    const map={};
-    snap.forEach(doc=>{
-      const f=doc.data();
-      map[f.codice]=map[f.codice]||{};
-      map[f.codice][f.editore]=map[f.codice][f.editore]||{};
-      map[f.codice][f.editore][f.serie]=map[f.codice][f.editore][f.serie]||[];
-      map[f.codice][f.editore][f.serie].push(f);
-    });
-    // render
-    for(const c in map){
-      const cdiv=document.createElement("div");
-      cdiv.className="card";
-      cdiv.innerHTML=`<div class="collapse" onclick="toggle(this)">▶ ${c}</div><div class="content"></div>`;
-      const contentC=cdiv.querySelector(".content");
-      for(const e in map[c]){
-        const ediv=document.createElement("div");
-        ediv.innerHTML=`<div class="collapse" onclick="toggle(this)">▶ ${e}</div><div class="content"></div>`;
-        const contentE=ediv.querySelector(".content");
-        for(const s in map[c][e]){
-          const sdiv=document.createElement("div");
-          sdiv.innerHTML=`<div class="collapse" onclick="toggle(this)">▶ ${s}</div><div class="content"></div>`;
-          const contentS=sdiv.querySelector(".content");
-          map[c][e][s].sort((a,b)=>b.data-a.data).forEach(f=>{
-            contentS.innerHTML+=`
-            <div class="card">
-              <b>${f.titolo}</b><br>
-              ${stars(f.stato)} ${f.possesso}<br>
-              ${f.copertina?`<img src="${f.copertina}" class="${f.possesso==="Manca"?"gray":""}" onclick="popupImg.src=this.src;popup.style.display='flex'">`:""}
-            </div>`;
-          });
-          contentE.appendChild(sdiv);
-        }
-        contentC.appendChild(ediv);
+  const map={};
+  snap.forEach(doc=>{
+    const f=doc.data();
+    map[f.codice]=map[f.codice]||{};
+    map[f.codice][f.editore]=map[f.codice][f.editore]||{};
+    map[f.codice][f.editore][f.serie]=map[f.codice][f.editore][f.serie]||[];
+    map[f.codice][f.editore][f.serie].push(f);
+  });
+
+  for(const c in map){
+    const cdiv=document.createElement("div");
+    cdiv.className="card";
+    cdiv.innerHTML=`<div class="collapse" onclick="toggle(this)">▶ ${c}</div><div class="content"></div>`;
+    const contentC=cdiv.querySelector(".content");
+    for(const e in map[c]){
+      const ediv=document.createElement("div");
+      ediv.innerHTML=`<div class="collapse" onclick="toggle(this)">▶ ${e}</div><div class="content"></div>`;
+      const contentE=ediv.querySelector(".content");
+      for(const s in map[c][e]){
+        const sdiv=document.createElement("div");
+        sdiv.innerHTML=`<div class="collapse" onclick="toggle(this)">▶ ${s}</div><div class="content"></div>`;
+        const contentS=sdiv.querySelector(".content");
+        map[c][e][s].sort((a,b)=>b.data-a.data).forEach(f=>{
+          contentS.innerHTML+=`
+          <div class="card">
+            <b>${f.titolo}</b><br>
+            ${stars(f.stato)} ${f.possesso}<br>
+            ${f.copertina?`<img src="${f.copertina}" class="${f.possesso==="Manca"?"gray":""}" onclick="popupImg.src=this.src;popup.style.display='flex'">`:""}
+          </div>`;
+        });
+        contentE.appendChild(sdiv);
       }
-      list.appendChild(cdiv);
+      contentC.appendChild(ediv);
     }
-  }catch(e){
-    console.error(e);
-    list.innerHTML="⚠️ Errore nel caricamento fumetti. Controlla console.";
+    list.appendChild(cdiv);
   }
 }
 
@@ -248,7 +249,6 @@ function importCSV(){
         copertina: row[9]?row[9].replace(/"/g,""):""
       });
     }
-    loadFumetti();
   };
   reader.readAsText(file);
 }
