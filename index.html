@@ -10,37 +10,18 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background: #f4f6f8;
-  margin: 0;
-  padding: 20px;
-}
-h1, h2 { text-align: center; }
-.container { max-width: 900px; margin: auto; }
-.card {
-  background: white;
-  border-radius: 8px;
-  padding: 15px;
-  margin: 10px 0;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-input, select, button {
-  padding: 8px;
-  margin: 5px 0;
-  width: 100%;
-}
-button { cursor: pointer; }
-.stats { display: flex; gap: 10px; flex-wrap: wrap; }
-.stat {
-  background: #e8eef3;
-  padding: 10px;
-  border-radius: 6px;
-}
-.fumetto img { max-width: 100px; margin-top: 5px; }
-.badge { padding: 4px 8px; border-radius: 5px; color: white; font-size: 12px; }
-.letto { background: green; }
-.nonletto { background: orange; }
+body { font-family: Arial, sans-serif; background: #f4f6f8; margin:0; padding:20px;}
+h1,h2 { text-align:center; }
+.container { max-width:900px; margin:auto; }
+.card { background:white; border-radius:8px; padding:15px; margin:10px 0; box-shadow:0 2px 5px rgba(0,0,0,0.1);}
+input,select,button { padding:8px; margin:5px 0; width:100%; }
+button { cursor:pointer; }
+.stats { display:flex; gap:10px; flex-wrap:wrap;}
+.stat { background:#e8eef3; padding:10px; border-radius:6px;}
+.fumetto img { max-width:100px; margin-top:5px;}
+.badge { padding:4px 8px; border-radius:5px; color:white; font-size:12px;}
+.letto { background:green;}
+.nonletto { background:orange;}
 </style>
 </head>
 
@@ -54,13 +35,13 @@ button { cursor: pointer; }
   <h2>Login / Registrazione</h2>
   <input type="email" id="email" placeholder="Email">
   <input type="password" id="password" placeholder="Password">
-  <button onclick="signup()">Registrati</button>
-  <button onclick="login()">Accedi</button>
+  <button id="signupBtn">Registrati</button>
+  <button id="loginBtn">Accedi</button>
 </div>
 
 <!-- APP -->
 <div id="app" style="display:none;">
-  <button onclick="logout()">Logout</button>
+  <button id="logoutBtn">Logout</button>
 
   <div class="card">
     <h2>Aggiungi / Modifica fumetto</h2>
@@ -71,7 +52,7 @@ button { cursor: pointer; }
     <input id="editore" placeholder="Editore">
     <input id="copertina" placeholder="Link copertina">
     <label><input type="checkbox" id="letto"> Letto</label>
-    <button id="salvaBtn" onclick="salvaFumetto()">Salva</button>
+    <button id="salvaBtn">Salva</button>
   </div>
 
   <div class="card">
@@ -81,10 +62,9 @@ button { cursor: pointer; }
 
   <div class="card">
     <h2>🔍 Ricerca</h2>
-    <input id="ricerca" placeholder="Titolo o autore" oninput="mostraFumetti()">
-
+    <input id="ricerca" placeholder="Titolo o autore">
     <h2>↕️ Ordinamento</h2>
-    <select id="ordinamento" onchange="mostraFumetti()">
+    <select id="ordinamento">
       <option value="anno_asc">Anno ↑</option>
       <option value="anno_desc">Anno ↓</option>
       <option value="serie_asc">Serie A → Z</option>
@@ -97,6 +77,8 @@ button { cursor: pointer; }
 </div>
 
 <script>
+window.onload = function(){
+
 // 🔥 FIREBASE CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",
@@ -111,9 +93,15 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// ⚡ Riferimenti DOM
+// DOM
 const authDiv = document.getElementById("auth");
 const appDiv = document.getElementById("app");
+const email = document.getElementById("email");
+const password = document.getElementById("password");
+const signupBtn = document.getElementById("signupBtn");
+const loginBtn = document.getElementById("loginBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+
 const salvaBtn = document.getElementById("salvaBtn");
 const titolo = document.getElementById("titolo");
 const autore = document.getElementById("autore");
@@ -129,24 +117,25 @@ const statistiche = document.getElementById("statistiche");
 
 let editId = null;
 
-// AUTH FUNCTIONS
-function signup() { auth.createUserWithEmailAndPassword(email.value, password.value).catch(e => alert(e.message)); }
-function login() { auth.signInWithEmailAndPassword(email.value, password.value).catch(e => alert(e.message)); }
-function logout() { auth.signOut(); }
+// AUTH
+signupBtn.onclick = ()=>{ auth.createUserWithEmailAndPassword(email.value,password.value).catch(e=>alert(e.message)); };
+loginBtn.onclick = ()=>{ auth.signInWithEmailAndPassword(email.value,password.value).catch(e=>alert(e.message)); };
+logoutBtn.onclick = ()=>{ auth.signOut(); };
 
-auth.onAuthStateChanged(user => {
-  if (user) {
-    authDiv.style.display = "none";
-    appDiv.style.display = "block";
+// LOGIN / LOGOUT UI
+auth.onAuthStateChanged(user=>{
+  if(user){
+    authDiv.style.display="none";
+    appDiv.style.display="block";
     mostraFumetti();
-  } else {
-    authDiv.style.display = "block";
-    appDiv.style.display = "none";
+  }else{
+    authDiv.style.display="block";
+    appDiv.style.display="none";
   }
 });
 
 // SALVA / AGGIORNA
-function salvaFumetto() {
+salvaBtn.onclick = function(){
   const data = {
     userId: auth.currentUser.uid,
     titolo: titolo.value,
@@ -158,52 +147,48 @@ function salvaFumetto() {
     letto: letto.checked
   };
 
-  if (editId) {
+  if(editId){
     db.collection("fumetti").doc(editId).set(data);
-    editId = null;
-    salvaBtn.textContent = "Salva";
-  } else {
+    editId=null;
+    salvaBtn.textContent="Salva";
+  }else{
     db.collection("fumetti").add(data);
   }
 
-  // reset form
-  [titolo, autore, serie, anno, editore, copertina].forEach(i => i.value="");
-  letto.checked = false;
-}
+  [titolo,autore,serie,anno,editore,copertina].forEach(i=>i.value="");
+  letto.checked=false;
+};
 
 // MOSTRA + ORDINA
-function mostraFumetti() {
+function mostraFumetti(){
+  if(!auth.currentUser) return;
   const search = ricerca.value.toLowerCase();
   const ordine = ordinamento.value;
-
   let query = db.collection("fumetti").where("userId","==",auth.currentUser.uid);
 
-  if (ordine==="anno_asc") query = query.orderBy("anno","asc");
-  if (ordine==="anno_desc") query = query.orderBy("anno","desc");
-  if (ordine==="serie_asc") query = query.orderBy("serie","asc");
-  if (ordine==="serie_desc") query = query.orderBy("serie","desc");
+  if(ordine==="anno_asc") query=query.orderBy("anno","asc");
+  if(ordine==="anno_desc") query=query.orderBy("anno","desc");
+  if(ordine==="serie_asc") query=query.orderBy("serie","asc");
+  if(ordine==="serie_desc") query=query.orderBy("serie","desc");
 
-  query.onSnapshot(snap => {
-    fumetti.innerHTML = "";
-    let tot=0, letti=0, nonletti=0, editori={};
+  query.get().then(snap=>{
+    fumetti.innerHTML="";
+    let tot=0,letti=0,nonletti=0,editori={};
 
-    snap.forEach(doc => {
-      const f = doc.data();
-      if(!f.titolo.toLowerCase().includes(search) && !f.autore.toLowerCase().includes(search)) return;
-
+    snap.forEach(doc=>{
+      const f=doc.data();
+      if(!f.titolo.toLowerCase().includes(search)&&!f.autore.toLowerCase().includes(search)) return;
       tot++;
-      f.letto ? letti++ : nonletti++;
-      editori[f.editore] = (editori[f.editore]||0)+1;
+      f.letto?letti++:nonletti++;
+      editori[f.editore]=(editori[f.editore]||0)+1;
 
-      fumetti.innerHTML += `
+      fumetti.innerHTML+=`
       <div class="card fumetto">
         <h3>${f.titolo}</h3>
         <p>${f.autore} • ${f.anno}</p>
-        <p><strong>Serie:</strong> ${f.serie || "-"}</p>
+        <p><strong>Serie:</strong> ${f.serie||"-"}</p>
         <p><strong>Editore:</strong> ${f.editore}</p>
-        <span class="badge ${f.letto?'letto':'nonletto'}">
-          ${f.letto?'Letto':'Non letto'}
-        </span><br>
+        <span class="badge ${f.letto?'letto':'nonletto'}">${f.letto?'Letto':'Non letto'}</span><br>
         ${f.copertina?`<img src="${f.copertina}">`:""}
         <br>
         <button onclick="modifica('${doc.id}')">Modifica</button>
@@ -212,34 +197,38 @@ function mostraFumetti() {
     });
 
     // statistiche
-    let html = `<div class="stat">📚 Totale: ${tot}</div>
-                <div class="stat">✅ Letti: ${letti}</div>
-                <div class="stat">⏳ Non letti: ${nonletti}</div>`;
-    for(let e in editori) html += `<div class="stat">📦 ${e}: ${editori[e]}</div>`;
-    statistiche.innerHTML = html;
+    let html=`<div class="stat">📚 Totale: ${tot}</div>
+              <div class="stat">✅ Letti: ${letti}</div>
+              <div class="stat">⏳ Non letti: ${nonletti}</div>`;
+    for(let e in editori) html+=`<div class="stat">📦 ${e}: ${editori[e]}</div>`;
+    statistiche.innerHTML=html;
   });
 }
 
 // ELIMINA
-function elimina(id) {
-  if(confirm("Eliminare questo fumetto?")) db.collection("fumetti").doc(id).delete();
-}
+window.elimina = function(id){ if(confirm("Eliminare questo fumetto?")) db.collection("fumetti").doc(id).delete(); };
 
 // MODIFICA
-function modifica(id) {
-  db.collection("fumetti").doc(id).get().then(d => {
-    const f = d.data();
-    titolo.value = f.titolo;
-    autore.value = f.autore;
-    serie.value = f.serie;
-    anno.value = f.anno;
-    editore.value = f.editore;
-    copertina.value = f.copertina;
-    letto.checked = f.letto;
-    editId = id;
-    salvaBtn.textContent = "Aggiorna";
+window.modifica = function(id){
+  db.collection("fumetti").doc(id).get().then(d=>{
+    const f=d.data();
+    titolo.value=f.titolo;
+    autore.value=f.autore;
+    serie.value=f.serie;
+    anno.value=f.anno;
+    editore.value=f.editore;
+    copertina.value=f.copertina;
+    letto.checked=f.letto;
+    editId=id;
+    salvaBtn.textContent="Aggiorna";
   });
-}
+};
+
+// Ricerca / Ordinamento
+ricerca.oninput = mostraFumetti;
+ordinamento.onchange = mostraFumetti;
+
+}; // window.onload
 </script>
 </body>
 </html>
