@@ -84,7 +84,7 @@ async function salvaFumetto(){
     await db.collection("fumetti").add({
       uid: auth.currentUser.uid,
       titolo: t,
-      created: new Date()
+      created: firebase.firestore.FieldValue.serverTimestamp()
     });
     titolo.value="";
     loadFumetti();
@@ -95,16 +95,25 @@ async function salvaFumetto(){
 async function loadFumetti(){
   const list=document.getElementById("list");
   list.innerHTML="";
-  const snap=await db.collection("fumetti")
-                      .where("uid","==",auth.currentUser.uid)
-                      .orderBy("created","desc")
-                      .get();
-  snap.forEach(doc=>{
-    const f=doc.data();
-    const div=document.createElement("div");
-    div.textContent=f.titolo + " (" + f.created.toDate().toLocaleString() + ")";
-    list.appendChild(div);
-  });
+  try{
+    const snap=await db.collection("fumetti")
+                        .where("uid","==",auth.currentUser.uid)
+                        .orderBy("created","desc")
+                        .get();
+    snap.forEach(doc=>{
+      const f=doc.data();
+      const d = f.created ? f.created.toDate().toLocaleString() : "-";
+      const div=document.createElement("div");
+      div.textContent = f.titolo + " (" + d + ")";
+      list.appendChild(div);
+    });
+  }catch(e){
+    if(e.code==="failed-precondition"){
+      console.warn("Firestore richiede un indice. Segui il link in console per crearlo.");
+      console.error(e.message);
+      list.innerHTML = "⚠️ Firestore richiede un indice. Controlla console.";
+    } else alert(e.message);
+  }
 }
 </script>
 
