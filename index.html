@@ -2,10 +2,9 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>ComicZoo – Collezione</title>
+<title>ComicZoo</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -15,22 +14,21 @@ body{font-family:Arial;background:#f4f6f8;padding:20px}
 .dark{background:#1e1e1e;color:#eee}
 .card{background:#fff;padding:15px;border-radius:8px;margin:10px 0}
 .dark .card{background:#2a2a2a}
-button,input,select{padding:8px;margin:4px 0;width:100%}
+input,select,button{width:100%;padding:8px;margin:4px 0}
 .collapse{cursor:pointer;font-weight:bold}
 .content{display:none;margin-left:15px}
 img{max-width:80px;border-radius:4px;cursor:pointer}
 .gray{filter:grayscale(100%)}
-.stat{display:inline-block;margin:5px;padding:6px;background:#ddd;border-radius:6px}
-.dark .stat{background:#444}
-#popup{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:none;justify-content:center;align-items:center}
-#popupImg{max-width:90%;max-height:90%;border-radius:8px}
+#popup{position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center}
+#popup img{max-width:90%;max-height:90%}
 </style>
 </head>
+
 <body>
 
 <h1>📚 ComicZoo</h1>
 
-<!-- LOGIN -->
+<!-- AUTH -->
 <div id="auth" class="card">
 <input id="email" placeholder="Email">
 <input id="password" type="password" placeholder="Password">
@@ -43,22 +41,25 @@ img{max-width:80px;border-radius:4px;cursor:pointer}
 <button onclick="logout()">Logout</button>
 <button onclick="toggleDark()">🌙 Dark</button>
 
-<!-- Form Nuovo Fumetto -->
 <div class="card">
 <div class="collapse" onclick="toggle(this)">➕ Nuovo fumetto</div>
 <div class="content">
 <input id="titolo" placeholder="Titolo">
 <input id="serie" placeholder="Serie">
-<input id="editore" placeholder="Editore">
-<input id="codice" placeholder="Codice Editore">
+<input id="editore" placeholder="Casa editrice">
+<input id="codice" placeholder="Codice editore">
+
 <input id="giorno" placeholder="Giorno">
 <input id="mese" placeholder="Mese">
 <input id="anno" placeholder="Anno">
+
 <input id="copertina" placeholder="URL copertina">
+
 <select id="possesso" onchange="toggleStato()">
 <option>In mio possesso</option>
 <option>Manca</option>
 </select>
+
 <select id="stato">
 <option>Mint</option>
 <option>Near Mint</option>
@@ -66,43 +67,41 @@ img{max-width:80px;border-radius:4px;cursor:pointer}
 <option>Fair</option>
 <option>Discreto</option>
 </select>
-<button onclick="salvaFumetto()">Salva</button>
+
+<button onclick="salva()">Salva</button>
 </div>
 </div>
 
-<h3>Lista fumetti:</h3>
-<div id="list"></div>
+<h3>Collezione</h3>
+<div id="lista"></div>
+</div>
 
 <div id="popup" onclick="this.style.display='none'">
 <img id="popupImg">
 </div>
 
 <script>
-/* 🔥 FIREBASE CONFIG */
-const firebaseConfig = {
+/* FIREBASE */
+firebase.initializeApp({
   apiKey: "AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",
   authDomain: "comiczoo.firebaseapp.com",
   projectId: "comiczoo"
-};
-firebase.initializeApp(firebaseConfig);
+});
 const auth=firebase.auth();
 const db=firebase.firestore();
 
-/* LOGIN / REGISTER / LOGOUT */
-function login(){auth.signInWithEmailAndPassword(email.value,password.value).catch(e=>alert(e.message))}
-function register(){auth.createUserWithEmailAndPassword(email.value,password.value).catch(e=>alert(e.message))}
+/* AUTH */
+function login(){auth.signInWithEmailAndPassword(email.value,password.value)}
+function register(){auth.createUserWithEmailAndPassword(email.value,password.value)}
 function logout(){auth.signOut()}
 
-/* DARK MODE */
+/* UI */
+function toggle(el){el.nextElementSibling.style.display=
+  el.nextElementSibling.style.display==="block"?"none":"block"}
 function toggleDark(){document.body.classList.toggle("dark")}
+function toggleStato(){stato.disabled=possesso.value==="Manca"}
 
-/* COLLAPSIBILE */
-function toggle(el){el.nextElementSibling.style.display = el.nextElementSibling.style.display==="block"?"none":"block"}
-
-/* STATO DISABLED SE NON POSSIEDO */
-function toggleStato(){stato.disabled = possesso.value==="Manca"}
-
-/* STELLE PER STATO */
+/* STELLE */
 function stars(s){
   if(!s) return "";
   const m={Mint:[5,"gold"],"Near Mint":[4,"white"],Good:[3,"white"],Fair:[2,"red"],Discreto:[1,"red"]};
@@ -110,92 +109,75 @@ function stars(s){
 }
 
 /* AUTH STATE */
-auth.onAuthStateChanged(user=>{
-  const authDiv=document.getElementById("auth");
-  const appDiv=document.getElementById("app");
-  if(!authDiv || !appDiv){console.error("DIV mancanti"); return;}
-  if(user){
-    authDiv.style.display="none";
-    appDiv.style.display="block";
-    loadFumetti();
-  } else {
-    authDiv.style.display="block";
-    appDiv.style.display="none";
-  }
+auth.onAuthStateChanged(u=>{
+  auth.style.display=u?"none":"block";
+  app.style.display=u?"block":"none";
+  if(u) load();
 });
 
-/* SALVA FUMETTO */
-async function salvaFumetto(){
-  const d=new Date(anno.value, mese.value-1, giorno.value);
+/* SALVA */
+async function salva(){
+  const d=new Date(anno.value,mese.value-1,giorno.value);
   await db.collection("fumetti").add({
-    uid: auth.currentUser.uid,
-    titolo: titolo.value,
-    serie: serie.value,
-    editore: editore.value,
-    codice: codice.value,
-    data: d,
-    copertina: copertina.value,
-    possesso: possesso.value,
-    stato: possesso.value==="In mio possesso"?stato.value:null
+    uid:auth.currentUser.uid,
+    titolo:titolo.value,
+    serie:serie.value,
+    editore:editore.value,
+    codice:codice.value,
+    data:d,
+    copertina:copertina.value,
+    possesso:possesso.value,
+    stato:possesso.value==="In mio possesso"?stato.value:null
   });
-  // reset
-  titolo.value=serie.value=editore.value=codice.value=giorno.value=mese.value=anno.value=copertina.value="";
-  possesso.value="In mio possesso";
-  stato.value="Mint";
-  loadFumetti();
+  load();
 }
 
-/* CARICA FUMETTI */
-async function loadFumetti(){
-  const list=document.getElementById("list");
-  list.innerHTML="";
-  try{
-    const snap=await db.collection("fumetti")
-                       .where("uid","==",auth.currentUser.uid)
-                       .orderBy("data","desc")
-                       .get();
-    const map={};
-    snap.forEach(doc=>{
-      const f=doc.data();
-      map[f.codice]=map[f.codice]||{};
-      map[f.codice][f.editore]=map[f.codice][f.editore]||{};
-      map[f.codice][f.editore][f.serie]=map[f.codice][f.editore][f.serie]||[];
-      map[f.codice][f.editore][f.serie].push(f);
-    });
-    // render
-    for(const c in map){
-      const cdiv=document.createElement("div");
-      cdiv.className="card";
-      cdiv.innerHTML=`<div class="collapse" onclick="toggle(this)">▶ ${c}</div><div class="content"></div>`;
-      const contentC=cdiv.querySelector(".content");
-      for(const e in map[c]){
-        const ediv=document.createElement("div");
-        ediv.innerHTML=`<div class="collapse" onclick="toggle(this)">▶ ${e}</div><div class="content"></div>`;
-        const contentE=ediv.querySelector(".content");
-        for(const s in map[c][e]){
-          const sdiv=document.createElement("div");
-          sdiv.innerHTML=`<div class="collapse" onclick="toggle(this)">▶ ${s}</div><div class="content"></div>`;
-          const contentS=sdiv.querySelector(".content");
-          map[c][e][s].sort((a,b)=>b.data-a.data).forEach(f=>{
-            contentS.innerHTML+=`
-            <div class="card">
-              <b>${f.titolo}</b><br>
-              ${stars(f.stato)} ${f.possesso}<br>
-              ${f.copertina?`<img src="${f.copertina}" class="${f.possesso==="Manca"?"gray":""}" onclick="popupImg.src=this.src;popup.style.display='flex'">`:""}
-            </div>`;
-          });
-          contentE.appendChild(sdiv);
-        }
-        contentC.appendChild(ediv);
+/* LOAD */
+async function load(){
+  lista.innerHTML="";
+  const snap=await db.collection("fumetti")
+    .where("uid","==",auth.currentUser.uid)
+    .orderBy("data","desc")
+    .get();
+
+  const map={};
+  snap.forEach(d=>{
+    const f=d.data();
+    map[f.codice]??={};
+    map[f.codice][f.editore]??={};
+    map[f.codice][f.editore][f.serie]??=[];
+    map[f.codice][f.editore][f.serie].push(f);
+  });
+
+  for(const c in map){
+    const cdiv=box(c);
+    for(const e in map[c]){
+      const ediv=box(e);
+      for(const s in map[c][e]){
+        const sdiv=box(s);
+        map[c][e][s].forEach(f=>{
+          sdiv.querySelector(".content").innerHTML+=`
+          <div class="card">
+            <b>${f.titolo}</b><br>
+            ${stars(f.stato)} ${f.possesso}<br>
+            ${f.copertina?`<img src="${f.copertina}" class="${f.possesso==="Manca"?"gray":""}"
+            onclick="popupImg.src=this.src;popup.style.display='flex'">`:""}
+          </div>`;
+        });
+        ediv.querySelector(".content").appendChild(sdiv);
       }
-      list.appendChild(cdiv);
+      cdiv.querySelector(".content").appendChild(ediv);
     }
-  }catch(e){
-    console.error(e);
-    list.innerHTML="⚠️ Errore nel caricamento fumetti. Controlla console.";
+    lista.appendChild(cdiv);
   }
 }
-</script>
 
+function box(t){
+  const d=document.createElement("div");
+  d.className="card";
+  d.innerHTML=`<div class="collapse" onclick="toggle(this)">▶ ${t}</div><div class="content"></div>`;
+  return d;
+}
+</script>
 </body>
 </html>
