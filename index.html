@@ -176,7 +176,10 @@ auth.onAuthStateChanged(user=>{
 });
 
 // DARK MODE
-darkBtn.onclick = ()=>{ document.body.classList.toggle("dark"); };
+darkBtn.onclick = ()=>{ 
+  document.body.classList.toggle("dark"); 
+  aggiornaStelleDarkMode();
+};
 
 // COLLAPSIBLE
 window.toggleCollapse=function(id){
@@ -223,18 +226,18 @@ salvaBtn.onclick = async function(){
   }
 };
 
-// STELLINE COLORATE (DOM separati)
+// CREA STELLE COLORATE
 function creaStelle(stato){
   const span = document.createElement("span");
   if(!stato) return span;
   const map = {
     "Mint": {num:5,color:"gold"},
-    "Near Mint": {num:4,color:"white"},
-    "Good": {num:3,color:"white"},
+    "Near Mint": {num:4,color:"#ccc"},   
+    "Good": {num:3,color:"#ccc"},       
     "Fair": {num:2,color:"red"},
     "Discreto": {num:1,color:"red"}
   };
-  const s = map[stato] || {num:0,color:"white"};
+  const s = map[stato] || {num:0,color:"#ccc"};
   for(let i=0;i<s.num;i++){
     const star = document.createElement("span");
     star.textContent = "⭐";
@@ -242,6 +245,14 @@ function creaStelle(stato){
     span.appendChild(star);
   }
   return span;
+}
+
+// AGGIORNA COLORI STELLE PER DARK MODE
+function aggiornaStelleDarkMode(){
+  document.querySelectorAll(".fumetto span").forEach(s=>{
+    if(s.style.color === "#ccc" && document.body.classList.contains("dark")) s.style.color = "white";
+    else if(s.style.color === "white" && !document.body.classList.contains("dark")) s.style.color = "#ccc";
+  });
 }
 
 // MOSTRA FUMETTI
@@ -334,12 +345,6 @@ function mostraFumetti(){
         }
       }
     }
-
-    // STATISTICHE
-    let html=`<div class="stat">📚 Totale: ${tot}</div>`;
-    for(let st in statiCount) html+=`<div class="stat"></div>`;
-    for(let p in possessoCount) html+=`<div class="stat">${p}: ${possessoCount[p]}</div>`;
-    statistiche.innerHTML=html;
   });
 }
 
