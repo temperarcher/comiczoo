@@ -2,215 +2,92 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>ComicZoo</title>
+<title>ComicZoo – Login</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
-body{font-family:Arial;background:#f4f6f8;margin:0;padding:20px}
-.dark{background:#1e1e1e;color:#eee}
-.card{background:#fff;padding:15px;border-radius:8px;margin:10px 0}
-.dark .card{background:#2a2a2a}
-button,input,select{padding:8px;margin:4px 0;width:100%}
-.collapse{cursor:pointer;font-weight:bold}
-.content{display:none;margin-left:15px}
-img{max-width:100px;border-radius:4px;cursor:pointer}
-.gray{filter:grayscale(100%)}
-#popup{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);align-items:center;justify-content:center}
-#popup img{max-width:90%}
-.stat{display:inline-block;margin:5px;padding:6px;background:#ddd;border-radius:6px}
-.dark .stat{background:#444}
+body { font-family: Arial; background:#f4f6f8; padding:40px; }
+.card { background:white; padding:20px; max-width:400px; margin:auto; border-radius:8px; }
+input, button { width:100%; padding:10px; margin:6px 0; }
+#app { display:none; }
 </style>
 </head>
 
 <body>
-<h1>📚 ComicZoo</h1>
 
+<!-- LOGIN -->
 <div id="auth" class="card">
-<input id="email" placeholder="Email">
-<input id="password" type="password" placeholder="Password">
-<button onclick="login()">Login</button>
-<button onclick="register()">Registrati</button>
+  <h2>Login ComicZoo</h2>
+  <input id="email" type="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Password">
+  <button onclick="login()">Login</button>
+  <button onclick="register()">Registrati</button>
 </div>
 
-<div id="app" style="display:none">
-<button onclick="logout()">Logout</button>
-<button onclick="toggleDark()">🌙 Dark</button>
-<button onclick="exportCSV()">💾 Export CSV</button>
-
-<div class="card">
-<div class="collapse" onclick="toggle(this)">🔍 Ricerca</div>
-<div class="content">
-<input id="search" placeholder="Titolo / Serie / Editore">
-</div>
-</div>
-
-<div class="card">
-<div class="collapse" onclick="toggle(this)">📊 Statistiche</div>
-<div class="content" id="stats"></div>
-</div>
-
-<div class="card">
-<div class="collapse" onclick="toggle(this)">➕ Nuovo fumetto</div>
-<div class="content">
-<input id="titolo" placeholder="Titolo">
-<input id="serie" placeholder="Serie">
-<input id="editore" placeholder="Editore">
-<input id="codice" placeholder="Codice Editore">
-<input id="giorno" placeholder="Giorno">
-<input id="mese" placeholder="Mese">
-<input id="anno" placeholder="Anno">
-<input id="copertina" placeholder="URL copertina">
-<select id="possesso" onchange="toggleStato()">
-<option>In mio possesso</option>
-<option>Manca</option>
-</select>
-<select id="stato">
-<option>Mint</option>
-<option>Near Mint</option>
-<option>Good</option>
-<option>Fair</option>
-<option>Discreto</option>
-</select>
-<button onclick="salva()">Salva</button>
-</div>
-</div>
-
-<div class="card">
-<div class="collapse" onclick="toggle(this)">📥 Import CSV</div>
-<div class="content">
-<input type="file" id="csv">
-<button onclick="importCSV()">Importa</button>
-</div>
-</div>
-
-<div id="list"></div>
-</div>
-
-<div id="popup" onclick="this.style.display='none'">
-<img id="popupImg">
+<!-- APP -->
+<div id="app" class="card">
+  <h2>✅ Login riuscito</h2>
+  <p>Benvenuto in ComicZoo</p>
+  <button onclick="logout()">Logout</button>
 </div>
 
 <script>
-const firebaseConfig={
- apiKey:"AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",
- authDomain:"comiczoo.firebaseapp.com",
- projectId:"comiczoo"
+/* 🔥 FIREBASE CONFIG */
+const firebaseConfig = {
+  apiKey: "AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",
+  authDomain: "comiczoo.firebaseapp.com",
+  projectId: "comiczoo"
 };
 firebase.initializeApp(firebaseConfig);
-const auth=firebase.auth();
-const db=firebase.firestore();
 
-function login(){auth.signInWithEmailAndPassword(email.value,password.value)}
-function register(){auth.createUserWithEmailAndPassword(email.value,password.value)}
-function logout(){auth.signOut()}
-function toggleDark(){document.body.classList.toggle("dark")}
-function toggle(el){el.nextElementSibling.style.display=el.nextElementSibling.style.display?"":"block"}
-function toggleStato(){stato.disabled=possesso.value==="Manca"}
+const auth = firebase.auth();
 
-auth.onAuthStateChanged(u=>{
- auth.style.display=u?"none":"block";
- app.style.display=u?"block":"none";
- if(u) load();
+/* LOGIN */
+function login(){
+  auth.signInWithEmailAndPassword(
+    document.getElementById("email").value,
+    document.getElementById("password").value
+  ).catch(e => alert(e.message));
+}
+
+/* REGISTER */
+function register(){
+  auth.createUserWithEmailAndPassword(
+    document.getElementById("email").value,
+    document.getElementById("password").value
+  ).catch(e => alert(e.message));
+}
+
+/* LOGOUT */
+function logout(){
+  auth.signOut();
+}
+
+/* AUTH STATE */
+auth.onAuthStateChanged(user => {
+  const authDiv = document.getElementById("auth");
+  const appDiv  = document.getElementById("app");
+
+  if (!authDiv || !appDiv) {
+    console.error("DIV auth o app non trovati");
+    return;
+  }
+
+  if (user) {
+    authDiv.style.display = "none";
+    appDiv.style.display  = "block";
+    console.log("LOGGATO:", user.email);
+  } else {
+    authDiv.style.display = "block";
+    appDiv.style.display  = "none";
+    console.log("NON loggato");
+  }
 });
-
-function stars(s){
- if(!s) return "";
- const m={Mint:[5,"gold"],"Near Mint":[4,"white"],Good:[3,"white"],Fair:[2,"red"],Discreto:[1,"red"]};
- return `<span style="color:${m[s][1]}">${"⭐".repeat(m[s][0])}</span>`;
-}
-
-async function salva(){
- const d=new Date(anno.value,mese.value-1,giorno.value);
- await db.collection("fumetti").add({
-  uid:auth.currentUser.uid,
-  titolo:titolo.value,
-  serie:serie.value,
-  editore:editore.value,
-  codice:codice.value,
-  data:d,
-  copertina:copertina.value,
-  possesso:possesso.value,
-  stato:possesso.value==="In mio possesso"?stato.value:null
- });
- load();
-}
-
-async function load(){
- const q=await db.collection("fumetti").where("uid","==",auth.currentUser.uid).get();
- const map={}; let tot=0;
- list.innerHTML=""; stats.innerHTML="";
- q.forEach(doc=>{
-  const f=doc.data(); tot++;
-  map[f.codice]=map[f.codice]||{};
-  map[f.codice][f.editore]=map[f.codice][f.editore]||{};
-  map[f.codice][f.editore][f.serie]=map[f.codice][f.editore][f.serie]||[];
-  map[f.codice][f.editore][f.serie].push(f);
- });
- stats.innerHTML=`<div class="stat">Totale: ${tot}</div>`;
- for(const c in map){
-  list.innerHTML+=`<div class="card"><div class="collapse" onclick="toggle(this)">▶ ${c}</div><div class="content"></div></div>`;
-  const cdiv=list.lastChild.querySelector(".content");
-  for(const e in map[c]){
-   cdiv.innerHTML+=`<div class="collapse" onclick="toggle(this)">▶ ${e}</div><div class="content"></div>`;
-   const ediv=cdiv.lastChild;
-   for(const s in map[c][e]){
-    ediv.innerHTML+=`<div class="collapse" onclick="toggle(this)">▶ ${s}</div><div class="content"></div>`;
-    const sdiv=ediv.lastChild;
-    map[c][e][s].sort((a,b)=>b.data-a.data).forEach(f=>{
-     sdiv.innerHTML+=`
-     <div class="card">
-     <b>${f.titolo}</b><br>
-     ${stars(f.stato)} ${f.possesso}<br>
-     ${f.copertina?`<img src="${f.copertina}" class="${f.possesso==="Manca"?"gray":""}" onclick="popupImg.src=this.src;popup.style.display='flex'">`:""}
-     </div>`;
-    });
-   }
-  }
- }
-}
-
-function exportCSV(){
- db.collection("fumetti").where("uid","==",auth.currentUser.uid).get().then(q=>{
-  let c="Titolo,Serie,Editore,Codice,Giorno,Mese,Anno,Possesso,Stato,Copertina\n";
-  q.forEach(d=>{
-   const f=d.data(),dt=f.data.toDate();
-   c+=`"${f.titolo}","${f.serie}","${f.editore}","${f.codice}",${dt.getDate()},${dt.getMonth()+1},${dt.getFullYear()},"${f.possesso}","${f.stato||""}","${f.copertina}"\n`;
-  });
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(new Blob([c]));
-  a.download="ComicZoo.csv"; a.click();
- });
-}
-
-function importCSV(){
- const r=new FileReader();
- r.onload=async e=>{
-  const l=e.target.result.split("\n");
-  const h=l[0].split(",");
-  for(let i=1;i<l.length;i++){
-   const v=l[i].split(",");
-   if(!v[0]) continue;
-   const d=new Date(v[6],v[5]-1,v[4]);
-   await db.collection("fumetti").add({
-    uid:auth.currentUser.uid,
-    titolo:v[0],
-    serie:v[1],
-    editore:v[2],
-    codice:v[3],
-    data:d,
-    possesso:v[7],
-    stato:v[7]==="In mio possesso"?v[8]:null,
-    copertina:v[9]||""
-   });
-  }
-  load();
- };
- r.readAsText(csv.files[0]);
-}
 </script>
+
 </body>
 </html>
