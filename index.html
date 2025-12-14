@@ -159,7 +159,7 @@ auth.onAuthStateChanged(user=>{
 // DARK MODE
 darkBtn.onclick = ()=>{ document.body.classList.toggle("dark"); };
 
-// SALVA / AGGIORNA CON CONTROLLO ERRORI
+// SALVA / AGGIORNA
 salvaBtn.onclick = async function(){
   if(!auth.currentUser){ alert("Non sei loggato"); return; }
   if(!titolo.value || !autore.value){ alert("Titolo e Autore obbligatori"); return; }
