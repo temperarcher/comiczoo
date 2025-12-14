@@ -31,26 +31,14 @@ input, select, button {
   width: 100%;
 }
 button { cursor: pointer; }
-.stats {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
+.stats { display: flex; gap: 10px; flex-wrap: wrap; }
 .stat {
   background: #e8eef3;
   padding: 10px;
   border-radius: 6px;
 }
-.fumetto img {
-  max-width: 100px;
-  margin-top: 5px;
-}
-.badge {
-  padding: 4px 8px;
-  border-radius: 5px;
-  color: white;
-  font-size: 12px;
-}
+.fumetto img { max-width: 100px; margin-top: 5px; }
+.badge { padding: 4px 8px; border-radius: 5px; color: white; font-size: 12px; }
 .letto { background: green; }
 .nonletto { background: orange; }
 </style>
@@ -109,7 +97,7 @@ button { cursor: pointer; }
 </div>
 
 <script>
-// 🔥 FIREBASE CONFIG (TUO)
+// 🔥 FIREBASE CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",
   authDomain: "comiczoo.firebaseapp.com",
@@ -123,26 +111,41 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+// ⚡ Riferimenti DOM
+const authDiv = document.getElementById("auth");
+const appDiv = document.getElementById("app");
+const salvaBtn = document.getElementById("salvaBtn");
+const titolo = document.getElementById("titolo");
+const autore = document.getElementById("autore");
+const serie = document.getElementById("serie");
+const anno = document.getElementById("anno");
+const editore = document.getElementById("editore");
+const copertina = document.getElementById("copertina");
+const letto = document.getElementById("letto");
+const ricerca = document.getElementById("ricerca");
+const ordinamento = document.getElementById("ordinamento");
+const fumetti = document.getElementById("fumetti");
+const statistiche = document.getElementById("statistiche");
+
 let editId = null;
 
-// AUTH
-function signup() {
-  auth.createUserWithEmailAndPassword(email.value, password.value)
-    .catch(e => alert(e.message));
-}
-function login() {
-  auth.signInWithEmailAndPassword(email.value, password.value)
-    .catch(e => alert(e.message));
-}
+// AUTH FUNCTIONS
+function signup() { auth.createUserWithEmailAndPassword(email.value, password.value).catch(e => alert(e.message)); }
+function login() { auth.signInWithEmailAndPassword(email.value, password.value).catch(e => alert(e.message)); }
 function logout() { auth.signOut(); }
 
 auth.onAuthStateChanged(user => {
-  auth.style.display = user ? "none" : "block";
-  app.style.display = user ? "block" : "none";
-  if (user) mostraFumetti();
+  if (user) {
+    authDiv.style.display = "none";
+    appDiv.style.display = "block";
+    mostraFumetti();
+  } else {
+    authDiv.style.display = "block";
+    appDiv.style.display = "none";
+  }
 });
 
-// SALVA
+// SALVA / AGGIORNA
 function salvaFumetto() {
   const data = {
     userId: auth.currentUser.uid,
@@ -162,9 +165,10 @@ function salvaFumetto() {
   } else {
     db.collection("fumetti").add(data);
   }
-  document.querySelectorAll("input").forEach(i =>
-    i.type === "checkbox" ? i.checked = false : i.value = ""
-  );
+
+  // reset form
+  [titolo, autore, serie, anno, editore, copertina].forEach(i => i.value="");
+  letto.checked = false;
 }
 
 // MOSTRA + ORDINA
@@ -172,13 +176,12 @@ function mostraFumetti() {
   const search = ricerca.value.toLowerCase();
   const ordine = ordinamento.value;
 
-  let query = db.collection("fumetti")
-    .where("userId", "==", auth.currentUser.uid);
+  let query = db.collection("fumetti").where("userId","==",auth.currentUser.uid);
 
-  if (ordine === "anno_asc") query = query.orderBy("anno", "asc");
-  if (ordine === "anno_desc") query = query.orderBy("anno", "desc");
-  if (ordine === "serie_asc") query = query.orderBy("serie", "asc");
-  if (ordine === "serie_desc") query = query.orderBy("serie", "desc");
+  if (ordine==="anno_asc") query = query.orderBy("anno","asc");
+  if (ordine==="anno_desc") query = query.orderBy("anno","desc");
+  if (ordine==="serie_asc") query = query.orderBy("serie","asc");
+  if (ordine==="serie_desc") query = query.orderBy("serie","desc");
 
   query.onSnapshot(snap => {
     fumetti.innerHTML = "";
@@ -186,12 +189,11 @@ function mostraFumetti() {
 
     snap.forEach(doc => {
       const f = doc.data();
-      if (!f.titolo.toLowerCase().includes(search) &&
-          !f.autore.toLowerCase().includes(search)) return;
+      if(!f.titolo.toLowerCase().includes(search) && !f.autore.toLowerCase().includes(search)) return;
 
       tot++;
       f.letto ? letti++ : nonletti++;
-      editori[f.editore] = (editori[f.editore] || 0) + 1;
+      editori[f.editore] = (editori[f.editore]||0)+1;
 
       fumetti.innerHTML += `
       <div class="card fumetto">
@@ -202,28 +204,28 @@ function mostraFumetti() {
         <span class="badge ${f.letto?'letto':'nonletto'}">
           ${f.letto?'Letto':'Non letto'}
         </span><br>
-        ${f.copertina ? `<img src="${f.copertina}">` : ""}
+        ${f.copertina?`<img src="${f.copertina}">`:""}
         <br>
         <button onclick="modifica('${doc.id}')">Modifica</button>
         <button onclick="elimina('${doc.id}')">Elimina</button>
       </div>`;
     });
 
-    let html = `
-      <div class="stat">📚 Totale: ${tot}</div>
-      <div class="stat">✅ Letti: ${letti}</div>
-      <div class="stat">⏳ Non letti: ${nonletti}</div>`;
-    for (let e in editori)
-      html += `<div class="stat">📦 ${e}: ${editori[e]}</div>`;
+    // statistiche
+    let html = `<div class="stat">📚 Totale: ${tot}</div>
+                <div class="stat">✅ Letti: ${letti}</div>
+                <div class="stat">⏳ Non letti: ${nonletti}</div>`;
+    for(let e in editori) html += `<div class="stat">📦 ${e}: ${editori[e]}</div>`;
     statistiche.innerHTML = html;
   });
 }
 
+// ELIMINA
 function elimina(id) {
-  if (confirm("Eliminare questo fumetto?"))
-    db.collection("fumetti").doc(id).delete();
+  if(confirm("Eliminare questo fumetto?")) db.collection("fumetti").doc(id).delete();
 }
 
+// MODIFICA
 function modifica(id) {
   db.collection("fumetti").doc(id).get().then(d => {
     const f = d.data();
