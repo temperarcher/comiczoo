@@ -22,6 +22,8 @@ img{max-width:80px;border-radius:4px;cursor:pointer}
 .gray{filter:grayscale(100%)}
 .stat{display:inline-block;margin:5px;padding:6px;background:#ddd;border-radius:6px}
 .dark .stat{background:#444}
+#popup{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:none;justify-content:center;align-items:center}
+#popupImg{max-width:90%;max-height:90%;border-radius:8px}
 </style>
 </head>
 <body>
@@ -68,6 +70,20 @@ img{max-width:80px;border-radius:4px;cursor:pointer}
 </div>
 </div>
 
+<!-- Import CSV -->
+<div class="card">
+<div class="collapse" onclick="toggle(this)">📥 Import CSV</div>
+<div class="content">
+<input type="file" id="csv">
+<button onclick="importCSV()">Importa</button>
+</div>
+</div>
+
+<!-- Export CSV -->
+<div class="card">
+<button onclick="exportCSV()">💾 Export CSV</button>
+</div>
+
 <h3>Lista fumetti:</h3>
 <div id="list"></div>
 
@@ -76,7 +92,7 @@ img{max-width:80px;border-radius:4px;cursor:pointer}
 </div>
 
 <script>
-/* 🔥 CONFIG FIREBASE */
+/* 🔥 FIREBASE CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",
   authDomain: "comiczoo.firebaseapp.com",
@@ -147,47 +163,96 @@ async function salvaFumetto(){
 async function loadFumetti(){
   const list=document.getElementById("list");
   list.innerHTML="";
-  const snap=await db.collection("fumetti")
-                     .where("uid","==",auth.currentUser.uid)
-                     .orderBy("data","desc")
-                     .get();
-  const map={};
-  snap.forEach(doc=>{
-    const f=doc.data();
-    map[f.codice]=map[f.codice]||{};
-    map[f.codice][f.editore]=map[f.codice][f.editore]||{};
-    map[f.codice][f.editore][f.serie]=map[f.codice][f.editore][f.serie]||[];
-    map[f.codice][f.editore][f.serie].push(f);
-  });
-  // render
-  for(const c in map){
-    const cdiv=document.createElement("div");
-    cdiv.className="card";
-    cdiv.innerHTML=`<div class="collapse" onclick="toggle(this)">▶ ${c}</div><div class="content"></div>`;
-    const contentC=cdiv.querySelector(".content");
-    for(const e in map[c]){
-      const ediv=document.createElement("div");
-      ediv.innerHTML=`<div class="collapse" onclick="toggle(this)">▶ ${e}</div><div class="content"></div>`;
-      const contentE=ediv.querySelector(".content");
-      for(const s in map[c][e]){
-        const sdiv=document.createElement("div");
-        sdiv.innerHTML=`<div class="collapse" onclick="toggle(this)">▶ ${s}</div><div class="content"></div>`;
-        const contentS=sdiv.querySelector(".content");
-        map[c][e][s].sort((a,b)=>b.data-a.data).forEach(f=>{
-          contentS.innerHTML+=`
-          <div class="card">
-            <b>${f.titolo}</b><br>
-            ${stars(f.stato)} ${f.possesso}<br>
-            ${f.copertina?`<img src="${f.copertina}" class="${f.possesso==="Manca"?"gray":""}" onclick="popupImg.src=this.src;popup.style.display='flex'">`:""}
-          </div>`;
-        });
-        contentE.appendChild(sdiv);
+  try{
+    const snap=await db.collection("fumetti")
+                       .where("uid","==",auth.currentUser.uid)
+                       .orderBy("data","desc")
+                       .get();
+    const map={};
+    snap.forEach(doc=>{
+      const f=doc.data();
+      map[f.codice]=map[f.codice]||{};
+      map[f.codice][f.editore]=map[f.codice][f.editore]||{};
+      map[f.codice][f.editore][f.serie]=map[f.codice][f.editore][f.serie]||[];
+      map[f.codice][f.editore][f.serie].push(f);
+    });
+    // render
+    for(const c in map){
+      const cdiv=document.createElement("div");
+      cdiv.className="card";
+      cdiv.innerHTML=`<div class="collapse" onclick="toggle(this)">▶ ${c}</div><div class="content"></div>`;
+      const contentC=cdiv.querySelector(".content");
+      for(const e in map[c]){
+        const ediv=document.createElement("div");
+        ediv.innerHTML=`<div class="collapse" onclick="toggle(this)">▶ ${e}</div><div class="content"></div>`;
+        const contentE=ediv.querySelector(".content");
+        for(const s in map[c][e]){
+          const sdiv=document.createElement("div");
+          sdiv.innerHTML=`<div class="collapse" onclick="toggle(this)">▶ ${s}</div><div class="content"></div>`;
+          const contentS=sdiv.querySelector(".content");
+          map[c][e][s].sort((a,b)=>b.data-a.data).forEach(f=>{
+            contentS.innerHTML+=`
+            <div class="card">
+              <b>${f.titolo}</b><br>
+              ${stars(f.stato)} ${f.possesso}<br>
+              ${f.copertina?`<img src="${f.copertina}" class="${f.possesso==="Manca"?"gray":""}" onclick="popupImg.src=this.src;popup.style.display='flex'">`:""}
+            </div>`;
+          });
+          contentE.appendChild(sdiv);
+        }
+        contentC.appendChild(ediv);
       }
-      contentC.appendChild(ediv);
+      list.appendChild(cdiv);
     }
-    list.appendChild(cdiv);
+  }catch(e){
+    console.error(e);
+    list.innerHTML="⚠️ Errore nel caricamento fumetti. Controlla console.";
   }
 }
+
+/* EXPORT CSV */
+function exportCSV(){
+  db.collection("fumetti").where("uid","==",auth.currentUser.uid).get().then(q=>{
+    let c="Titolo,Serie,Editore,Codice,Giorno,Mese,Anno,Possesso,Stato,Copertina\n";
+    q.forEach(d=>{
+      const f=d.data(), dt=f.data;
+      const day = dt.getDate(), month = dt.getMonth()+1, year = dt.getFullYear();
+      c+=`"${f.titolo}","${f.serie}","${f.editore}","${f.codice}",${day},${month},${year},"${f.possesso}","${f.stato||""}","${f.copertina}"\n`;
+    });
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([c]));
+    a.download="ComicZoo.csv"; a.click();
+  });
+}
+
+/* IMPORT CSV */
+function importCSV(){
+  const file = document.getElementById("csv").files[0];
+  if(!file){alert("Seleziona un file CSV"); return;}
+  const reader = new FileReader();
+  reader.onload = async e=>{
+    const lines = e.target.result.split("\n");
+    for(let i=1;i<lines.length;i++){
+      const row = lines[i].split(",");
+      if(!row[0]) continue;
+      const d = new Date(row[6], row[5]-1, row[4]);
+      await db.collection("fumetti").add({
+        uid: auth.currentUser.uid,
+        titolo: row[0].replace(/"/g,""),
+        serie: row[1].replace(/"/g,""),
+        editore: row[2].replace(/"/g,""),
+        codice: row[3].replace(/"/g,""),
+        data: d,
+        possesso: row[7].replace(/"/g,""),
+        stato: row[7]==="In mio possesso"?row[8].replace(/"/g,""):null,
+        copertina: row[9]?row[9].replace(/"/g,""):""
+      });
+    }
+    loadFumetti();
+  };
+  reader.readAsText(file);
+}
 </script>
+
 </body>
 </html>
