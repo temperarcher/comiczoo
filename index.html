@@ -149,6 +149,7 @@ auth.onAuthStateChanged(user=>{
   if(user){
     authDiv.style.display="none";
     appDiv.style.display="block";
+    creaIndiciSeMancanti();
     mostraFumetti();
   }else{
     authDiv.style.display="block";
@@ -198,7 +199,7 @@ window.toggleSerie = function(id){
   div.style.display = div.style.display==="none"?"block":"none";
 };
 
-// MOSTRA + ORDINA + GESTIONE INDICE
+// MOSTRA + ORDINA + GESTIONE INDICI AUTOMATICA
 function mostraFumetti(){
   if(!auth.currentUser) return;
   const search = ricerca.value.toLowerCase();
@@ -254,11 +255,38 @@ function mostraFumetti(){
   .catch(err => {
     console.error(err);
     if(err.message.includes('index')){
-      alert("Firestore richiede un indice per questa query.\nClicca sul link nella console per crearlo.\nErrore: " + err.message);
+      console.warn("Indice mancante. Crea qui:", err.message.match(/https:\/\/console.firebase.google.com\/[^\s]+/)[0]);
     } else {
       alert("Errore Firestore: " + err.message);
     }
   });
+}
+
+// CREAZIONE INDICI AUTOMATICA
+async function creaIndiciSeMancanti() {
+  if (!auth.currentUser) return;
+
+  const combinazioni = [
+    { field: "anno", direction: "asc" },
+    { field: "anno", direction: "desc" },
+    { field: "serie", direction: "asc" },
+    { field: "serie", direction: "desc" }
+  ];
+
+  for (let c of combinazioni) {
+    try {
+      await db.collection("fumetti")
+        .where("userId", "==", auth.currentUser.uid)
+        .orderBy(c.field, c.direction)
+        .limit(1)
+        .get();
+    } catch(err) {
+      if (err.message.includes("index")) {
+        console.warn("Indice mancante per query:", c.field, c.direction);
+        console.warn("Crea indice cliccando qui:", err.message.match(/https:\/\/console.firebase.google.com\/[^\s]+/)[0]);
+      }
+    }
+  }
 }
 
 // ELIMINA
