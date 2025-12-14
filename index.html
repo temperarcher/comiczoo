@@ -2,37 +2,40 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>ComicZoo – Login</title>
+<title>ComicZoo – Firestore Minimo</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <style>
-body { font-family: Arial; background:#f4f6f8; padding:40px; }
-.card { background:white; padding:20px; max-width:400px; margin:auto; border-radius:8px; }
-input, button { width:100%; padding:10px; margin:6px 0; }
-#app { display:none; }
+body{font-family:Arial;background:#f4f6f8;padding:40px}
+.card{background:white;padding:20px;max-width:400px;margin:auto;border-radius:8px;margin-bottom:10px}
+input,button{width:100%;padding:10px;margin:6px 0}
+#app{display:none}
 </style>
 </head>
-
 <body>
 
 <!-- LOGIN -->
 <div id="auth" class="card">
-  <h2>Login ComicZoo</h2>
-  <input id="email" type="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Password">
-  <button onclick="login()">Login</button>
-  <button onclick="register()">Registrati</button>
+<h2>Login ComicZoo</h2>
+<input id="email" type="email" placeholder="Email">
+<input id="password" type="password" placeholder="Password">
+<button onclick="login()">Login</button>
+<button onclick="register()">Registrati</button>
 </div>
 
 <!-- APP -->
 <div id="app" class="card">
-  <h2>✅ Login riuscito</h2>
-  <p>Benvenuto in ComicZoo</p>
-  <button onclick="logout()">Logout</button>
+<h2>✅ Sei loggato</h2>
+
+<input id="titolo" placeholder="Titolo fumetto">
+<button onclick="salvaFumetto()">Salva fumetto</button>
+
+<h3>Lista fumetti:</h3>
+<div id="list"></div>
+
+<button onclick="logout()">Logout</button>
 </div>
 
 <script>
@@ -45,48 +48,64 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 
 const auth = firebase.auth();
+const db = firebase.firestore();
 
-/* LOGIN */
+/* LOGIN / REGISTER / LOGOUT */
 function login(){
-  auth.signInWithEmailAndPassword(
-    document.getElementById("email").value,
-    document.getElementById("password").value
-  ).catch(e => alert(e.message));
+  auth.signInWithEmailAndPassword(email.value,password.value)
+      .catch(e=>alert(e.message));
 }
-
-/* REGISTER */
 function register(){
-  auth.createUserWithEmailAndPassword(
-    document.getElementById("email").value,
-    document.getElementById("password").value
-  ).catch(e => alert(e.message));
+  auth.createUserWithEmailAndPassword(email.value,password.value)
+      .catch(e=>alert(e.message));
 }
-
-/* LOGOUT */
-function logout(){
-  auth.signOut();
-}
+function logout(){auth.signOut()}
 
 /* AUTH STATE */
-auth.onAuthStateChanged(user => {
+auth.onAuthStateChanged(user=>{
   const authDiv = document.getElementById("auth");
   const appDiv  = document.getElementById("app");
-
-  if (!authDiv || !appDiv) {
-    console.error("DIV auth o app non trovati");
-    return;
-  }
-
-  if (user) {
-    authDiv.style.display = "none";
-    appDiv.style.display  = "block";
-    console.log("LOGGATO:", user.email);
-  } else {
-    authDiv.style.display = "block";
-    appDiv.style.display  = "none";
-    console.log("NON loggato");
+  if(!authDiv || !appDiv){console.error("DIV mancanti");return;}
+  if(user){
+    authDiv.style.display="none";
+    appDiv.style.display="block";
+    loadFumetti();
+  }else{
+    authDiv.style.display="block";
+    appDiv.style.display="none";
   }
 });
+
+/* SALVA FUMETTO */
+async function salvaFumetto(){
+  const t=titolo.value.trim();
+  if(!t){alert("Inserisci titolo"); return;}
+  try{
+    await db.collection("fumetti").add({
+      uid: auth.currentUser.uid,
+      titolo: t,
+      created: new Date()
+    });
+    titolo.value="";
+    loadFumetti();
+  }catch(e){alert(e.message);}
+}
+
+/* CARICA FUMETTI */
+async function loadFumetti(){
+  const list=document.getElementById("list");
+  list.innerHTML="";
+  const snap=await db.collection("fumetti")
+                      .where("uid","==",auth.currentUser.uid)
+                      .orderBy("created","desc")
+                      .get();
+  snap.forEach(doc=>{
+    const f=doc.data();
+    const div=document.createElement("div");
+    div.textContent=f.titolo + " (" + f.created.toDate().toLocaleString() + ")";
+    list.appendChild(div);
+  });
+}
 </script>
 
 </body>
