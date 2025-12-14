@@ -195,7 +195,11 @@ function renderFumetti(snap){
         const sdiv=document.createElement("div");
         sdiv.innerHTML=`<div class="collapse" onclick="toggle(this)">▶ ${s}</div><div class="content"></div>`;
         const contentS=sdiv.querySelector(".content");
-        map[c][e][s].sort((a,b)=>b.data-a.data).forEach(f=>{
+        map[c][e][s].sort((a,b)=>{
+          let da = a.data && a.data.toDate ? a.data.toDate() : new Date(1970,0,1);
+          let db = b.data && b.data.toDate ? b.data.toDate() : new Date(1970,0,1);
+          return db - da;
+        }).forEach(f=>{
           contentS.innerHTML+=`
           <div class="card">
             <b>${f.titolo}</b><br>
@@ -211,19 +215,27 @@ function renderFumetti(snap){
   }
 }
 
-/* EXPORT CSV */
+/* EXPORT CSV - CORRETTO */
 function exportCSV(){
   db.collection("fumetti").where("uid","==",auth.currentUser.uid).get().then(q=>{
     let c="Titolo,Serie,Editore,Codice,Giorno,Mese,Anno,Possesso,Stato,Copertina\n";
     q.forEach(d=>{
-      const f=d.data(), dt=f.data;
+      const f=d.data();
+      let dt;
+      if(f.data && f.data.toDate){
+        dt = f.data.toDate();
+      } else if(f.data instanceof Date){
+        dt = f.data;
+      } else {
+        dt = new Date(1970,0,1);
+      }
       const day = dt.getDate(), month = dt.getMonth()+1, year = dt.getFullYear();
       c+=`"${f.titolo}","${f.serie}","${f.editore}","${f.codice}",${day},${month},${year},"${f.possesso}","${f.stato||""}","${f.copertina}"\n`;
     });
     const a=document.createElement("a");
     a.href=URL.createObjectURL(new Blob([c]));
     a.download="ComicZoo.csv"; a.click();
-  });
+  }).catch(e=>alert("Errore export CSV: "+e.message));
 }
 
 /* IMPORT CSV */
