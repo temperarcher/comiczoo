@@ -9,26 +9,10 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background: #f4f6f8;
-  padding: 20px;
-}
-
-.card {
-  background: #fff;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 10px;
-}
-
-input, select, button {
-  width: 100%;
-  padding: 8px;
-  margin: 5px 0;
-}
-
-button { cursor: pointer; }
+body { font-family: Arial; background:#f4f6f8; padding:20px; }
+.card { background:#fff; padding:15px; border-radius:8px; margin-bottom:10px; }
+input, select, button { width:100%; padding:8px; margin:5px 0; }
+button { cursor:pointer; }
 
 .stelle-gold { color: gold; }
 .stelle-gray { color: #999; }
@@ -55,6 +39,9 @@ button { cursor: pointer; }
 
   <div class="card">
     <input id="titolo" placeholder="Titolo fumetto">
+    <input id="giorno" type="number" min="1" max="31" placeholder="Giorno">
+    <input id="mese" type="number" min="1" max="12" placeholder="Mese">
+    <input id="anno" type="number" placeholder="Anno">
 
     <select id="possesso">
       <option value="Celo">Celo</option>
@@ -131,20 +118,38 @@ function stelle(stato) {
 saveBtn.onclick = async () => {
   if (!auth.currentUser) return;
 
+  const g = parseInt(document.getElementById("giorno").value);
+  const m = parseInt(document.getElementById("mese").value);
+  const a = parseInt(document.getElementById("anno").value);
+
+  if (!g || !m || !a) { alert("Inserisci giorno, mese e anno!"); return; }
+
   await db.collection("fumetti").add({
     uid: auth.currentUser.uid,
-    titolo: titolo.value,
-    possesso: possesso.value,
-    stato: possesso.value === "Celo" ? stato.value : null,
-    copertina: copertina.value || ""
+    titolo: document.getElementById("titolo").value,
+    possesso: document.getElementById("possesso").value,
+    stato: document.getElementById("possesso").value === "Celo" ? document.getElementById("stato").value : null,
+    copertina: document.getElementById("copertina").value || "",
+    dataPubblicazione: new Date(a, m-1, g)
   });
 
-  titolo.value = "";
-  copertina.value = "";
+  document.getElementById("titolo").value = "";
+  document.getElementById("giorno").value = "";
+  document.getElementById("mese").value = "";
+  document.getElementById("anno").value = "";
+  document.getElementById("copertina").value = "";
+
   loadFumetti();
 };
 
 /* ================= LOAD ================= */
+function safeDate(value) {
+  if (!value) return null;
+  if (value.toDate) return value.toDate();
+  if (value instanceof Date) return value;
+  return null;
+}
+
 function loadFumetti() {
   lista.innerHTML = "";
 
@@ -154,10 +159,13 @@ function loadFumetti() {
     .then(snapshot => {
       snapshot.forEach(doc => {
         const f = doc.data();
+        const d = safeDate(f.dataPubblicazione);
+        const dataStr = d ? `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}` : "Data mancante";
+
         lista.innerHTML += `
           <div class="card">
             <strong>${f.titolo}</strong><br>
-            ${f.possesso}<br>
+            ${dataStr} • ${f.possesso}<br>
             Stato: ${stelle(f.stato)}<br>
             ${f.copertina ? `<img src="${f.copertina}" class="${f.possesso==="Manca"?"grayscale":""}" width="120">` : ""}
           </div>
