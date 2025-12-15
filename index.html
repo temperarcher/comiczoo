@@ -9,13 +9,30 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
-body { font-family: Arial; background:#f4f6f8; padding:20px; }
-.card { background:#fff; padding:15px; margin-bottom:10px; border-radius:8px; }
-button,input,select { width:100%; padding:8px; margin:5px 0; }
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f6f8;
+  padding: 20px;
+}
+
+.card {
+  background: #fff;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+input, select, button {
+  width: 100%;
+  padding: 8px;
+  margin: 5px 0;
+}
+
+button { cursor: pointer; }
 
 .stelle-gold { color: gold; }
 .stelle-gray { color: #999; }
-.stelle-red { color: red; }
+.stelle-red  { color: red; }
 
 .grayscale { filter: grayscale(100%); }
 </style>
@@ -23,38 +40,46 @@ button,input,select { width:100%; padding:8px; margin:5px 0; }
 
 <body>
 
-<h1>ComicZoo</h1>
+<h1>📚 ComicZoo</h1>
 
+<!-- AUTH -->
 <div id="auth" class="card">
   <input id="email" placeholder="Email">
   <input id="password" type="password" placeholder="Password">
-  <button id="login">Login</button>
+  <button id="loginBtn">Login</button>
+  <button id="signupBtn">Registrati</button>
 </div>
 
+<!-- APP -->
 <div id="app" style="display:none">
 
-<div class="card">
-  <input id="titolo" placeholder="Titolo">
-  <select id="possesso">
-    <option value="Celo">Celo</option>
-    <option value="Manca">Manca</option>
-  </select>
-  <select id="stato">
-    <option value="Mint">Mint</option>
-    <option value="Near Mint">Near Mint</option>
-    <option value="Good">Good</option>
-    <option value="Fair">Fair</option>
-    <option value="Discreto">Discreto</option>
-  </select>
-  <button id="save">Salva</button>
-</div>
+  <div class="card">
+    <input id="titolo" placeholder="Titolo fumetto">
 
-<div id="lista"></div>
+    <select id="possesso">
+      <option value="Celo">Celo</option>
+      <option value="Manca">Manca</option>
+    </select>
 
+    <select id="stato">
+      <option value="Mint">Mint</option>
+      <option value="Near Mint">Near Mint</option>
+      <option value="Good">Good</option>
+      <option value="Fair">Fair</option>
+      <option value="Discreto">Discreto</option>
+    </select>
+
+    <input id="copertina" placeholder="URL copertina (opzionale)">
+
+    <button id="saveBtn">Salva</button>
+    <button id="logoutBtn">Logout</button>
+  </div>
+
+  <div id="lista"></div>
 </div>
 
 <script>
-// FIREBASE
+/* ================= FIREBASE ================= */
 firebase.initializeApp({
   apiKey: "AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",
   authDomain: "comiczoo.firebaseapp.com",
@@ -64,56 +89,77 @@ firebase.initializeApp({
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// AUTH
-login.onclick = () => {
-  auth.signInWithEmailAndPassword(email.value, password.value);
+/* ================= DOM ================= */
+const authDiv = document.getElementById("auth");
+const appDiv  = document.getElementById("app");
+const lista   = document.getElementById("lista");
+
+/* ================= AUTH ================= */
+loginBtn.onclick = () => {
+  auth.signInWithEmailAndPassword(email.value, password.value)
+    .catch(e => alert(e.message));
 };
 
+signupBtn.onclick = () => {
+  auth.createUserWithEmailAndPassword(email.value, password.value)
+    .catch(e => alert(e.message));
+};
+
+logoutBtn.onclick = () => auth.signOut();
+
 auth.onAuthStateChanged(user => {
-  auth.style.display = user ? "none" : "block";
-  app.style.display = user ? "block" : "none";
-  if (user) load();
+  authDiv.style.display = user ? "none" : "block";
+  appDiv.style.display  = user ? "block" : "none";
+  if (user) loadFumetti();
 });
 
-// STELLE COLORATE (★)
+/* ================= STELLE (★) ================= */
 function stelle(stato) {
   if (!stato) return "";
   const map = {
-    "Mint": {n:5,c:"stelle-gold"},
-    "Near Mint": {n:4,c:"stelle-gray"},
-    "Good": {n:3,c:"stelle-gray"},
-    "Fair": {n:2,c:"stelle-red"},
-    "Discreto": {n:1,c:"stelle-red"}
+    "Mint":       { n:5, c:"stelle-gold" },
+    "Near Mint": { n:4, c:"stelle-gray" },
+    "Good":       { n:3, c:"stelle-gray" },
+    "Fair":       { n:2, c:"stelle-red" },
+    "Discreto":   { n:1, c:"stelle-red" }
   };
   const s = map[stato];
   return `<span class="${s.c}">${"★".repeat(s.n)}</span>`;
 }
 
-// SALVA
-save.onclick = async () => {
+/* ================= SALVA ================= */
+saveBtn.onclick = async () => {
+  if (!auth.currentUser) return;
+
   await db.collection("fumetti").add({
     uid: auth.currentUser.uid,
     titolo: titolo.value,
     possesso: possesso.value,
-    stato: possesso.value === "Celo" ? stato.value : null
+    stato: possesso.value === "Celo" ? stato.value : null,
+    copertina: copertina.value || ""
   });
-  load();
+
+  titolo.value = "";
+  copertina.value = "";
+  loadFumetti();
 };
 
-// LOAD
-function load() {
+/* ================= LOAD ================= */
+function loadFumetti() {
   lista.innerHTML = "";
+
   db.collection("fumetti")
-    .where("uid","==",auth.currentUser.uid)
+    .where("uid", "==", auth.currentUser.uid)
     .get()
-    .then(snap => {
-      snap.forEach(doc => {
+    .then(snapshot => {
+      snapshot.forEach(doc => {
         const f = doc.data();
         lista.innerHTML += `
           <div class="card">
-            <b>${f.titolo}</b><br>
+            <strong>${f.titolo}</strong><br>
             ${f.possesso}<br>
-            Stato: ${stelle(f.stato)}
+            Stato: ${stelle(f.stato)}<br>
+            ${f.copertina ? `<img src="${f.copertina}" class="${f.possesso==="Manca"?"grayscale":""}" width="120">` : ""}
           </div>
         `;
       });
