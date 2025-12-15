@@ -3,85 +3,42 @@
 <head>
 <meta charset="UTF-8">
 <title>ComicZoo</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background:#f4f6f8;
-  margin:0;
-  padding:20px;
-}
-body.dark { background:#1f1f1f; color:#eee; }
+body { font-family: Arial; background:#f4f6f8; padding:20px; }
+.card { background:#fff; padding:15px; margin-bottom:10px; border-radius:8px; }
+button,input,select { width:100%; padding:8px; margin:5px 0; }
 
-.card {
-  background:#fff;
-  padding:15px;
-  border-radius:8px;
-  margin-bottom:10px;
-}
-body.dark .card { background:#2a2a2a; }
-
-input, select, button {
-  width:100%;
-  padding:8px;
-  margin:5px 0;
-}
-
-button { cursor:pointer; }
-
-.fumetto img {
-  max-width:120px;
-  border-radius:5px;
-  cursor:pointer;
-}
-.grayscale { filter: grayscale(100%); }
-
-/* ⭐ STELLE COLORATE */
 .stelle-gold { color: gold; }
-.stelle-gray { color: #aaa; }
-.stelle-red  { color: red; }
+.stelle-gray { color: #999; }
+.stelle-red { color: red; }
+
+.grayscale { filter: grayscale(100%); }
 </style>
 </head>
 
 <body>
 
-<h1>📚 ComicZoo</h1>
+<h1>ComicZoo</h1>
 
 <div id="auth" class="card">
   <input id="email" placeholder="Email">
   <input id="password" type="password" placeholder="Password">
   <button id="login">Login</button>
-  <button id="signup">Registrati</button>
 </div>
 
 <div id="app" style="display:none">
 
-<button id="logout">Logout</button>
-<button id="dark">🌙 Dark</button>
-
 <div class="card">
-  <input id="search" placeholder="🔍 Cerca titolo / serie / editore">
-</div>
-
-<div class="card">
-  <h3>Aggiungi fumetto</h3>
   <input id="titolo" placeholder="Titolo">
-  <input id="serie" placeholder="Serie">
-  <input id="editore" placeholder="Editore">
-  <input id="giorno" type="number" placeholder="Giorno">
-  <input id="mese" type="number" placeholder="Mese">
-  <input id="anno" type="number" placeholder="Anno">
-
   <select id="possesso">
     <option value="Celo">Celo</option>
     <option value="Manca">Manca</option>
   </select>
-
   <select id="stato">
     <option value="Mint">Mint</option>
     <option value="Near Mint">Near Mint</option>
@@ -89,8 +46,6 @@ button { cursor:pointer; }
     <option value="Fair">Fair</option>
     <option value="Discreto">Discreto</option>
   </select>
-
-  <input id="copertina" placeholder="URL copertina">
   <button id="save">Salva</button>
 </div>
 
@@ -99,7 +54,7 @@ button { cursor:pointer; }
 </div>
 
 <script>
-/* 🔥 FIREBASE */
+// FIREBASE
 firebase.initializeApp({
   apiKey: "AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",
   authDomain: "comiczoo.firebaseapp.com",
@@ -109,77 +64,58 @@ firebase.initializeApp({
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-/* DOM */
-const authDiv = document.getElementById("auth");
-const appDiv = document.getElementById("app");
-const lista = document.getElementById("lista");
-
-/* AUTH */
-login.onclick = () =>
+// AUTH
+login.onclick = () => {
   auth.signInWithEmailAndPassword(email.value, password.value);
+};
 
-signup.onclick = () =>
-  auth.createUserWithEmailAndPassword(email.value, password.value);
-
-logout.onclick = () => auth.signOut();
-
-auth.onAuthStateChanged(u=>{
-  authDiv.style.display = u ? "none" : "block";
-  appDiv.style.display = u ? "block" : "none";
-  if(u) carica();
+auth.onAuthStateChanged(user => {
+  auth.style.display = user ? "none" : "block";
+  app.style.display = user ? "block" : "none";
+  if (user) load();
 });
 
-/* DARK */
-dark.onclick = ()=> document.body.classList.toggle("dark");
-
-/* STELLE (★ NON ⭐) */
-function stelle(stato){
-  if(!stato) return "";
-  const map={
-    "Mint":{n:5,c:"stelle-gold"},
-    "Near Mint":{n:4,c:"stelle-gray"},
-    "Good":{n:3,c:"stelle-gray"},
-    "Fair":{n:2,c:"stelle-red"},
-    "Discreto":{n:1,c:"stelle-red"}
+// STELLE COLORATE (★)
+function stelle(stato) {
+  if (!stato) return "";
+  const map = {
+    "Mint": {n:5,c:"stelle-gold"},
+    "Near Mint": {n:4,c:"stelle-gray"},
+    "Good": {n:3,c:"stelle-gray"},
+    "Fair": {n:2,c:"stelle-red"},
+    "Discreto": {n:1,c:"stelle-red"}
   };
-  const s=map[stato];
+  const s = map[stato];
   return `<span class="${s.c}">${"★".repeat(s.n)}</span>`;
 }
 
-/* SALVA */
-save.onclick = async ()=>{
-  if(!auth.currentUser) return;
-  const data={
+// SALVA
+save.onclick = async () => {
+  await db.collection("fumetti").add({
     uid: auth.currentUser.uid,
     titolo: titolo.value,
-    serie: serie.value,
-    editore: editore.value,
-    data: new Date(anno.value, mese.value-1, giorno.value),
     possesso: possesso.value,
-    stato: possesso.value==="Celo" ? stato.value : null,
-    copertina: copertina.value
-  };
-  await db.collection("fumetti").add(data);
-  carica();
+    stato: possesso.value === "Celo" ? stato.value : null
+  });
+  load();
 };
 
-/* CARICA */
-function carica(){
-  lista.innerHTML="";
+// LOAD
+function load() {
+  lista.innerHTML = "";
   db.collection("fumetti")
     .where("uid","==",auth.currentUser.uid)
     .get()
-    .then(snap=>{
-      snap.forEach(doc=>{
-        const f=doc.data();
-        const d=f.data.toDate ? f.data.toDate() : f.data;
-        lista.innerHTML+=`
-        <div class="card fumetto">
-          <h3>${f.titolo}</h3>
-          <p>${d.toLocaleDateString()} • ${f.possesso}</p>
-          <p>Stato: ${stelle(f.stato)}</p>
-          ${f.copertina ? `<img src="${f.copertina}" class="${f.possesso==="Manca"?"grayscale":""}">`:""}
-        </div>`;
+    .then(snap => {
+      snap.forEach(doc => {
+        const f = doc.data();
+        lista.innerHTML += `
+          <div class="card">
+            <b>${f.titolo}</b><br>
+            ${f.possesso}<br>
+            Stato: ${stelle(f.stato)}
+          </div>
+        `;
       });
     });
 }
