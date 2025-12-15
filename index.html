@@ -25,6 +25,12 @@ body.dark { background:#1f1f1f; color:#f0f0f0; }
 body.dark .card { background:#2a2a2a; color:#f0f0f0; }
 body.dark .stat { background:#3a3a3a; color:#f0f0f0; }
 body.dark input, body.dark select { background:#3a3a3a; color:#f0f0f0; border:1px solid #555; }
+
+/* STELLE COLORATE */
+.stelle-gold { color: gold; }
+.stelle-gray { color: gray; }
+.stelle-red { color: red; }
+
 /* POPUP COVER */
 #coverPopup { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); justify-content:center; align-items:center; z-index:9999; }
 #coverPopup img { max-width:90%; max-height:90%; border-radius:8px; }
@@ -198,12 +204,12 @@ salvaBtn.onclick=async function(){
   }catch(err){ alert("Errore salvataggio: "+err.message); console.error(err); }
 };
 
-// STELLE COLORATE
+// STELLE COLORATE CON CLASSI
 function stelleStato(stato){
   if(!stato) return "";
-  const map={Mint:{num:5,color:"gold"}, "Near Mint":{num:4,color:"gray"}, Good:{num:3,color:"gray"}, Fair:{num:2,color:"red"}, Discreto:{num:1,color:"red"}};
-  const s=map[stato]||{num:0,color:"gray"};
-  return `<span style="color:${s.color}">${'⭐'.repeat(s.num)}</span>`;
+  const map={Mint:{num:5,cls:"stelle-gold"}, "Near Mint":{num:4,cls:"stelle-gray"}, Good:{num:3,cls:"stelle-gray"}, Fair:{num:2,cls:"stelle-red"}, Discreto:{num:1,cls:"stelle-red"}};
+  const s=map[stato]||{num:0,cls:"stelle-gray"};
+  return `<span class="${s.cls}">${'⭐'.repeat(s.num)}</span>`;
 }
 
 // MOSTRA FUMETTI
@@ -298,7 +304,6 @@ window.modifica=id=>{
 // Ricerca
 ricerca.oninput=mostraFumetti;
 
-};
 </script>
 </body>
 </html>
