@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>Editing Serie</title>
+<title>ComicZoo – Editing Serie</title>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -16,7 +16,7 @@ input,button { width:100%; padding:8px; margin:5px 0; }
 </head>
 <body>
 
-<a href="index.html">⬅ Torna</a>
+<a href="index.html">⬅ Torna alla vetrina</a>
 
 <div class="card">
 <h2>➕ Serie</h2>
@@ -29,22 +29,57 @@ input,button { width:100%; padding:8px; margin:5px 0; }
 </div>
 
 <script>
-const firebaseConfig={apiKey:"AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",authDomain:"comiczoo.firebaseapp.com",projectId:"comiczoo"};
+// FIREBASE
+const firebaseConfig={
+  apiKey:"AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",
+  authDomain:"comiczoo.firebaseapp.com",
+  projectId:"comiczoo"
+};
 firebase.initializeApp(firebaseConfig);
 const auth=firebase.auth(), db=firebase.firestore();
 
+// CONTROLLA PARAMETRO ID
+const params=new URLSearchParams(window.location.search);
+const serieId=params.get("id");
+
+auth.onAuthStateChanged(async user=>{
+  if(!user) location.href="index.html";
+
+  if(serieId){
+    const doc=await db.collection("serie").doc(serieId).get();
+    if(!doc.exists) return alert("Serie non trovata");
+
+    const s=doc.data();
+    titolo.value=s.titolo;
+    collana.value=s.collana||"";
+    codiceEditore.value=s.codiceEditore;
+    genere.value=s.genere||"";
+    immagine.value=s.immagine||"";
+
+    document.querySelector("h2").textContent="✏️ Modifica serie";
+    save.textContent="Aggiorna";
+  }
+});
+
+// SALVA / AGGIORNA
 save.onclick=async()=>{
   if(!auth.currentUser) return alert("Non loggato");
 
-  await db.collection("serie").add({
+  const data={
     uid:auth.currentUser.uid,
     titolo:titolo.value,
     collana:collana.value,
     codiceEditore:codiceEditore.value,
     genere:genere.value,
-    immagine:immagine.value,
-    createdAt:firebase.firestore.FieldValue.serverTimestamp()
-  });
+    immagine:immagine.value
+  };
+
+  if(serieId){
+    await db.collection("serie").doc(serieId).update(data);
+  }else{
+    data.createdAt=firebase.firestore.FieldValue.serverTimestamp();
+    await db.collection("serie").add(data);
+  }
 
   location.href="index.html";
 };
