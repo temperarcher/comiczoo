@@ -38,6 +38,8 @@ button { cursor:pointer; }
 <div id="app" style="display:none">
 
   <div class="card">
+    <input id="ricerca" placeholder="Cerca per titolo...">
+
     <input id="titolo" placeholder="Titolo fumetto">
     <input id="giorno" type="number" min="1" max="31" placeholder="Giorno">
     <input id="mese" type="number" min="1" max="12" placeholder="Mese">
@@ -80,6 +82,7 @@ const db = firebase.firestore();
 const authDiv = document.getElementById("auth");
 const appDiv  = document.getElementById("app");
 const lista   = document.getElementById("lista");
+const ricercaInput = document.getElementById("ricerca");
 
 /* ================= AUTH ================= */
 loginBtn.onclick = () => {
@@ -149,6 +152,8 @@ saveBtn.onclick = async () => {
 };
 
 /* ================= LOAD ================= */
+let tuttiFumetti = [];
+
 function safeDate(value) {
   if (!value) return null;
   if (value.toDate) return value.toDate();
@@ -158,27 +163,46 @@ function safeDate(value) {
 
 function loadFumetti() {
   lista.innerHTML = "";
+  tuttiFumetti = [];
+
   db.collection("fumetti")
     .where("uid", "==", auth.currentUser.uid)
     .get()
     .then(snapshot => {
       snapshot.forEach(doc => {
         const f = doc.data();
-        const d = safeDate(f.dataPubblicazione);
-        const dataStr = d ? `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}` : "Data mancante";
-
-        lista.innerHTML += `
-          <div class="card">
-            <strong>${f.titolo}</strong><br>
-            ${dataStr} • ${f.possesso}<br>
-            Stato: ${stelle(f.stato)}<br>
-            ${f.copertina ? `<img src="${f.copertina}" class="${f.possesso==="Manca"?"grayscale":""}" width="120">` : ""}
-          </div>
-        `;
+        f.id = doc.id;
+        tuttiFumetti.push(f);
       });
+      mostraLista();
     })
     .catch(err => console.error("Errore caricamento fumetti:", err));
 }
+
+/* ================= MOSTRA LISTA FILTRATA ================= */
+function mostraLista() {
+  const query = ricercaInput.value.toLowerCase();
+  lista.innerHTML = "";
+
+  tuttiFumetti.forEach(f => {
+    if (!f.titolo.toLowerCase().includes(query)) return;
+
+    const d = safeDate(f.dataPubblicazione);
+    const dataStr = d ? `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}` : "Data mancante";
+
+    lista.innerHTML += `
+      <div class="card">
+        <strong>${f.titolo}</strong><br>
+        ${dataStr} • ${f.possesso}<br>
+        Stato: ${stelle(f.stato)}<br>
+        ${f.copertina ? `<img src="${f.copertina}" class="${f.possesso==="Manca"?"grayscale":""}" width="120">` : ""}
+      </div>
+    `;
+  });
+}
+
+ricercaInput.addEventListener("input", mostraLista);
+
 </script>
 
 </body>
