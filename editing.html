@@ -38,7 +38,7 @@ const firebaseConfig={
 firebase.initializeApp(firebaseConfig);
 const auth=firebase.auth(), db=firebase.firestore();
 
-// CONTROLLA PARAMETRO ID
+// ID serie
 const params=new URLSearchParams(window.location.search);
 const serieId=params.get("id");
 
@@ -50,28 +50,28 @@ auth.onAuthStateChanged(async user=>{
     if(!doc.exists) return alert("Serie non trovata");
 
     const s=doc.data();
-    titolo.value=s.titolo;
-    collana.value=s.collana||"";
-    codiceEditore.value=s.codiceEditore;
-    genere.value=s.genere||"";
-    immagine.value=s.immagine||"";
+    document.getElementById("titolo").value=s.titolo;
+    document.getElementById("collana").value=s.collana||"";
+    document.getElementById("codiceEditore").value=s.codiceEditore;
+    document.getElementById("genere").value=s.genere||"";
+    document.getElementById("immagine").value=s.immagine||"";
 
     document.querySelector("h2").textContent="✏️ Modifica serie";
-    save.textContent="Aggiorna";
+    document.getElementById("save").textContent="Aggiorna";
   }
 });
 
 // SALVA / AGGIORNA
-save.onclick=async()=>{
+document.getElementById("save").onclick=async()=>{
   if(!auth.currentUser) return alert("Non loggato");
 
   const data={
     uid:auth.currentUser.uid,
-    titolo:titolo.value,
-    collana:collana.value,
-    codiceEditore:codiceEditore.value,
-    genere:genere.value,
-    immagine:immagine.value
+    titolo:document.getElementById("titolo").value,
+    collana:document.getElementById("collana").value,
+    codiceEditore:document.getElementById("codiceEditore").value,
+    genere:document.getElementById("genere").value,
+    immagine:document.getElementById("immagine").value
   };
 
   if(serieId){
