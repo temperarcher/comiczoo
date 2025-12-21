@@ -20,7 +20,6 @@ img { max-width:120px; border-radius:4px; }
 
 <h1>📚 ComicZoo – Vetrina Serie</h1>
 
-<!-- AUTH -->
 <div id="auth" class="card">
   <input id="email" placeholder="Email">
   <input id="password" type="password" placeholder="Password">
@@ -28,18 +27,12 @@ img { max-width:120px; border-radius:4px; }
   <button id="signupBtn">Registrati</button>
 </div>
 
-<!-- APP -->
 <div id="app" style="display:none">
 
   <button id="logoutBtn">Logout</button>
 
-  <!-- RICERCA TESTO -->
   <input id="searchSerie" placeholder="Cerca serie per titolo o collana...">
-
-  <!-- RICERCA PER CODICE EDITORE -->
-  <select id="searchCodice">
-    <option value="">Tutti i codici editore</option>
-  </select>
+  <select id="searchCodice"><option value="">Tutti i codici editore</option></select>
 
   <div id="vetrinaSerie" class="vetrina"></div>
 
@@ -67,10 +60,17 @@ const db = firebase.firestore();
 
 /* DOM */
 const authDiv = document.getElementById("auth");
-const appDiv  = document.getElementById("app");
+const appDiv = document.getElementById("app");
 const listaSerie = document.getElementById("vetrinaSerie");
 const searchSerie = document.getElementById("searchSerie");
 const searchCodice = document.getElementById("searchCodice");
+const saveSerieBtn = document.getElementById("saveSerieBtn");
+const serieTitolo = document.getElementById("serieTitolo");
+const serieCollana = document.getElementById("serieCollana");
+const serieCodice = document.getElementById("serieCodice");
+const serieGenere = document.getElementById("serieGenere");
+const serieImg = document.getElementById("serieImg");
+const editoriCorrelati = document.getElementById("editoriCorrelati");
 
 /* AUTH */
 loginBtn.onclick = () => auth.signInWithEmailAndPassword(email.value,password.value).catch(e=>alert(e.message));
@@ -86,18 +86,9 @@ auth.onAuthStateChanged(user=>{
 /* SALVA SERIE */
 let editSerieId = null;
 saveSerieBtn.onclick = async ()=>{
-  if(!auth.currentUser){
-    alert("Non sei loggato");
-    return;
-  }
-  if(!serieTitolo.value.trim()){
-    alert("Titolo obbligatorio");
-    return;
-  }
-  if(!serieCodice.value.trim()){
-    alert("Codice Editore obbligatorio");
-    return;
-  }
+  if(!auth.currentUser){ alert("Non sei loggato"); return; }
+  if(!serieTitolo.value.trim()){ alert("Titolo obbligatorio"); return; }
+  if(!serieCodice.value.trim()){ alert("Codice Editore obbligatorio"); return; }
 
   const data = {
     uid: auth.currentUser.uid,
@@ -110,15 +101,22 @@ saveSerieBtn.onclick = async ()=>{
   };
 
   try{
+    let ref;
     if(editSerieId){
-      await db.collection("serie").doc(editSerieId).set(data);
+      ref = db.collection("serie").doc(editSerieId);
+      await ref.set(data);
       editSerieId=null;
     }else{
-      await db.collection("serie").add(data);
+      ref = await db.collection("serie").add(data);
     }
-    [serieTitolo,serieCollana,serieCodice,serieGenere,serieImg,editoriCorrelati].forEach(i=>i.value="");
+    console.log("Serie salvata con ID:", ref.id);
+
+    // pulizia campi
+    [serieTitolo, serieCollana, serieCodice, serieGenere, serieImg, editoriCorrelati].forEach(i=>i.value="");
+    
+    // ricarica serie
     loadSerie();
-  } catch(err){
+  }catch(err){
     console.error("Errore salvataggio serie:", err);
     alert("Errore salvataggio serie: "+err.message);
   }
@@ -133,7 +131,7 @@ function loadSerie(){
     snapshot.forEach(doc=>{ let s=doc.data(); s.id=doc.id; tutteSerie.push(s); });
     popolaCodici();
     mostraSerie();
-  });
+  }).catch(err=>console.error("Errore caricamento serie:", err));
 }
 
 /* POPOLA CODICI EDITORE */
@@ -161,7 +159,6 @@ function mostraSerie(){
   });
 }
 
-/* EVENTI RICERCA */
 searchSerie.addEventListener("input", mostraSerie);
 searchCodice.addEventListener("change", mostraSerie);
 
