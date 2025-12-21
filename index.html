@@ -2,170 +2,60 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ComicZoo – Vetrina Serie</title>
+<title>ComicZoo – Editing Serie</title>
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
 body { font-family: Arial; background:#f4f6f8; padding:20px; }
-.card { background:#fff; padding:15px; border-radius:8px; margin-bottom:10px; cursor:pointer; display:inline-block; width:150px; text-align:center; vertical-align:top; }
-input, select, button { width:100%; padding:8px; margin:5px 0; }
-img { max-width:120px; border-radius:4px; }
-.vetrina { display:flex; flex-wrap:wrap; gap:10px; margin-top:10px; }
+.card { background:#fff; padding:15px; border-radius:8px; max-width:400px; margin:auto; }
+input,button { width:100%; padding:8px; margin:5px 0; }
 </style>
 </head>
+
 <body>
+<a href="index.html">⬅ Torna alla vetrina</a>
 
-<h1>📚 ComicZoo – Vetrina Serie</h1>
+<div class="card">
+<h2>➕ Aggiungi Serie</h2>
 
-<div id="auth" class="card">
-  <input id="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Password">
-  <button id="loginBtn">Login</button>
-  <button id="signupBtn">Registrati</button>
-</div>
+<input id="titolo" placeholder="Titolo">
+<input id="collana" placeholder="Collana (opzionale)">
+<input id="codiceEditore" placeholder="Codice Editore">
+<input id="genere" placeholder="Genere">
+<input id="immagine" placeholder="Link immagine">
 
-<div id="app" style="display:none">
-
-  <button id="logoutBtn">Logout</button>
-
-  <input id="searchSerie" placeholder="Cerca serie per titolo o collana...">
-  <select id="searchCodice"><option value="">Tutti i codici editore</option></select>
-
-  <div id="vetrinaSerie" class="vetrina"></div>
-
-  <div class="card">
-    <h3>Aggiungi / Modifica Serie</h3>
-    <input id="serieTitolo" placeholder="Titolo Serie">
-    <input id="serieCollana" placeholder="Collana (opzionale)">
-    <input id="serieCodice" placeholder="Codice Editore">
-    <input id="serieGenere" placeholder="Genere">
-    <input id="serieImg" placeholder="Link immagine">
-    <input id="editoriCorrelati" placeholder="Editor correlati (separati da ,)">
-    <button id="saveSerieBtn">Salva Serie</button>
-  </div>
-
+<button id="save">Salva</button>
 </div>
 
 <script>
-firebase.initializeApp({
+const firebaseConfig = {
   apiKey: "AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",
   authDomain: "comiczoo.firebaseapp.com",
   projectId: "comiczoo"
-});
+};
+firebase.initializeApp(firebaseConfig);
+
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-/* DOM */
-const authDiv = document.getElementById("auth");
-const appDiv = document.getElementById("app");
-const listaSerie = document.getElementById("vetrinaSerie");
-const searchSerie = document.getElementById("searchSerie");
-const searchCodice = document.getElementById("searchCodice");
-const saveSerieBtn = document.getElementById("saveSerieBtn");
-const serieTitolo = document.getElementById("serieTitolo");
-const serieCollana = document.getElementById("serieCollana");
-const serieCodice = document.getElementById("serieCodice");
-const serieGenere = document.getElementById("serieGenere");
-const serieImg = document.getElementById("serieImg");
-const editoriCorrelati = document.getElementById("editoriCorrelati");
+document.getElementById("save").onclick = async ()=>{
+  if(!auth.currentUser) return alert("Non loggato");
 
-/* AUTH */
-loginBtn.onclick = () => auth.signInWithEmailAndPassword(email.value,password.value).catch(e=>alert(e.message));
-signupBtn.onclick = () => auth.createUserWithEmailAndPassword(email.value,password.value).catch(e=>alert(e.message));
-logoutBtn.onclick = () => auth.signOut();
-
-auth.onAuthStateChanged(user=>{
-  authDiv.style.display = user?"none":"block";
-  appDiv.style.display  = user?"block":"none";
-  if(user) loadSerie();
-});
-
-/* SALVA SERIE */
-let editSerieId = null;
-saveSerieBtn.onclick = async ()=>{
-  if(!auth.currentUser){ alert("Non sei loggato"); return; }
-  if(!serieTitolo.value.trim()){ alert("Titolo obbligatorio"); return; }
-  if(!serieCodice.value.trim()){ alert("Codice Editore obbligatorio"); return; }
-
-  const data = {
+  await db.collection("serie").add({
     uid: auth.currentUser.uid,
-    titolo: serieTitolo.value.trim(),
-    collana: serieCollana.value.trim() || "",
-    codiceEditore: serieCodice.value.trim(),
-    genere: serieGenere.value.trim() || "",
-    img: serieImg.value.trim() || "",
-    editoriCorrelati: editoriCorrelati.value.split(",").map(e=>e.trim()).filter(e=>e)
-  };
-
-  try{
-    let ref;
-    if(editSerieId){
-      ref = db.collection("serie").doc(editSerieId);
-      await ref.set(data);
-      editSerieId=null;
-    }else{
-      ref = await db.collection("serie").add(data);
-    }
-    console.log("Serie salvata con ID:", ref.id);
-
-    // pulizia campi
-    [serieTitolo, serieCollana, serieCodice, serieGenere, serieImg, editoriCorrelati].forEach(i=>i.value="");
-    
-    // ricarica serie
-    loadSerie();
-  }catch(err){
-    console.error("Errore salvataggio serie:", err);
-    alert("Errore salvataggio serie: "+err.message);
-  }
-};
-
-/* LOAD SERIE */
-let tutteSerie = [];
-function loadSerie(){
-  db.collection("serie").where("uid","==",auth.currentUser.uid).get()
-  .then(snapshot=>{
-    tutteSerie=[];
-    snapshot.forEach(doc=>{ let s=doc.data(); s.id=doc.id; tutteSerie.push(s); });
-    popolaCodici();
-    mostraSerie();
-  }).catch(err=>console.error("Errore caricamento serie:", err));
-}
-
-/* POPOLA CODICI EDITORE */
-function popolaCodici(){
-  const codici = Array.from(new Set(tutteSerie.map(s=>s.codiceEditore))).sort();
-  searchCodice.innerHTML = `<option value="">Tutti i codici editore</option>`;
-  codici.forEach(c=>searchCodice.innerHTML+=`<option value="${c}">${c}</option>`);
-}
-
-/* MOSTRA SERIE */
-function mostraSerie(){
-  const query = searchSerie.value.toLowerCase();
-  const codice = searchCodice.value;
-  listaSerie.innerHTML = "";
-  tutteSerie.forEach(s=>{
-    if(query && !s.titolo.toLowerCase().includes(query) && !s.collana.toLowerCase().includes(query)) return;
-    if(codice && s.codiceEditore!==codice) return;
-    listaSerie.innerHTML += `
-      <div class="card" onclick="openSerie('${s.id}')">
-        ${s.img?`<img src="${s.img}"><br>`:''}
-        <strong>${s.titolo}</strong> ${s.collana?`(${s.collana})`:''}<br>
-        Codice: ${s.codiceEditore}
-      </div>
-    `;
+    titolo: titolo.value,
+    collana: collana.value,
+    codiceEditore: codiceEditore.value,
+    genere: genere.value,
+    immagine: immagine.value,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
   });
-}
 
-searchSerie.addEventListener("input", mostraSerie);
-searchCodice.addEventListener("change", mostraSerie);
-
-/* APRI PAGINA SERIE */
-window.openSerie = (serieId)=>{
-  localStorage.setItem("serieId",serieId);
-  window.location.href = "serie.html";
+  alert("Serie salvata");
+  window.location.href="index.html";
 };
 </script>
 </body>
