@@ -2,158 +2,92 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>Fumetti Serie</title>
+<title>Serie</title>
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
 <style>
-body { font-family: Arial; background:#f4f6f8; padding:20px; }
-.card { background:#fff; padding:15px; border-radius:8px; margin-bottom:10px; }
-input, select, button { width:100%; padding:8px; margin:5px 0; }
-button { cursor:pointer; }
-.stelle-gold { color: gold; }
-.stelle-gray { color: #999; }
-.stelle-red  { color: red; }
-img { max-width:120px; border-radius:4px; }
-.grayscale { filter: grayscale(100%); }
+body { font-family:Arial; background:#f4f6f8; padding:20px; }
+.card { background:#fff; padding:15px; margin:10px 0; border-radius:8px; }
 </style>
 </head>
 <body>
 
-<h1>📖 Fumetti Serie</h1>
+<a href="index.html">⬅ Torna</a>
+<h1 id="serieTitle"></h1>
 
-<div id="app" style="display:none">
-
-  <button id="logoutBtn">Logout</button>
-
-  <input id="searchFumetti" placeholder="Cerca fumetto...">
-  <div id="listaFumetti"></div>
-
-  <div class="card">
-    <h3>Aggiungi / Modifica Fumetto</h3>
-    <input id="fumettoNumero" placeholder="Numero/Nome">
-    <input id="fumettoData" type="date">
-    <input id="fumettoAnnata" placeholder="Annata">
-    <input id="fumettoTestata" placeholder="Testata">
-    <select id="fumettoEditore"></select>
-    <select id="fumettoStato">
-      <option value="Mint">Mint</option>
-      <option value="Near Mint">Near Mint</option>
-      <option value="Good">Good</option>
-      <option value="Fair">Fair</option>
-      <option value="Discreto">Discreto</option>
-    </select>
-    <select id="fumettoPossesso">
-      <option value="Celo">Celo</option>
-      <option value="Manca">Manca</option>
-    </select>
-    <input id="fumettoImg" placeholder="Link immagine">
-    <button id="saveFumettoBtn">Salva Fumetto</button>
-  </div>
-
+<div class="card">
+<input id="search" placeholder="Cerca fumetto">
 </div>
 
+<div class="card">
+<input id="numero" placeholder="Numero / Nome">
+<input id="anno" placeholder="Anno">
+<select id="stato">
+  <option>Mint</option>
+  <option>Near Mint</option>
+  <option>Good</option>
+  <option>Fair</option>
+  <option>Discreto</option>
+</select>
+<select id="possesso">
+  <option value="celo">Ce l'ho</option>
+  <option value="manca">Manca</option>
+</select>
+<button id="add">Aggiungi</button>
+</div>
+
+<div id="fumetti"></div>
+
 <script>
-firebase.initializeApp({
-  apiKey: "AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",
-  authDomain: "comiczoo.firebaseapp.com",
-  projectId: "comiczoo"
-});
-const auth = firebase.auth();
-const db = firebase.firestore();
+const firebaseConfig={apiKey:"AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",authDomain:"comiczoo.firebaseapp.com",projectId:"comiczoo"};
+firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth(), db=firebase.firestore();
 
-const appDiv = document.getElementById("app");
-const listaFumetti = document.getElementById("listaFumetti");
-const fumettoEditore = document.getElementById("fumettoEditore");
-const serieId = localStorage.getItem("serieId");
+const serieId=new URLSearchParams(location.search).get("id");
+const fumettiDiv=document.getElementById("fumetti");
 
-logoutBtn.onclick = ()=>auth.signOut();
-auth.onAuthStateChanged(user=>{
-  if(user){ appDiv.style.display="block"; loadSerie(); }
-  else{ window.location.href="index.html"; }
+auth.onAuthStateChanged(async u=>{
+  if(!u) return location.href="index.html";
+
+  const s=await db.collection("serie").doc(serieId).get();
+  serieTitle.textContent=s.data().titolo;
+
+  load();
 });
 
-let editoriCorrelati = [];
-function loadSerie(){
-  db.collection("serie").doc(serieId).get().then(doc=>{
-    const s = doc.data();
-    editoriCorrelati = s.editoriCorrelati || [];
-    mostraEditori();
-    loadFumetti();
+function load(){
+  db.collection("fumetti")
+    .where("uid","==",auth.currentUser.uid)
+    .where("serieId","==",serieId)
+    .onSnapshot(snap=>{
+      fumettiDiv.innerHTML="";
+      snap.forEach(d=>{
+        const f=d.data();
+        if(search.value && !f.numero.toLowerCase().includes(search.value.toLowerCase())) return;
+        fumettiDiv.innerHTML+=`
+          <div class="card">
+            <b>${f.numero}</b> (${f.anno})<br>
+            ${f.stato} • ${f.possesso}
+          </div>`;
+      });
+    });
+}
+
+add.onclick=async()=>{
+  await db.collection("fumetti").add({
+    uid:auth.currentUser.uid,
+    serieId,
+    numero:numero.value,
+    anno:anno.value,
+    stato:stato.value,
+    possesso:possesso.value
   });
-}
-
-function mostraEditori(){
-  fumettoEditore.innerHTML = "";
-  editoriCorrelati.forEach(e=>{
-    fumettoEditore.innerHTML += `<option value="${e}">${e}</option>`;
-  });
-}
-
-/* STELLE */
-function stelle(stato){
-  if(!stato) return "";
-  const map = {
-    "Mint": {n:5,c:"stelle-gold"},
-    "Near Mint": {n:4,c:"stelle-gray"},
-    "Good": {n:3,c:"stelle-gray"},
-    "Fair": {n:2,c:"stelle-red"},
-    "Discreto": {n:1,c:"stelle-red"}
-  };
-  const s = map[stato]; return `<span class="${s.c}">${'★'.repeat(s.n)}</span>`;
-}
-
-/* SALVA FUMETTO */
-let editFumettoId=null;
-saveFumettoBtn.onclick=async ()=>{
-  if(!auth.currentUser) return;
-  const data = {
-    uid: auth.currentUser.uid,
-    serieId: serieId,
-    numeroNome: fumettoNumero.value,
-    data: fumettoData.value,
-    annata: fumettoAnnata.value,
-    testata: fumettoTestata.value,
-    editore: fumettoEditore.value,
-    stato: fumettoPossesso.value==="Celo"?fumettoStato.value:null,
-    possesso: fumettoPossesso.value,
-    img: fumettoImg.value
-  };
-  try{
-    if(editFumettoId){ await db.collection("fumetti").doc(editFumettoId).set(data); editFumettoId=null; }
-    else{ await db.collection("fumetti").add(data); }
-    [fumettoNumero,fumettoData,fumettoAnnata,fumettoTestata,fumettoImg].forEach(i=>i.value="");
-    fumettoStato.value="Mint"; fumettoPossesso.value="Celo";
-    loadFumetti();
-  } catch(err){ console.error(err); }
 };
 
-/* LOAD FUMETTI */
-let tuttiFumetti=[];
-function loadFumetti(){
-  db.collection("fumetti").where("serieId","==",serieId).get().then(snapshot=>{
-    tuttiFumetti=[];
-    snapshot.forEach(doc=>{ let f=doc.data(); f.id=doc.id; tuttiFumetti.push(f); });
-    mostraFumetti();
-  });
-}
-
-function mostraFumetti(){
-  const q = document.getElementById("searchFumetti").value.toLowerCase();
-  listaFumetti.innerHTML="";
-  tuttiFumetti.forEach(f=>{
-    if(!f.numeroNome.toLowerCase().includes(q)) return;
-    listaFumetti.innerHTML += `
-      <div class="card">
-        <strong>${f.numeroNome}</strong> • ${f.data} • ${f.annata}<br>
-        Testata: ${f.testata} • Editore: ${f.editore}<br>
-        Stato: ${stelle(f.stato)} • ${f.possesso}<br>
-        ${f.img?`<img src="${f.img}" class="${f.possesso==="Manca"?"grayscale":""}">`:''}
-      </div>
-    `;
-  });
-}
-document.getElementById("searchFumetti").addEventListener("input", mostraFumetti);
+search.oninput=load;
 </script>
 </body>
 </html>
