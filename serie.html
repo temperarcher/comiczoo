@@ -6,7 +6,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
 <style>
 body { font-family: Arial; background:#f4f6f8; padding:20px; }
 .card { background:#fff; padding:15px; border-radius:8px; margin-bottom:10px; }
@@ -33,10 +32,10 @@ img { max-width:120px; border-radius:4px; }
   <div class="card">
     <h3>Aggiungi / Modifica Fumetto</h3>
     <input id="fumettoNumero" placeholder="Numero/Nome">
-    <input id="fumettoData" type="date" placeholder="Data">
+    <input id="fumettoData" type="date">
     <input id="fumettoAnnata" placeholder="Annata">
     <input id="fumettoTestata" placeholder="Testata">
-    <input id="fumettoEditore" placeholder="Editore">
+    <select id="fumettoEditore"></select>
     <select id="fumettoStato">
       <option value="Mint">Mint</option>
       <option value="Near Mint">Near Mint</option>
@@ -65,16 +64,33 @@ const db = firebase.firestore();
 
 const appDiv = document.getElementById("app");
 const listaFumetti = document.getElementById("listaFumetti");
-const searchFumetti = document.getElementById("searchFumetti");
+const fumettoEditore = document.getElementById("fumettoEditore");
 const serieId = localStorage.getItem("serieId");
 
 logoutBtn.onclick = ()=>auth.signOut();
 auth.onAuthStateChanged(user=>{
-  if(user){ appDiv.style.display="block"; loadFumetti(); }
+  if(user){ appDiv.style.display="block"; loadSerie(); }
   else{ window.location.href="index.html"; }
 });
 
-/* ================= STELLE ================= */
+let editoriCorrelati = [];
+function loadSerie(){
+  db.collection("serie").doc(serieId).get().then(doc=>{
+    const s = doc.data();
+    editoriCorrelati = s.editoriCorrelati || [];
+    mostraEditori();
+    loadFumetti();
+  });
+}
+
+function mostraEditori(){
+  fumettoEditore.innerHTML = "";
+  editoriCorrelati.forEach(e=>{
+    fumettoEditore.innerHTML += `<option value="${e}">${e}</option>`;
+  });
+}
+
+/* STELLE */
 function stelle(stato){
   if(!stato) return "";
   const map = {
@@ -87,9 +103,9 @@ function stelle(stato){
   const s = map[stato]; return `<span class="${s.c}">${'★'.repeat(s.n)}</span>`;
 }
 
-/* ================= SALVA FUMETTO ================= */
-let editFumettoId = null;
-saveFumettoBtn.onclick = async ()=>{
+/* SALVA FUMETTO */
+let editFumettoId=null;
+saveFumettoBtn.onclick=async ()=>{
   if(!auth.currentUser) return;
   const data = {
     uid: auth.currentUser.uid,
@@ -106,26 +122,24 @@ saveFumettoBtn.onclick = async ()=>{
   try{
     if(editFumettoId){ await db.collection("fumetti").doc(editFumettoId).set(data); editFumettoId=null; }
     else{ await db.collection("fumetti").add(data); }
-    [fumettoNumero,fumettoData,fumettoAnnata,fumettoTestata,fumettoEditore,fumettoImg].forEach(i=>i.value="");
+    [fumettoNumero,fumettoData,fumettoAnnata,fumettoTestata,fumettoImg].forEach(i=>i.value="");
     fumettoStato.value="Mint"; fumettoPossesso.value="Celo";
     loadFumetti();
   } catch(err){ console.error(err); }
 };
 
-/* ================= LOAD FUMETTI ================= */
-let tuttiFumetti = [];
+/* LOAD FUMETTI */
+let tuttiFumetti=[];
 function loadFumetti(){
-  db.collection("fumetti").where("serieId","==",serieId).get()
-  .then(snapshot=>{
-    tuttiFumetti=[]; snapshot.forEach(doc=>{
-      let f=doc.data(); f.id=doc.id; tuttiFumetti.push(f);
-    });
+  db.collection("fumetti").where("serieId","==",serieId).get().then(snapshot=>{
+    tuttiFumetti=[];
+    snapshot.forEach(doc=>{ let f=doc.data(); f.id=doc.id; tuttiFumetti.push(f); });
     mostraFumetti();
   });
 }
 
 function mostraFumetti(){
-  const q = searchFumetti.value.toLowerCase();
+  const q = document.getElementById("searchFumetti").value.toLowerCase();
   listaFumetti.innerHTML="";
   tuttiFumetti.forEach(f=>{
     if(!f.numeroNome.toLowerCase().includes(q)) return;
@@ -139,7 +153,7 @@ function mostraFumetti(){
     `;
   });
 }
-searchFumetti.addEventListener("input", mostraFumetti);
+document.getElementById("searchFumetti").addEventListener("input", mostraFumetti);
 </script>
 </body>
 </html>
