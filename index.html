@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ComicZoo</title>
+<title>ComicZoo – Vetrina Serie</title>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -13,9 +13,6 @@ body { font-family: Arial; background:#f4f6f8; padding:20px; }
 .card { background:#fff; padding:15px; border-radius:8px; margin-bottom:10px; cursor:pointer; }
 input, select, button { width:100%; padding:8px; margin:5px 0; }
 button { cursor:pointer; }
-.stelle-gold { color: gold; }
-.stelle-gray { color: #999; }
-.stelle-red  { color: red; }
 img { max-width:150px; border-radius:4px; }
 </style>
 </head>
@@ -34,16 +31,11 @@ img { max-width:150px; border-radius:4px; }
 <!-- APP -->
 <div id="app" style="display:none">
 
-  <!-- LOGOUT -->
   <button id="logoutBtn">Logout</button>
 
-  <!-- RICERCA SERIE -->
   <input id="searchSerie" placeholder="Cerca serie...">
-
-  <!-- LISTA SERIE -->
   <div id="listaSerie"></div>
 
-  <!-- FORM ADD/EDIT SERIE -->
   <div class="card">
     <h3>Aggiungi / Modifica Serie</h3>
     <input id="serieTitolo" placeholder="Titolo Serie">
@@ -51,12 +43,13 @@ img { max-width:150px; border-radius:4px; }
     <input id="serieCodice" placeholder="Codice Editore">
     <input id="serieGenere" placeholder="Genere">
     <input id="serieImg" placeholder="Link immagine">
+    <input id="editoriCorrelati" placeholder="Editor correlati (separati da ,)">
     <button id="saveSerieBtn">Salva Serie</button>
   </div>
+
 </div>
 
 <script>
-/* ================= FIREBASE ================= */
 firebase.initializeApp({
   apiKey: "AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",
   authDomain: "comiczoo.firebaseapp.com",
@@ -65,32 +58,25 @@ firebase.initializeApp({
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-/* ================= DOM ================= */
+/* DOM */
 const authDiv = document.getElementById("auth");
-const appDiv = document.getElementById("app");
+const appDiv  = document.getElementById("app");
 const listaSerie = document.getElementById("listaSerie");
-const searchSerie = document.getElementById("searchSerie");
 
-/* ================= AUTH ================= */
-loginBtn.onclick = () => {
-  auth.signInWithEmailAndPassword(email.value, password.value)
-    .catch(e => alert(e.message));
-};
-signupBtn.onclick = () => {
-  auth.createUserWithEmailAndPassword(email.value, password.value)
-    .catch(e => alert(e.message));
-};
+/* AUTH */
+loginBtn.onclick = () => auth.signInWithEmailAndPassword(email.value,password.value).catch(e=>alert(e.message));
+signupBtn.onclick = () => auth.createUserWithEmailAndPassword(email.value,password.value).catch(e=>alert(e.message));
 logoutBtn.onclick = () => auth.signOut();
 
-auth.onAuthStateChanged(user => {
-  authDiv.style.display = user ? "none" : "block";
-  appDiv.style.display  = user ? "block" : "none";
+auth.onAuthStateChanged(user=>{
+  authDiv.style.display = user?"none":"block";
+  appDiv.style.display  = user?"block":"none";
   if(user) loadSerie();
 });
 
-/* ================= SALVA SERIE ================= */
+/* SALVA SERIE */
 let editSerieId = null;
-saveSerieBtn.onclick = async () => {
+saveSerieBtn.onclick = async ()=>{
   if(!auth.currentUser) return;
   const data = {
     uid: auth.currentUser.uid,
@@ -98,37 +84,31 @@ saveSerieBtn.onclick = async () => {
     collana: serieCollana.value || "",
     codiceEditore: serieCodice.value,
     genere: serieGenere.value,
-    img: serieImg.value || ""
+    img: serieImg.value || "",
+    editoriCorrelati: editoriCorrelati.value.split(",").map(e=>e.trim())
   };
-  try {
-    if(editSerieId){
-      await db.collection("serie").doc(editSerieId).set(data);
-      editSerieId = null;
-    } else {
-      await db.collection("serie").add(data);
-    }
-    serieTitolo.value = serieCollana.value = serieCodice.value = serieGenere.value = serieImg.value = "";
+  try{
+    if(editSerieId){ await db.collection("serie").doc(editSerieId).set(data); editSerieId=null; }
+    else{ await db.collection("serie").add(data); }
+    [serieTitolo,serieCollana,serieCodice,serieGenere,serieImg,editoriCorrelati].forEach(i=>i.value="");
     loadSerie();
   } catch(err){ console.error(err); }
 };
 
-/* ================= LOAD SERIE ================= */
+/* LOAD SERIE */
 let tutteSerie = [];
 function loadSerie(){
   db.collection("serie").where("uid","==",auth.currentUser.uid).get()
   .then(snapshot=>{
-    tutteSerie = [];
-    snapshot.forEach(doc=>{
-      let s = doc.data(); s.id = doc.id;
-      tutteSerie.push(s);
-    });
+    tutteSerie=[];
+    snapshot.forEach(doc=>{ let s=doc.data(); s.id=doc.id; tutteSerie.push(s); });
     mostraSerie();
   });
 }
 
-/* ================= MOSTRA SERIE ================= */
+/* MOSTRA SERIE */
 function mostraSerie(){
-  const query = searchSerie.value.toLowerCase();
+  const query = document.getElementById("searchSerie").value.toLowerCase();
   listaSerie.innerHTML = "";
   tutteSerie.forEach(s=>{
     if(!s.titolo.toLowerCase().includes(query)) return;
@@ -141,12 +121,11 @@ function mostraSerie(){
     `;
   });
 }
+document.getElementById("searchSerie").addEventListener("input", mostraSerie);
 
-searchSerie.addEventListener("input", mostraSerie);
-
-/* ================= APRI PAGINA SERIE ================= */
-window.openSerie = (serieId) => {
-  localStorage.setItem("serieId", serieId);
+/* APRI PAGINA SERIE */
+window.openSerie = (serieId)=>{
+  localStorage.setItem("serieId",serieId);
   window.location.href = "serie.html";
 };
 </script>
