@@ -11,11 +11,12 @@
 <style>
 body { font-family:Arial; background:#f4f6f8; padding:20px; }
 .card { background:#fff; padding:15px; margin:10px 0; border-radius:8px; }
+input,select,button { width:100%; padding:8px; margin:5px 0; }
 </style>
 </head>
 <body>
 
-<a href="index.html">⬅ Torna</a>
+<a href="index.html">⬅ Torna alla vetrina</a>
 <h1 id="serieTitle"></h1>
 
 <div class="card">
@@ -42,11 +43,16 @@ body { font-family:Arial; background:#f4f6f8; padding:20px; }
 <div id="fumetti"></div>
 
 <script>
-const firebaseConfig={apiKey:"AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",authDomain:"comiczoo.firebaseapp.com",projectId:"comiczoo"};
+// FIREBASE
+const firebaseConfig={
+  apiKey:"AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",
+  authDomain:"comiczoo.firebaseapp.com",
+  projectId:"comiczoo"
+};
 firebase.initializeApp(firebaseConfig);
 const auth=firebase.auth(), db=firebase.firestore();
 
-const serieId=new URLSearchParams(location.search).get("id");
+const serieId=new URLSearchParams(window.location.search).get("id");
 const fumettiDiv=document.getElementById("fumetti");
 
 auth.onAuthStateChanged(async u=>{
@@ -55,10 +61,10 @@ auth.onAuthStateChanged(async u=>{
   const s=await db.collection("serie").doc(serieId).get();
   serieTitle.textContent=s.data().titolo;
 
-  load();
+  loadFumetti();
 });
 
-function load(){
+function loadFumetti(){
   db.collection("fumetti")
     .where("uid","==",auth.currentUser.uid)
     .where("serieId","==",serieId)
@@ -67,6 +73,7 @@ function load(){
       snap.forEach(d=>{
         const f=d.data();
         if(search.value && !f.numero.toLowerCase().includes(search.value.toLowerCase())) return;
+
         fumettiDiv.innerHTML+=`
           <div class="card">
             <b>${f.numero}</b> (${f.anno})<br>
@@ -85,9 +92,10 @@ add.onclick=async()=>{
     stato:stato.value,
     possesso:possesso.value
   });
+  numero.value=anno.value="";
 };
 
-search.oninput=load;
+search.oninput=loadFumetti;
 </script>
 </body>
 </html>
