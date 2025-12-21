@@ -3,353 +3,151 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ComicZoo – Collezione Fumetti</title>
-
+<title>ComicZoo</title>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
-body { font-family: Arial, sans-serif; background:#f4f6f8; margin:0; padding:20px; transition: background 0.3s, color 0.3s; }
-h1,h2,h3,h4 { margin:5px 0; }
-.container { max-width:900px; margin:auto; }
-.card { background:white; border-radius:8px; padding:15px; margin:10px 0; box-shadow:0 2px 5px rgba(0,0,0,0.1); transition: background 0.3s, color 0.3s; }
-input,select,button { padding:8px; margin:5px 0; width:100%; }
+body { font-family: Arial; background:#f4f6f8; padding:20px; }
+.card { background:#fff; padding:15px; border-radius:8px; margin-bottom:10px; cursor:pointer; }
+input, select, button { width:100%; padding:8px; margin:5px 0; }
 button { cursor:pointer; }
-.stats { display:flex; gap:10px; flex-wrap:wrap; }
-.stat { background:#e8eef3; padding:10px; border-radius:6px; transition: background 0.3s, color 0.3s; }
-.fumetto img { max-width:100px; margin-top:5px; cursor:pointer; border-radius:4px; }
-.badge { padding:4px 8px; border-radius:5px; color:white; font-size:12px; }
-.serie-header { cursor:pointer; }
-.serie-fumetti { margin-left:15px; display:none; }
-/* DARK MODE */
-body.dark { background:#1f1f1f; color:#f0f0f0; }
-body.dark .card { background:#2a2a2a; color:#f0f0f0; }
-body.dark .stat { background:#3a3a3a; color:#f0f0f0; }
-body.dark input, body.dark select { background:#3a3a3a; color:#f0f0f0; border:1px solid #555; }
-/* POPUP COVER */
-#coverPopup { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); justify-content:center; align-items:center; z-index:9999; }
-#coverPopup img { max-width:90%; max-height:90%; border-radius:8px; }
+.stelle-gold { color: gold; }
+.stelle-gray { color: #999; }
+.stelle-red  { color: red; }
+img { max-width:150px; border-radius:4px; }
 </style>
 </head>
-
 <body>
-<div class="container">
 
-<h1>📚 ComicZoo</h1>
+<h1>📚 ComicZoo – Vetrina Serie</h1>
 
 <!-- AUTH -->
 <div id="auth" class="card">
-  <h2>Login / Registrazione</h2>
-  <input type="email" id="email" placeholder="Email">
-  <input type="password" id="password" placeholder="Password">
+  <input id="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Password">
+  <button id="loginBtn">Login</button>
   <button id="signupBtn">Registrati</button>
-  <button id="loginBtn">Accedi</button>
 </div>
 
 <!-- APP -->
-<div id="app" style="display:none;">
+<div id="app" style="display:none">
+
+  <!-- LOGOUT -->
   <button id="logoutBtn">Logout</button>
-  <button id="darkBtn">🌙 Dark Mode</button>
-  <button id="csvBtn">💾 Esporta CSV</button>
 
+  <!-- RICERCA SERIE -->
+  <input id="searchSerie" placeholder="Cerca serie...">
+
+  <!-- LISTA SERIE -->
+  <div id="listaSerie"></div>
+
+  <!-- FORM ADD/EDIT SERIE -->
   <div class="card">
-    <h2>Aggiungi / Modifica fumetto</h2>
-    <input id="titolo" placeholder="Titolo">
-    <input id="serie" placeholder="Serie">
-    <label>Data pubblicazione:</label>
-    <input id="giorno" type="number" min="1" max="31" placeholder="Giorno">
-    <input id="mese" type="number" min="1" max="12" placeholder="Mese">
-    <input id="anno" type="number" placeholder="Anno">
-    <input id="editore" placeholder="Editore">
-    <input id="copertina" placeholder="Link copertina">
-    <label>Stato:
-      <select id="stato">
-        <option value="Da leggere">Da leggere</option>
-        <option value="In lettura">In lettura</option>
-        <option value="Letto">Letto</option>
-      </select>
-    </label>
-    <button id="salvaBtn">Salva</button>
+    <h3>Aggiungi / Modifica Serie</h3>
+    <input id="serieTitolo" placeholder="Titolo Serie">
+    <input id="serieCollana" placeholder="Collana (opzionale)">
+    <input id="serieCodice" placeholder="Codice Editore">
+    <input id="serieGenere" placeholder="Genere">
+    <input id="serieImg" placeholder="Link immagine">
+    <button id="saveSerieBtn">Salva Serie</button>
   </div>
-
-  <div class="card">
-    <h2>📊 Statistiche</h2>
-    <div class="stats" id="statistiche"></div>
-  </div>
-
-  <div class="card">
-    <h2>🔍 Ricerca</h2>
-    <input id="ricerca" placeholder="Titolo o serie">
-    <h2>↕️ Ordinamento</h2>
-    <select id="ordinamento">
-      <option value="data_asc">Data ↑</option>
-      <option value="data_desc">Data ↓</option>
-      <option value="serie_asc">Serie A → Z</option>
-      <option value="serie_desc">Serie Z → A</option>
-    </select>
-  </div>
-
-  <div id="fumetti"></div>
-</div>
-
-<!-- POPUP COVER -->
-<div id="coverPopup" onclick="this.style.display='none'">
-  <img id="coverImg" src="">
-</div>
-
 </div>
 
 <script>
-window.onload = function(){
-
-// 🔥 FIREBASE CONFIG
-const firebaseConfig = {
+/* ================= FIREBASE ================= */
+firebase.initializeApp({
   apiKey: "AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",
   authDomain: "comiczoo.firebaseapp.com",
-  projectId: "comiczoo",
-  storageBucket: "comiczoo.firebasestorage.app",
-  messagingSenderId: "854173216358",
-  appId: "1:854173216358:web:3b0485ceab341046f907a7"
-};
-firebase.initializeApp(firebaseConfig);
+  projectId: "comiczoo"
+});
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// DOM
+/* ================= DOM ================= */
 const authDiv = document.getElementById("auth");
 const appDiv = document.getElementById("app");
-const email = document.getElementById("email");
-const password = document.getElementById("password");
-const signupBtn = document.getElementById("signupBtn");
-const loginBtn = document.getElementById("loginBtn");
-const logoutBtn = document.getElementById("logoutBtn");
-const darkBtn = document.getElementById("darkBtn");
-const csvBtn = document.getElementById("csvBtn");
+const listaSerie = document.getElementById("listaSerie");
+const searchSerie = document.getElementById("searchSerie");
 
-const salvaBtn = document.getElementById("salvaBtn");
-const titolo = document.getElementById("titolo");
-const serie = document.getElementById("serie");
-const giorno = document.getElementById("giorno");
-const mese = document.getElementById("mese");
-const anno = document.getElementById("anno");
-const editore = document.getElementById("editore");
-const copertina = document.getElementById("copertina");
-const stato = document.getElementById("stato");
-const ricerca = document.getElementById("ricerca");
-const ordinamento = document.getElementById("ordinamento");
-const fumetti = document.getElementById("fumetti");
-const statistiche = document.getElementById("statistiche");
+/* ================= AUTH ================= */
+loginBtn.onclick = () => {
+  auth.signInWithEmailAndPassword(email.value, password.value)
+    .catch(e => alert(e.message));
+};
+signupBtn.onclick = () => {
+  auth.createUserWithEmailAndPassword(email.value, password.value)
+    .catch(e => alert(e.message));
+};
+logoutBtn.onclick = () => auth.signOut();
 
-const coverPopup = document.getElementById("coverPopup");
-const coverImg = document.getElementById("coverImg");
-
-let editId = null;
-
-// AUTH
-signupBtn.onclick = ()=>{ auth.createUserWithEmailAndPassword(email.value,password.value).catch(e=>alert(e.message)); };
-loginBtn.onclick = ()=>{ auth.signInWithEmailAndPassword(email.value,password.value).catch(e=>alert(e.message)); };
-logoutBtn.onclick = ()=>{ auth.signOut(); };
-
-// LOGIN / LOGOUT UI
-auth.onAuthStateChanged(user=>{
-  if(user){
-    authDiv.style.display="none";
-    appDiv.style.display="block";
-    creaIndiciSeMancanti();
-    mostraFumetti();
-  }else{
-    authDiv.style.display="block";
-    appDiv.style.display="none";
-  }
+auth.onAuthStateChanged(user => {
+  authDiv.style.display = user ? "none" : "block";
+  appDiv.style.display  = user ? "block" : "none";
+  if(user) loadSerie();
 });
 
-// DARK MODE
-darkBtn.onclick = ()=>{ document.body.classList.toggle("dark"); };
-
-// SALVA / AGGIORNA
-salvaBtn.onclick = async function(){
-  if(!auth.currentUser){ alert("Non sei loggato"); return; }
-  if(!titolo.value){ alert("Titolo obbligatorio"); return; }
-  if(!giorno.value || !mese.value || !anno.value){ alert("Inserisci giorno, mese e anno"); return; }
-
+/* ================= SALVA SERIE ================= */
+let editSerieId = null;
+saveSerieBtn.onclick = async () => {
+  if(!auth.currentUser) return;
   const data = {
-    userId: auth.currentUser.uid,
-    titolo: titolo.value,
-    serie: serie.value || "",
-    dataPubblicazione: new Date(parseInt(anno.value), parseInt(mese.value)-1, parseInt(giorno.value)),
-    editore: editore.value || "",
-    copertina: copertina.value || "",
-    stato: stato.value
+    uid: auth.currentUser.uid,
+    titolo: serieTitolo.value,
+    collana: serieCollana.value || "",
+    codiceEditore: serieCodice.value,
+    genere: serieGenere.value,
+    img: serieImg.value || ""
   };
-
-  try{
-    if(editId){
-      await db.collection("fumetti").doc(editId).set(data);
-      editId=null;
-      salvaBtn.textContent="Salva";
-    }else{
-      await db.collection("fumetti").add(data);
-    }
-    [titolo,serie,giorno,mese,anno,editore,copertina].forEach(i=>i.value="");
-    stato.value="Da leggere";
-    mostraFumetti();
-  } catch(err){
-    alert("Errore salvataggio: "+err.message);
-    console.error(err);
-  }
-};
-
-// COLLAPSIBLE SERIE
-window.toggleSerie = function(id){
-  const div = document.getElementById(id);
-  div.style.display = div.style.display==="none"?"block":"none";
-};
-
-// MOSTRA + ORDINA
-function mostraFumetti(){
-  if(!auth.currentUser) return;
-  const search = ricerca.value.toLowerCase();
-  const ordine = ordinamento.value;
-  let query = db.collection("fumetti").where("userId","==",auth.currentUser.uid);
-
-  if(ordine==="data_asc") query=query.orderBy("dataPubblicazione","asc");
-  if(ordine==="data_desc") query=query.orderBy("dataPubblicazione","desc");
-  if(ordine==="serie_asc") query=query.orderBy("serie","asc");
-  if(ordine==="serie_desc") query=query.orderBy("serie","desc");
-
-  query.get()
-  .then(snap => {
-    fumetti.innerHTML="";
-    let tot=0, statiCount={}, serieMap={};
-
-    snap.forEach(doc=>{
-      const f=doc.data();
-      const titoloSerie = f.titolo.toLowerCase() + f.serie.toLowerCase();
-      if(!titoloSerie.includes(search)) return;
-
-      tot++;
-      statiCount[f.stato] = (statiCount[f.stato]||0)+1;
-      const serieKey=f.serie||"Senza Serie";
-      if(!serieMap[serieKey]) serieMap[serieKey]=[];
-      serieMap[serieKey].push({id: doc.id,data: f});
-    });
-
-    for(let s in serieMap){
-      const serieId=s.replace(/\s+/g,'_');
-      fumetti.innerHTML += `<div class="card">
-        <h3 class="serie-header" onclick="toggleSerie('${serieId}')">▶️ ${s}</h3>
-        <div id="${serieId}" class="serie-fumetti"></div>
-      </div>`;
-      const serieDiv=document.getElementById(serieId);
-      serieMap[s].forEach(f=>{
-        const d = f.data.dataPubblicazione.toDate ? f.data.dataPubblicazione.toDate() : f.data.dataPubblicazione;
-        const dataStr = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
-        serieDiv.innerHTML += `<div class="card fumetto">
-          <h4>${f.data.titolo}</h4>
-          <p>${dataStr} • Stato: ${f.data.stato}</p>
-          ${f.data.copertina?`<img src="${f.data.copertina}" onclick="showCover('${f.data.copertina}')">`:""}
-          <br>
-          <button onclick="modifica('${f.id}')">Modifica</button>
-          <button onclick="elimina('${f.id}')">Elimina</button>
-        </div>`;
-      });
-    }
-
-    let html=`<div class="stat">📚 Totale: ${tot}</div>`;
-    for(let st in statiCount) html+=`<div class="stat">${st}: ${statiCount[st]}</div>`;
-    statistiche.innerHTML=html;
-
-  })
-  .catch(err => {
-    console.error(err);
-    if(err.message.includes('index')){
-      console.warn("Indice mancante. Crea qui:", err.message.match(/https:\/\/console.firebase.google.com\/[^\s]+/)[0]);
+  try {
+    if(editSerieId){
+      await db.collection("serie").doc(editSerieId).set(data);
+      editSerieId = null;
     } else {
-      alert("Errore Firestore: " + err.message);
+      await db.collection("serie").add(data);
     }
-  });
-}
-
-// CREAZIONE INDICI AUTOMATICA
-async function creaIndiciSeMancanti() {
-  if (!auth.currentUser) return;
-
-  const combinazioni = [
-    { field: "dataPubblicazione", direction: "asc" },
-    { field: "dataPubblicazione", direction: "desc" },
-    { field: "serie", direction: "asc" },
-    { field: "serie", direction: "desc" }
-  ];
-
-  for (let c of combinazioni) {
-    try {
-      await db.collection("fumetti")
-        .where("userId", "==", auth.currentUser.uid)
-        .orderBy(c.field, c.direction)
-        .limit(1)
-        .get();
-    } catch(err) {
-      if (err.message.includes("index")) {
-        console.warn("Indice mancante per query:", c.field, c.direction);
-        console.warn("Crea indice cliccando qui:", err.message.match(/https:\/\/console.firebase.google.com\/[^\s]+/)[0]);
-      }
-    }
-  }
-}
-
-// ELIMINA
-window.elimina = function(id){ if(confirm("Eliminare questo fumetto?")) db.collection("fumetti").doc(id).delete(); };
-
-// MODIFICA
-window.modifica = function(id){
-  db.collection("fumetti").doc(id).get().then(d=>{
-    const f=d.data();
-    titolo.value=f.titolo;
-    serie.value=f.serie;
-    const dPub = f.dataPubblicazione.toDate ? f.dataPubblicazione.toDate() : f.dataPubblicazione;
-    giorno.value=dPub.getDate();
-    mese.value=dPub.getMonth()+1;
-    anno.value=dPub.getFullYear();
-    editore.value=f.editore;
-    copertina.value=f.copertina;
-    stato.value=f.stato;
-    editId=id;
-    salvaBtn.textContent="Aggiorna";
-  });
+    serieTitolo.value = serieCollana.value = serieCodice.value = serieGenere.value = serieImg.value = "";
+    loadSerie();
+  } catch(err){ console.error(err); }
 };
 
-// Ricerca / Ordinamento
-ricerca.oninput=mostraFumetti;
-ordinamento.onchange=mostraFumetti;
-
-// CSV
-csvBtn.onclick=function(){
-  if(!auth.currentUser) return;
-  db.collection("fumetti").where("userId","==",auth.currentUser.uid).get().then(snap=>{
-    let csv="Titolo,Serie,Giorno,Mese,Anno,Editore,Stato,Copertina\n";
-    snap.forEach(doc=>{
-      const f=doc.data();
-      const d = f.dataPubblicazione.toDate ? f.dataPubblicazione.toDate() : f.dataPubblicazione;
-      csv += `"${f.titolo}","${f.serie}",${d.getDate()},${d.getMonth()+1},${d.getFullYear()},"${f.editore}","${f.stato}","${f.copertina}"\n`;
+/* ================= LOAD SERIE ================= */
+let tutteSerie = [];
+function loadSerie(){
+  db.collection("serie").where("uid","==",auth.currentUser.uid).get()
+  .then(snapshot=>{
+    tutteSerie = [];
+    snapshot.forEach(doc=>{
+      let s = doc.data(); s.id = doc.id;
+      tutteSerie.push(s);
     });
-    const blob = new Blob([csv],{type:"text/csv"});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement("a");
-    a.href=url;
-    a.download="ComicZoo.csv";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    mostraSerie();
   });
-};
+}
 
-// SHOW COVER POPUP
-window.showCover=function(url){
-  coverImg.src=url;
-  coverPopup.style.display="flex";
-};
+/* ================= MOSTRA SERIE ================= */
+function mostraSerie(){
+  const query = searchSerie.value.toLowerCase();
+  listaSerie.innerHTML = "";
+  tutteSerie.forEach(s=>{
+    if(!s.titolo.toLowerCase().includes(query)) return;
+    listaSerie.innerHTML += `
+      <div class="card" onclick="openSerie('${s.id}')">
+        <strong>${s.titolo}</strong> ${s.collana?`(${s.collana})`:''}<br>
+        Codice: ${s.codiceEditore} • Genere: ${s.genere}<br>
+        ${s.img?`<img src="${s.img}">`:''}
+      </div>
+    `;
+  });
+}
 
+searchSerie.addEventListener("input", mostraSerie);
+
+/* ================= APRI PAGINA SERIE ================= */
+window.openSerie = (serieId) => {
+  localStorage.setItem("serieId", serieId);
+  window.location.href = "serie.html";
 };
 </script>
 </body>
