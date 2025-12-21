@@ -84,12 +84,14 @@ const lista   = document.getElementById("lista");
 /* ================= AUTH ================= */
 loginBtn.onclick = () => {
   auth.signInWithEmailAndPassword(email.value, password.value)
-    .catch(e => alert(e.message));
+    .then(u => console.log("Login riuscito", u.user.email))
+    .catch(e => alert("Errore login: " + e.message));
 };
 
 signupBtn.onclick = () => {
   auth.createUserWithEmailAndPassword(email.value, password.value)
-    .catch(e => alert(e.message));
+    .then(u => console.log("Registrazione riuscita", u.user.email))
+    .catch(e => alert("Errore registrazione: " + e.message));
 };
 
 logoutBtn.onclick = () => auth.signOut();
@@ -97,7 +99,10 @@ logoutBtn.onclick = () => auth.signOut();
 auth.onAuthStateChanged(user => {
   authDiv.style.display = user ? "none" : "block";
   appDiv.style.display  = user ? "block" : "none";
-  if (user) loadFumetti();
+  if (user) {
+    try { loadFumetti(); }
+    catch(err){ console.error("Errore loadFumetti:", err); }
+  }
 });
 
 /* ================= STELLE (★) ================= */
@@ -121,25 +126,26 @@ saveBtn.onclick = async () => {
   const g = parseInt(document.getElementById("giorno").value);
   const m = parseInt(document.getElementById("mese").value);
   const a = parseInt(document.getElementById("anno").value);
-
   if (!g || !m || !a) { alert("Inserisci giorno, mese e anno!"); return; }
 
-  await db.collection("fumetti").add({
-    uid: auth.currentUser.uid,
-    titolo: document.getElementById("titolo").value,
-    possesso: document.getElementById("possesso").value,
-    stato: document.getElementById("possesso").value === "Celo" ? document.getElementById("stato").value : null,
-    copertina: document.getElementById("copertina").value || "",
-    dataPubblicazione: new Date(a, m-1, g)
-  });
-
-  document.getElementById("titolo").value = "";
-  document.getElementById("giorno").value = "";
-  document.getElementById("mese").value = "";
-  document.getElementById("anno").value = "";
-  document.getElementById("copertina").value = "";
-
-  loadFumetti();
+  try {
+    await db.collection("fumetti").add({
+      uid: auth.currentUser.uid,
+      titolo: document.getElementById("titolo").value,
+      possesso: document.getElementById("possesso").value,
+      stato: document.getElementById("possesso").value === "Celo" ? document.getElementById("stato").value : null,
+      copertina: document.getElementById("copertina").value || "",
+      dataPubblicazione: new Date(a, m-1, g)
+    });
+    document.getElementById("titolo").value = "";
+    document.getElementById("giorno").value = "";
+    document.getElementById("mese").value = "";
+    document.getElementById("anno").value = "";
+    document.getElementById("copertina").value = "";
+    loadFumetti();
+  } catch(err) {
+    console.error("Errore salvataggio:", err);
+  }
 };
 
 /* ================= LOAD ================= */
@@ -152,7 +158,6 @@ function safeDate(value) {
 
 function loadFumetti() {
   lista.innerHTML = "";
-
   db.collection("fumetti")
     .where("uid", "==", auth.currentUser.uid)
     .get()
@@ -171,7 +176,8 @@ function loadFumetti() {
           </div>
         `;
       });
-    });
+    })
+    .catch(err => console.error("Errore caricamento fumetti:", err));
 }
 </script>
 
