@@ -86,22 +86,42 @@ auth.onAuthStateChanged(user=>{
 /* SALVA SERIE */
 let editSerieId = null;
 saveSerieBtn.onclick = async ()=>{
-  if(!auth.currentUser) return;
+  if(!auth.currentUser){
+    alert("Non sei loggato");
+    return;
+  }
+  if(!serieTitolo.value.trim()){
+    alert("Titolo obbligatorio");
+    return;
+  }
+  if(!serieCodice.value.trim()){
+    alert("Codice Editore obbligatorio");
+    return;
+  }
+
   const data = {
     uid: auth.currentUser.uid,
-    titolo: serieTitolo.value,
-    collana: serieCollana.value || "",
-    codiceEditore: serieCodice.value,
-    genere: serieGenere.value,
-    img: serieImg.value || "",
-    editoriCorrelati: editoriCorrelati.value.split(",").map(e=>e.trim())
+    titolo: serieTitolo.value.trim(),
+    collana: serieCollana.value.trim() || "",
+    codiceEditore: serieCodice.value.trim(),
+    genere: serieGenere.value.trim() || "",
+    img: serieImg.value.trim() || "",
+    editoriCorrelati: editoriCorrelati.value.split(",").map(e=>e.trim()).filter(e=>e)
   };
+
   try{
-    if(editSerieId){ await db.collection("serie").doc(editSerieId).set(data); editSerieId=null; }
-    else{ await db.collection("serie").add(data); }
+    if(editSerieId){
+      await db.collection("serie").doc(editSerieId).set(data);
+      editSerieId=null;
+    }else{
+      await db.collection("serie").add(data);
+    }
     [serieTitolo,serieCollana,serieCodice,serieGenere,serieImg,editoriCorrelati].forEach(i=>i.value="");
     loadSerie();
-  } catch(err){ console.error(err); }
+  } catch(err){
+    console.error("Errore salvataggio serie:", err);
+    alert("Errore salvataggio serie: "+err.message);
+  }
 };
 
 /* LOAD SERIE */
