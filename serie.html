@@ -83,19 +83,20 @@ function loadFumetti(){
     });
 }
 
-add.onclick=async()=>{
+document.getElementById("add").onclick=async()=>{
   await db.collection("fumetti").add({
     uid:auth.currentUser.uid,
     serieId,
-    numero:numero.value,
-    anno:anno.value,
-    stato:stato.value,
-    possesso:possesso.value
+    numero:document.getElementById("numero").value,
+    anno:document.getElementById("anno").value,
+    stato:document.getElementById("stato").value,
+    possesso:document.getElementById("possesso").value
   });
-  numero.value=anno.value="";
+  document.getElementById("numero").value="";
+  document.getElementById("anno").value="";
 };
 
-search.oninput=loadFumetti;
+document.getElementById("search").oninput=loadFumetti;
 </script>
 </body>
 </html>
