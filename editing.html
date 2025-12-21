@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Editing Serie</title>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<style>
+body { font-family:Arial; background:#f4f6f8; padding:20px; }
+.card { background:#fff; padding:15px; border-radius:8px; max-width:400px; margin:auto; }
+input,button { width:100%; padding:8px; margin:5px 0; }
+</style>
+</head>
+<body>
+
+<a href="index.html">⬅ Torna</a>
+
+<div class="card">
+<h2>➕ Serie</h2>
+<input id="titolo" placeholder="Titolo">
+<input id="collana" placeholder="Collana">
+<input id="codiceEditore" placeholder="Codice Editore">
+<input id="genere" placeholder="Genere">
+<input id="immagine" placeholder="Link immagine">
+<button id="save">Salva</button>
+</div>
+
+<script>
+const firebaseConfig={apiKey:"AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",authDomain:"comiczoo.firebaseapp.com",projectId:"comiczoo"};
+firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth(), db=firebase.firestore();
+
+save.onclick=async()=>{
+  if(!auth.currentUser) return alert("Non loggato");
+
+  await db.collection("serie").add({
+    uid:auth.currentUser.uid,
+    titolo:titolo.value,
+    collana:collana.value,
+    codiceEditore:codiceEditore.value,
+    genere:genere.value,
+    immagine:immagine.value,
+    createdAt:firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  location.href="index.html";
+};
+</script>
+</body>
+</html>
