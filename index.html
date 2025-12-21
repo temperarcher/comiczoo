@@ -2,61 +2,94 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>ComicZoo – Editing Serie</title>
+<title>ComicZoo</title>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
-body { font-family: Arial; background:#f4f6f8; padding:20px; }
-.card { background:#fff; padding:15px; border-radius:8px; max-width:400px; margin:auto; }
-input,button { width:100%; padding:8px; margin:5px 0; }
+body { font-family:Arial; background:#f4f6f8; padding:20px; }
+.card { background:#fff; padding:15px; margin:10px 0; border-radius:8px; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:15px; }
+img { width:100%; border-radius:6px; }
 </style>
 </head>
-
 <body>
-<a href="index.html">⬅ Torna alla vetrina</a>
 
-<div class="card">
-<h2>➕ Aggiungi Serie</h2>
+<h1>📚 ComicZoo</h1>
 
-<input id="titolo" placeholder="Titolo">
-<input id="collana" placeholder="Collana (opzionale)">
-<input id="codiceEditore" placeholder="Codice Editore">
-<input id="genere" placeholder="Genere">
-<input id="immagine" placeholder="Link immagine">
+<div id="auth" class="card">
+  <input id="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Password">
+  <button id="login">Login</button>
+</div>
 
-<button id="save">Salva</button>
+<div id="app" style="display:none">
+  <button id="logout">Logout</button>
+  <a href="editing.html">➕ Aggiungi serie</a>
+
+  <div class="card">
+    <input id="search" placeholder="Cerca per titolo">
+    <select id="editoreFilter">
+      <option value="">Tutti gli editori</option>
+    </select>
+  </div>
+
+  <div id="serie" class="grid"></div>
 </div>
 
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",
-  authDomain: "comiczoo.firebaseapp.com",
-  projectId: "comiczoo"
-};
+/* Firebase init */
+const firebaseConfig={apiKey:"AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",authDomain:"comiczoo.firebaseapp.com",projectId:"comiczoo"};
 firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth(), db=firebase.firestore();
 
-const auth = firebase.auth();
-const db = firebase.firestore();
+const authDiv=document.getElementById("auth");
+const appDiv=document.getElementById("app");
+const serieDiv=document.getElementById("serie");
+const search=document.getElementById("search");
+const editoreFilter=document.getElementById("editoreFilter");
 
-document.getElementById("save").onclick = async ()=>{
-  if(!auth.currentUser) return alert("Non loggato");
+login.onclick=()=>auth.signInWithEmailAndPassword(email.value,password.value);
+logout.onclick=()=>auth.signOut();
 
-  await db.collection("serie").add({
-    uid: auth.currentUser.uid,
-    titolo: titolo.value,
-    collana: collana.value,
-    codiceEditore: codiceEditore.value,
-    genere: genere.value,
-    immagine: immagine.value,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  });
+auth.onAuthStateChanged(u=>{
+  authDiv.style.display=u?"none":"block";
+  appDiv.style.display=u?"block":"none";
+  if(u) loadSerie();
+});
 
-  alert("Serie salvata");
-  window.location.href="index.html";
-};
+function loadSerie(){
+  db.collection("serie")
+    .where("uid","==",auth.currentUser.uid)
+    .onSnapshot(snap=>{
+      serieDiv.innerHTML="";
+      const editori=new Set();
+
+      snap.forEach(doc=>{
+        const s=doc.data();
+        editori.add(s.codiceEditore);
+
+        if(search.value && !s.titolo.toLowerCase().includes(search.value.toLowerCase())) return;
+        if(editoreFilter.value && s.codiceEditore!==editoreFilter.value) return;
+
+        serieDiv.innerHTML+=`
+          <div class="card">
+            ${s.immagine?`<img src="${s.immagine}">`:""}
+            <h3>${s.titolo}</h3>
+            <p>${s.codiceEditore}</p>
+            <a href="serie.html?id=${doc.id}">Apri serie</a>
+          </div>`;
+      });
+
+      editoreFilter.innerHTML='<option value="">Tutti gli editori</option>';
+      editori.forEach(e=>editoreFilter.innerHTML+=`<option>${e}</option>`);
+    });
+}
+
+search.oninput=loadSerie;
+editoreFilter.onchange=loadSerie;
 </script>
 </body>
 </html>
