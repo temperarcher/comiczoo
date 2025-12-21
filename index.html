@@ -13,7 +13,7 @@ body { font-family:Arial; background:#f4f6f8; padding:20px; }
 .card { background:#fff; padding:15px; margin:10px 0; border-radius:8px; }
 .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:15px; }
 img { width:100%; border-radius:6px; }
-input,select { width:100%; padding:8px; margin:5px 0; }
+input,select,button { width:100%; padding:8px; margin:5px 0; }
 a { display:inline-block; margin-top:5px; }
 </style>
 </head>
@@ -93,7 +93,7 @@ function loadSerie(){
             ${s.immagine?`<img src="${s.immagine}">`:""}
             <h3>${s.titolo}</h3>
             <p>${s.codiceEditore}</p>
-            <a href="serie.html?id=${doc.id}">📘 Apri serie</a>
+            <a href="serie.html?id=${doc.id}">📘 Apri serie</a><br>
             <a href="editing.html?id=${doc.id}">✏️ Edit</a>
           </div>`;
       });
