@@ -10,10 +10,10 @@
 
 <style>
 body { font-family: Arial; background:#f4f6f8; padding:20px; }
-.card { background:#fff; padding:15px; border-radius:8px; margin-bottom:10px; cursor:pointer; }
+.card { background:#fff; padding:15px; border-radius:8px; margin-bottom:10px; cursor:pointer; display:inline-block; width:150px; text-align:center; vertical-align:top; }
 input, select, button { width:100%; padding:8px; margin:5px 0; }
-button { cursor:pointer; }
-img { max-width:150px; border-radius:4px; }
+img { max-width:120px; border-radius:4px; }
+.vetrina { display:flex; flex-wrap:wrap; gap:10px; margin-top:10px; }
 </style>
 </head>
 <body>
@@ -33,8 +33,15 @@ img { max-width:150px; border-radius:4px; }
 
   <button id="logoutBtn">Logout</button>
 
-  <input id="searchSerie" placeholder="Cerca serie...">
-  <div id="listaSerie"></div>
+  <!-- RICERCA TESTO -->
+  <input id="searchSerie" placeholder="Cerca serie per titolo o collana...">
+
+  <!-- RICERCA PER CODICE EDITORE -->
+  <select id="searchCodice">
+    <option value="">Tutti i codici editore</option>
+  </select>
+
+  <div id="vetrinaSerie" class="vetrina"></div>
 
   <div class="card">
     <h3>Aggiungi / Modifica Serie</h3>
@@ -61,7 +68,9 @@ const db = firebase.firestore();
 /* DOM */
 const authDiv = document.getElementById("auth");
 const appDiv  = document.getElementById("app");
-const listaSerie = document.getElementById("listaSerie");
+const listaSerie = document.getElementById("vetrinaSerie");
+const searchSerie = document.getElementById("searchSerie");
+const searchCodice = document.getElementById("searchCodice");
 
 /* AUTH */
 loginBtn.onclick = () => auth.signInWithEmailAndPassword(email.value,password.value).catch(e=>alert(e.message));
@@ -102,26 +111,39 @@ function loadSerie(){
   .then(snapshot=>{
     tutteSerie=[];
     snapshot.forEach(doc=>{ let s=doc.data(); s.id=doc.id; tutteSerie.push(s); });
+    popolaCodici();
     mostraSerie();
   });
 }
 
+/* POPOLA CODICI EDITORE */
+function popolaCodici(){
+  const codici = Array.from(new Set(tutteSerie.map(s=>s.codiceEditore))).sort();
+  searchCodice.innerHTML = `<option value="">Tutti i codici editore</option>`;
+  codici.forEach(c=>searchCodice.innerHTML+=`<option value="${c}">${c}</option>`);
+}
+
 /* MOSTRA SERIE */
 function mostraSerie(){
-  const query = document.getElementById("searchSerie").value.toLowerCase();
+  const query = searchSerie.value.toLowerCase();
+  const codice = searchCodice.value;
   listaSerie.innerHTML = "";
   tutteSerie.forEach(s=>{
-    if(!s.titolo.toLowerCase().includes(query)) return;
+    if(query && !s.titolo.toLowerCase().includes(query) && !s.collana.toLowerCase().includes(query)) return;
+    if(codice && s.codiceEditore!==codice) return;
     listaSerie.innerHTML += `
       <div class="card" onclick="openSerie('${s.id}')">
+        ${s.img?`<img src="${s.img}"><br>`:''}
         <strong>${s.titolo}</strong> ${s.collana?`(${s.collana})`:''}<br>
-        Codice: ${s.codiceEditore} • Genere: ${s.genere}<br>
-        ${s.img?`<img src="${s.img}">`:''}
+        Codice: ${s.codiceEditore}
       </div>
     `;
   });
 }
-document.getElementById("searchSerie").addEventListener("input", mostraSerie);
+
+/* EVENTI RICERCA */
+searchSerie.addEventListener("input", mostraSerie);
+searchCodice.addEventListener("change", mostraSerie);
 
 /* APRI PAGINA SERIE */
 window.openSerie = (serieId)=>{
