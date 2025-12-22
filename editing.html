@@ -2,87 +2,169 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>ComicZoo – Editing Serie</title>
+<title>ComicZoo – Editing</title>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
-body { font-family:Arial; background:#f4f6f8; padding:20px; }
-.card { background:#fff; padding:15px; border-radius:8px; max-width:400px; margin:auto; }
-input,button { width:100%; padding:8px; margin:5px 0; }
+body {
+  font-family: Arial;
+  background: #f4f6f8;
+  padding: 20px;
+}
+.card {
+  background: #fff;
+  padding: 15px;
+  border-radius: 8px;
+  max-width: 500px;
+  margin: 20px auto;
+}
+input, textarea, button {
+  width: 100%;
+  padding: 8px;
+  margin: 6px 0;
+}
+hr { margin: 20px 0; }
 </style>
 </head>
+
 <body>
 
 <a href="index.html">⬅ Torna alla vetrina</a>
 
+<!-- ================= SERIE ================= -->
 <div class="card">
-<h2>➕ Serie</h2>
-<input id="titolo" placeholder="Titolo">
-<input id="collana" placeholder="Collana">
-<input id="codiceEditore" placeholder="Codice Editore">
+<h2 id="serieTitle">➕ Aggiungi serie</h2>
+
+<input id="titolo" placeholder="Titolo serie">
+<input id="collana" placeholder="Collana (opzionale)">
+<input id="codiceEditore" placeholder="Codice editore (es. MAR)">
 <input id="genere" placeholder="Genere">
 <input id="immagine" placeholder="Link immagine">
-<button id="save">Salva</button>
+<button id="saveSerie">Salva serie</button>
+</div>
+
+<!-- ================= EDITORI ================= -->
+<div class="card">
+<h2>🏷️ Codici Editore</h2>
+
+<input id="codEditore" placeholder="Codice editore (univoco)">
+<textarea id="nomiEditori" placeholder="Nomi editori (separati da virgola)"></textarea>
+<button id="saveEditore">Salva codice editore</button>
+
+<hr>
+<h3>EditorI esistenti</h3>
+<div id="editoriList"></div>
 </div>
 
 <script>
 // FIREBASE
-const firebaseConfig={
-  apiKey:"AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",
-  authDomain:"comiczoo.firebaseapp.com",
-  projectId:"comiczoo"
+const firebaseConfig = {
+  apiKey: "AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",
+  authDomain: "comiczoo.firebaseapp.com",
+  projectId: "comiczoo"
 };
 firebase.initializeApp(firebaseConfig);
-const auth=firebase.auth(), db=firebase.firestore();
 
-// ID serie
-const params=new URLSearchParams(window.location.search);
-const serieId=params.get("id");
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-auth.onAuthStateChanged(async user=>{
-  if(!user) location.href="index.html";
+// PARAMS
+const params = new URLSearchParams(window.location.search);
+const serieId = params.get("id");
 
-  if(serieId){
-    const doc=await db.collection("serie").doc(serieId).get();
-    if(!doc.exists) return alert("Serie non trovata");
+// AUTH
+auth.onAuthStateChanged(async user => {
+  if (!user) {
+    location.href = "index.html";
+    return;
+  }
 
-    const s=doc.data();
-    document.getElementById("titolo").value=s.titolo;
-    document.getElementById("collana").value=s.collana||"";
-    document.getElementById("codiceEditore").value=s.codiceEditore;
-    document.getElementById("genere").value=s.genere||"";
-    document.getElementById("immagine").value=s.immagine||"";
+  loadEditori();
 
-    document.querySelector("h2").textContent="✏️ Modifica serie";
-    document.getElementById("save").textContent="Aggiorna";
+  if (serieId) {
+    const doc = await db.collection("serie").doc(serieId).get();
+    if (!doc.exists) return alert("Serie non trovata");
+
+    const s = doc.data();
+    titolo.value = s.titolo;
+    collana.value = s.collana || "";
+    codiceEditore.value = s.codiceEditore;
+    genere.value = s.genere || "";
+    immagine.value = s.immagine || "";
+
+    document.getElementById("serieTitle").textContent = "✏️ Modifica serie";
+    saveSerie.textContent = "Aggiorna serie";
   }
 });
 
-// SALVA / AGGIORNA
-document.getElementById("save").onclick=async()=>{
-  if(!auth.currentUser) return alert("Non loggato");
+// ================= SERIE =================
+saveSerie.onclick = async () => {
+  if (!auth.currentUser) return;
 
-  const data={
-    uid:auth.currentUser.uid,
-    titolo:document.getElementById("titolo").value,
-    collana:document.getElementById("collana").value,
-    codiceEditore:document.getElementById("codiceEditore").value,
-    genere:document.getElementById("genere").value,
-    immagine:document.getElementById("immagine").value
+  const data = {
+    uid: auth.currentUser.uid,
+    titolo: titolo.value,
+    collana: collana.value,
+    codiceEditore: codiceEditore.value,
+    genere: genere.value,
+    immagine: immagine.value
   };
 
-  if(serieId){
+  if (serieId) {
     await db.collection("serie").doc(serieId).update(data);
-  }else{
-    data.createdAt=firebase.firestore.FieldValue.serverTimestamp();
+  } else {
+    data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
     await db.collection("serie").add(data);
   }
 
-  location.href="index.html";
+  location.href = "index.html";
 };
+
+// ================= EDITORI =================
+saveEditore.onclick = async () => {
+  const codice = codEditore.value.trim();
+  if (!codice) return alert("Inserisci un codice editore");
+
+  const editori = nomiEditori.value
+    .split(",")
+    .map(e => e.trim())
+    .filter(e => e);
+
+  if (editori.length === 0) return alert("Inserisci almeno un editore");
+
+  await db.collection("editori").doc(codice).set({
+    uid: auth.currentUser.uid,
+    codice,
+    editori
+  });
+
+  codEditore.value = "";
+  nomiEditori.value = "";
+  loadEditori();
+};
+
+// LISTA EDITORI
+function loadEditori() {
+  db.collection("editori")
+    .where("uid", "==", auth.currentUser.uid)
+    .onSnapshot(snap => {
+      const div = document.getElementById("editoriList");
+      div.innerHTML = "";
+
+      snap.forEach(doc => {
+        const e = doc.data();
+        div.innerHTML += `
+          <div style="margin-bottom:8px">
+            <b>${e.codice}</b>: ${e.editori.join(", ")}
+          </div>
+        `;
+      });
+    });
+}
 </script>
+
 </body>
 </html>
