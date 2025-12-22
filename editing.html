@@ -9,24 +9,11 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
-body {
-  font-family: Arial;
-  background: #f4f6f8;
-  padding: 20px;
-}
-.card {
-  background: #fff;
-  padding: 15px;
-  border-radius: 8px;
-  max-width: 500px;
-  margin: 20px auto;
-}
-input, textarea, button {
-  width: 100%;
-  padding: 8px;
-  margin: 6px 0;
-}
-hr { margin: 20px 0; }
+body { font-family: Arial; background:#f4f6f8; padding:20px; }
+.card { background:#fff; padding:15px; border-radius:8px; max-width:520px; margin:20px auto; }
+input, select, button { width:100%; padding:8px; margin:6px 0; }
+h2 { margin-top:0; }
+hr { margin:20px 0; }
 </style>
 </head>
 
@@ -36,79 +23,84 @@ hr { margin: 20px 0; }
 
 <!-- ================= SERIE ================= -->
 <div class="card">
-<h2 id="serieTitle">➕ Aggiungi serie</h2>
+<h2 id="serieTitle">➕ Serie</h2>
 
 <input id="titolo" placeholder="Titolo serie">
 <input id="collana" placeholder="Collana (opzionale)">
-<input id="codiceEditore" placeholder="Codice editore (es. MAR)">
+<select id="codiceEditoreSerie"></select>
 <input id="genere" placeholder="Genere">
 <input id="immagine" placeholder="Link immagine">
+
 <button id="saveSerie">Salva serie</button>
+</div>
+
+<!-- ================= CODICI EDITORE ================= -->
+<div class="card">
+<h2>🏷️ Codice Editore</h2>
+
+<input id="codiceEditore" placeholder="Codice editore (es. MAR)">
+<button id="saveCodice">Salva codice</button>
+
+<div id="listaCodici"></div>
 </div>
 
 <!-- ================= EDITORI ================= -->
 <div class="card">
-<h2>🏷️ Codici Editore</h2>
+<h2>🏢 Editore</h2>
 
-<input id="codEditore" placeholder="Codice editore (univoco)">
-<textarea id="nomiEditori" placeholder="Nomi editori (separati da virgola)"></textarea>
-<button id="saveEditore">Salva codice editore</button>
+<input id="nomeEditore" placeholder="Nome editore">
+<input id="logoEditore" placeholder="Link logo">
+<select id="codiceEditoreEditore"></select>
 
-<hr>
-<h3>EditorI esistenti</h3>
-<div id="editoriList"></div>
+<button id="saveEditore">Salva editore</button>
+
+<div id="listaEditori"></div>
 </div>
 
 <script>
 // FIREBASE
-const firebaseConfig = {
+firebase.initializeApp({
   apiKey: "AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",
   authDomain: "comiczoo.firebaseapp.com",
   projectId: "comiczoo"
-};
-firebase.initializeApp(firebaseConfig);
+});
 
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// PARAMS
-const params = new URLSearchParams(window.location.search);
+const params = new URLSearchParams(location.search);
 const serieId = params.get("id");
 
 // AUTH
 auth.onAuthStateChanged(async user => {
-  if (!user) {
-    location.href = "index.html";
-    return;
-  }
+  if (!user) return location.href = "index.html";
 
+  loadCodici();
   loadEditori();
 
   if (serieId) {
     const doc = await db.collection("serie").doc(serieId).get();
-    if (!doc.exists) return alert("Serie non trovata");
+    if (!doc.exists) return;
 
     const s = doc.data();
     titolo.value = s.titolo;
     collana.value = s.collana || "";
-    codiceEditore.value = s.codiceEditore;
     genere.value = s.genere || "";
     immagine.value = s.immagine || "";
+    codiceEditoreSerie.value = s.codiceEditore;
 
-    document.getElementById("serieTitle").textContent = "✏️ Modifica serie";
+    serieTitle.textContent = "✏️ Modifica serie";
     saveSerie.textContent = "Aggiorna serie";
   }
 });
 
 // ================= SERIE =================
 saveSerie.onclick = async () => {
-  if (!auth.currentUser) return;
-
   const data = {
     uid: auth.currentUser.uid,
     titolo: titolo.value,
     collana: collana.value,
-    codiceEditore: codiceEditore.value,
+    codiceEditore: codiceEditoreSerie.value,
     genere: genere.value,
     immagine: immagine.value
   };
@@ -116,49 +108,67 @@ saveSerie.onclick = async () => {
   if (serieId) {
     await db.collection("serie").doc(serieId).update(data);
   } else {
-    data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
     await db.collection("serie").add(data);
   }
-
   location.href = "index.html";
 };
 
-// ================= EDITORI =================
-saveEditore.onclick = async () => {
-  const codice = codEditore.value.trim();
-  if (!codice) return alert("Inserisci un codice editore");
+// ================= CODICI EDITORE =================
+saveCodice.onclick = async () => {
+  const codice = codiceEditore.value.trim().toUpperCase();
+  if (!codice) return alert("Inserisci un codice");
 
-  const editori = nomiEditori.value
-    .split(",")
-    .map(e => e.trim())
-    .filter(e => e);
-
-  if (editori.length === 0) return alert("Inserisci almeno un editore");
-
-  await db.collection("editori").doc(codice).set({
-    uid: auth.currentUser.uid,
-    codice,
-    editori
+  await db.collection("codici_editori").doc(codice).set({
+    uid: auth.currentUser.uid
   });
 
-  codEditore.value = "";
-  nomiEditori.value = "";
+  codiceEditore.value = "";
+  loadCodici();
+};
+
+function loadCodici() {
+  db.collection("codici_editori")
+    .where("uid","==",auth.currentUser.uid)
+    .onSnapshot(snap => {
+      listaCodici.innerHTML = "";
+      codiceEditoreSerie.innerHTML = "";
+      codiceEditoreEditore.innerHTML = "";
+
+      snap.forEach(doc => {
+        const c = doc.id;
+        listaCodici.innerHTML += `<div>${c}</div>`;
+        codiceEditoreSerie.innerHTML += `<option value="${c}">${c}</option>`;
+        codiceEditoreEditore.innerHTML += `<option value="${c}">${c}</option>`;
+      });
+    });
+}
+
+// ================= EDITORI =================
+saveEditore.onclick = async () => {
+  if (!nomeEditore.value) return alert("Nome editore obbligatorio");
+
+  await db.collection("editori").add({
+    uid: auth.currentUser.uid,
+    nome: nomeEditore.value,
+    logo: logoEditore.value,
+    codiceEditore: codiceEditoreEditore.value
+  });
+
+  nomeEditore.value = "";
+  logoEditore.value = "";
   loadEditori();
 };
 
-// LISTA EDITORI
 function loadEditori() {
   db.collection("editori")
-    .where("uid", "==", auth.currentUser.uid)
+    .where("uid","==",auth.currentUser.uid)
     .onSnapshot(snap => {
-      const div = document.getElementById("editoriList");
-      div.innerHTML = "";
-
+      listaEditori.innerHTML = "";
       snap.forEach(doc => {
         const e = doc.data();
-        div.innerHTML += `
-          <div style="margin-bottom:8px">
-            <b>${e.codice}</b>: ${e.editori.join(", ")}
+        listaEditori.innerHTML += `
+          <div>
+            <b>${e.nome}</b> (${e.codiceEditore})
           </div>
         `;
       });
