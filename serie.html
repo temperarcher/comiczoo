@@ -9,94 +9,66 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
-body { font-family:Arial; background:#f4f6f8; padding:20px; }
-.card { background:#fff; padding:15px; margin:10px 0; border-radius:8px; }
-input,select,button { width:100%; padding:8px; margin:5px 0; }
+body{font-family:Arial;background:#f4f4f4;padding:20px}
+.card{background:#fff;padding:10px;margin:10px;border-radius:8px}
+.gray{filter:grayscale(100%)}
 </style>
 </head>
 <body>
 
-<a href="index.html">⬅ Torna alla vetrina</a>
-<h1 id="serieTitle"></h1>
+<a href="index.html">⬅ Home</a>
 
-<div class="card">
-<input id="search" placeholder="Cerca fumetto">
-</div>
+<h1 id="titoloSerie"></h1>
 
-<div class="card">
-<input id="numero" placeholder="Numero / Nome">
-<input id="anno" placeholder="Anno">
+<input id="numero" placeholder="Numero">
+<input type="date" id="data">
 <select id="stato">
-  <option>Mint</option>
-  <option>Near Mint</option>
-  <option>Good</option>
-  <option>Fair</option>
-  <option>Discreto</option>
+<option>Mint</option><option>NM</option><option>Good</option><option>Fair</option><option>Poor</option>
 </select>
 <select id="possesso">
-  <option value="celo">Ce l'ho</option>
-  <option value="manca">Manca</option>
+<option value="celo">Ce l'ho</option>
+<option value="manca">Manca</option>
 </select>
-<button id="add">Aggiungi</button>
-</div>
+<input id="img" placeholder="Immagine">
+<button onclick="add()">Salva</button>
 
 <div id="fumetti"></div>
 
 <script>
-// FIREBASE
-const firebaseConfig={
-  apiKey:"AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",
-  authDomain:"comiczoo.firebaseapp.com",
-  projectId:"comiczoo"
-};
 firebase.initializeApp(firebaseConfig);
-const auth=firebase.auth(), db=firebase.firestore();
+const db=firebase.firestore();
+const id=new URLSearchParams(location.search).get("id");
 
-const serieId=new URLSearchParams(window.location.search).get("id");
-const fumettiDiv=document.getElementById("fumetti");
+async function load(){
+  const s=await db.collection("serie").doc(id).get();
+  titoloSerie.textContent=s.data().titolo;
 
-auth.onAuthStateChanged(async u=>{
-  if(!u) return location.href="index.html";
-
-  const s=await db.collection("serie").doc(serieId).get();
-  serieTitle.textContent=s.data().titolo;
-
-  loadFumetti();
-});
-
-function loadFumetti(){
-  db.collection("fumetti")
-    .where("uid","==",auth.currentUser.uid)
-    .where("serieId","==",serieId)
-    .onSnapshot(snap=>{
-      fumettiDiv.innerHTML="";
-      snap.forEach(d=>{
-        const f=d.data();
-        if(search.value && !f.numero.toLowerCase().includes(search.value.toLowerCase())) return;
-
-        fumettiDiv.innerHTML+=`
-          <div class="card">
-            <b>${f.numero}</b> (${f.anno})<br>
-            ${f.stato} • ${f.possesso}
-          </div>`;
-      });
-    });
+  const q=await db.collection("fumetti").where("serieId","==",id).get();
+  fumetti.innerHTML="";
+  q.forEach(d=>{
+    const f=d.data();
+    fumetti.innerHTML+=`
+      <div class="card">
+        <b>#${f.numero}</b> ${f.stato} (${f.possesso})
+        <br>
+        <img src="${f.immagine||''}" class="${f.possesso==='manca'?'gray':''}">
+      </div>`;
+  });
 }
 
-document.getElementById("add").onclick=async()=>{
+async function add(){
   await db.collection("fumetti").add({
-    uid:auth.currentUser.uid,
-    serieId,
-    numero:document.getElementById("numero").value,
-    anno:document.getElementById("anno").value,
-    stato:document.getElementById("stato").value,
-    possesso:document.getElementById("possesso").value
+    serieId:id,
+    numero:numero.value,
+    data:new Date(data.value),
+    stato:stato.value,
+    possesso:possesso.value,
+    immagine:img.value
   });
-  document.getElementById("numero").value="";
-  document.getElementById("anno").value="";
-};
+  load();
+}
 
-document.getElementById("search").oninput=loadFumetti;
+load();
 </script>
 </body>
 </html>
