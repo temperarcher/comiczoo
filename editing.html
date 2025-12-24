@@ -2,179 +2,75 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>ComicZoo – Editing</title>
+<title>Editing</title>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
-body { font-family: Arial; background:#f4f6f8; padding:20px; }
-.card { background:#fff; padding:15px; border-radius:8px; max-width:520px; margin:20px auto; }
-input, select, button { width:100%; padding:8px; margin:6px 0; }
-h2 { margin-top:0; }
-hr { margin:20px 0; }
+body{font-family:Arial;background:#eee;padding:20px}
+.card{background:#fff;padding:15px;margin-bottom:15px;border-radius:8px}
 </style>
 </head>
-
 <body>
 
-<a href="index.html">⬅ Torna alla vetrina</a>
+<a href="index.html">⬅ Home</a>
 
-<!-- ================= SERIE ================= -->
+<h1>🛠 Editing</h1>
+
 <div class="card">
-<h2 id="serieTitle">➕ Serie</h2>
+<h3>➕ Codice Editore</h3>
+<input id="codice" placeholder="Codice (es. MAR)">
+<button onclick="saveCodice()">Salva</button>
+</div>
 
-<input id="titolo" placeholder="Titolo serie">
-<input id="collana" placeholder="Collana (opzionale)">
-<select id="codiceEditoreSerie"></select>
+<div class="card">
+<h3>➕ Editore</h3>
+<input id="nomeEditore" placeholder="Nome">
+<input id="logoEditore" placeholder="Logo URL">
+<input id="codiceRef" placeholder="Codice Editore">
+<button onclick="saveEditore()">Salva</button>
+</div>
+
+<div class="card">
+<h3>➕ Serie</h3>
+<input id="titolo" placeholder="Titolo">
+<input id="collana" placeholder="Collana">
+<input id="codiceSerie" placeholder="Codice Editore">
 <input id="genere" placeholder="Genere">
-<input id="immagine" placeholder="Link immagine">
-
-<button id="saveSerie">Salva serie</button>
-</div>
-
-<!-- ================= CODICI EDITORE ================= -->
-<div class="card">
-<h2>🏷️ Codice Editore</h2>
-
-<input id="codiceEditore" placeholder="Codice editore (es. MAR)">
-<button id="saveCodice">Salva codice</button>
-
-<div id="listaCodici"></div>
-</div>
-
-<!-- ================= EDITORI ================= -->
-<div class="card">
-<h2>🏢 Editore</h2>
-
-<input id="nomeEditore" placeholder="Nome editore">
-<input id="logoEditore" placeholder="Link logo">
-<select id="codiceEditoreEditore"></select>
-
-<button id="saveEditore">Salva editore</button>
-
-<div id="listaEditori"></div>
+<input id="immagine" placeholder="Immagine URL">
+<button onclick="saveSerie()">Salva</button>
 </div>
 
 <script>
-// FIREBASE
-firebase.initializeApp({
-  apiKey: "AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",
-  authDomain: "comiczoo.firebaseapp.com",
-  projectId: "comiczoo"
-});
+firebase.initializeApp(firebaseConfig);
+const db=firebase.firestore();
 
-const auth = firebase.auth();
-const db = firebase.firestore();
-
-const params = new URLSearchParams(location.search);
-const serieId = params.get("id");
-
-// AUTH
-auth.onAuthStateChanged(async user => {
-  if (!user) return location.href = "index.html";
-
-  loadCodici();
-  loadEditori();
-
-  if (serieId) {
-    const doc = await db.collection("serie").doc(serieId).get();
-    if (!doc.exists) return;
-
-    const s = doc.data();
-    titolo.value = s.titolo;
-    collana.value = s.collana || "";
-    genere.value = s.genere || "";
-    immagine.value = s.immagine || "";
-    codiceEditoreSerie.value = s.codiceEditore;
-
-    serieTitle.textContent = "✏️ Modifica serie";
-    saveSerie.textContent = "Aggiorna serie";
-  }
-});
-
-// ================= SERIE =================
-saveSerie.onclick = async () => {
-  const data = {
-    uid: auth.currentUser.uid,
-    titolo: titolo.value,
-    collana: collana.value,
-    codiceEditore: codiceEditoreSerie.value,
-    genere: genere.value,
-    immagine: immagine.value
-  };
-
-  if (serieId) {
-    await db.collection("serie").doc(serieId).update(data);
-  } else {
-    await db.collection("serie").add(data);
-  }
-  location.href = "index.html";
-};
-
-// ================= CODICI EDITORE =================
-saveCodice.onclick = async () => {
-  const codice = codiceEditore.value.trim().toUpperCase();
-  if (!codice) return alert("Inserisci un codice");
-
-  await db.collection("codici_editori").doc(codice).set({
-    uid: auth.currentUser.uid
-  });
-
-  codiceEditore.value = "";
-  loadCodici();
-};
-
-function loadCodici() {
-  db.collection("codici_editori")
-    .where("uid","==",auth.currentUser.uid)
-    .onSnapshot(snap => {
-      listaCodici.innerHTML = "";
-      codiceEditoreSerie.innerHTML = "";
-      codiceEditoreEditore.innerHTML = "";
-
-      snap.forEach(doc => {
-        const c = doc.id;
-        listaCodici.innerHTML += `<div>${c}</div>`;
-        codiceEditoreSerie.innerHTML += `<option value="${c}">${c}</option>`;
-        codiceEditoreEditore.innerHTML += `<option value="${c}">${c}</option>`;
-      });
-    });
+async function saveCodice(){
+  await db.collection("codiciEditore").doc(codice.value).set({codice:codice.value});
+  alert("Codice salvato");
 }
 
-// ================= EDITORI =================
-saveEditore.onclick = async () => {
-  if (!nomeEditore.value) return alert("Nome editore obbligatorio");
-
+async function saveEditore(){
   await db.collection("editori").add({
-    uid: auth.currentUser.uid,
-    nome: nomeEditore.value,
-    logo: logoEditore.value,
-    codiceEditore: codiceEditoreEditore.value
+    nome:nomeEditore.value,
+    logo:logoEditore.value,
+    codiceEditore:codiceRef.value
   });
+  alert("Editore salvato");
+}
 
-  nomeEditore.value = "";
-  logoEditore.value = "";
-  loadEditori();
-};
-
-function loadEditori() {
-  db.collection("editori")
-    .where("uid","==",auth.currentUser.uid)
-    .onSnapshot(snap => {
-      listaEditori.innerHTML = "";
-      snap.forEach(doc => {
-        const e = doc.data();
-        listaEditori.innerHTML += `
-          <div>
-            <b>${e.nome}</b> (${e.codiceEditore})
-          </div>
-        `;
-      });
-    });
+async function saveSerie(){
+  await db.collection("serie").add({
+    titolo:titolo.value,
+    collana:collana.value,
+    codiceEditore:codiceSerie.value,
+    genere:genere.value,
+    immagine:immagine.value
+  });
+  alert("Serie salvata");
 }
 </script>
-
 </body>
 </html>
