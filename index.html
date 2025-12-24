@@ -2,82 +2,111 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>ComicZoo</title>
+<title>ComicZoo – Login</title>
 
+<!-- Firebase COMPAT -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
-body{font-family:Arial;background:#f4f4f4;padding:20px}
-.card{background:#fff;padding:10px;border-radius:8px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,200px);gap:15px}
-img{width:100%;border-radius:6px}
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f4f4;
+  padding: 40px;
+}
+.card {
+  background: white;
+  padding: 20px;
+  max-width: 400px;
+  margin: auto;
+  border-radius: 8px;
+}
+input, button {
+  width: 100%;
+  padding: 10px;
+  margin: 6px 0;
+}
 </style>
 </head>
+
 <body>
 
-<h1>📚 ComicZoo</h1>
-
-<div id="auth">
-  <input id="email" placeholder="email">
-  <input id="password" type="password" placeholder="password">
+<div class="card" id="auth">
+  <h2>Login / Registrazione</h2>
+  <input id="email" type="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Password">
   <button onclick="login()">Login</button>
   <button onclick="register()">Registrati</button>
 </div>
 
-<div id="app" style="display:none">
-  <a href="editing.html">➕ Editing</a>
+<div class="card" id="app" style="display:none">
+  <h2>✅ Sei loggato</h2>
+  <p id="userEmail"></p>
   <button onclick="logout()">Logout</button>
-
-  <h2>🔍 Ricerca serie</h2>
-  <input id="search" placeholder="Titolo serie" oninput="loadSerie()">
-
-  <select id="filterCodice" onchange="loadSerie()">
-    <option value="">Tutti i codici editore</option>
-  </select>
-
-  <div id="serie" class="grid"></div>
 </div>
 
 <script>
-firebase.initializeApp(firebaseConfig);
-const auth=firebase.auth(), db=firebase.firestore();
+/* ===============================
+   1️⃣ CONFIG
+================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",
+  authDomain: "comiczoo.firebaseapp.com",
+  projectId: "comiczoo"
+};
 
-auth.onAuthStateChanged(u=>{
-  authDiv.style.display=u?"none":"block";
-  app.style.display=u?"block":"none";
-  if(u){loadCodici();loadSerie();}
+/* ===============================
+   2️⃣ INIT
+================================ */
+firebase.initializeApp(firebaseConfig);
+
+/* ===============================
+   3️⃣ AUTH
+================================ */
+const auth = firebase.auth();
+
+/* ===============================
+   4️⃣ UI ELEMENTS
+================================ */
+const authDiv = document.getElementById("auth");
+const appDiv  = document.getElementById("app");
+const userEmail = document.getElementById("userEmail");
+
+/* ===============================
+   5️⃣ AUTH STATE
+================================ */
+auth.onAuthStateChanged(user => {
+  if (user) {
+    authDiv.style.display = "none";
+    appDiv.style.display  = "block";
+    userEmail.textContent = user.email;
+  } else {
+    authDiv.style.display = "block";
+    appDiv.style.display  = "none";
+  }
 });
 
-function login(){auth.signInWithEmailAndPassword(email.value,password.value);}
-function register(){auth.createUserWithEmailAndPassword(email.value,password.value);}
-function logout(){auth.signOut();}
-
-async function loadCodici(){
-  filterCodice.innerHTML=`<option value="">Tutti</option>`;
-  const s=await db.collection("codiciEditore").get();
-  s.forEach(d=>filterCodice.innerHTML+=`<option>${d.id}</option>`);
+/* ===============================
+   6️⃣ FUNCTIONS
+================================ */
+function login() {
+  auth.signInWithEmailAndPassword(
+    email.value,
+    password.value
+  ).catch(err => alert(err.message));
 }
 
-async function loadSerie(){
-  const q=await db.collection("serie").get();
-  const t=search.value.toLowerCase();
-  const c=filterCodice.value;
-  serie.innerHTML="";
-  q.forEach(d=>{
-    const x=d.data();
-    if(t && !x.titolo.toLowerCase().includes(t)) return;
-    if(c && x.codiceEditore!==c) return;
-    serie.innerHTML+=`
-      <div class="card">
-        <img src="${x.immagine||''}">
-        <b>${x.titolo}</b><br>
-        <a href="serie.html?id=${d.id}">Apri</a> |
-        <a href="editing.html?serie=${d.id}">Edit</a>
-      </div>`;
-  });
+function register() {
+  auth.createUserWithEmailAndPassword(
+    email.value,
+    password.value
+  ).catch(err => alert(err.message));
+}
+
+function logout() {
+  auth.signOut();
 }
 </script>
+
 </body>
 </html>
