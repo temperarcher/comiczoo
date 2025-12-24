@@ -2,110 +2,102 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>ComicZoo – Serie</title>
+<title>ComicZoo</title>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
-body { font-family:Arial; background:#f4f6f8; padding:20px; }
-.card { background:#fff; padding:15px; margin:10px 0; border-radius:8px; }
-.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:15px; }
-img { width:100%; border-radius:6px; }
-input,select,button { width:100%; padding:8px; margin:5px 0; }
-a { display:inline-block; margin-top:5px; }
+body{font-family:Arial;background:#f4f4f4;padding:20px}
+.card{background:#fff;padding:15px;margin:10px;border-radius:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,200px);gap:15px}
+img{width:100%;border-radius:6px}
 </style>
 </head>
-
 <body>
+
 <h1>📚 ComicZoo</h1>
 
-<!-- LOGIN -->
-<div id="auth" class="card">
-  <input id="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Password">
-  <button id="login">Login</button>
-  <button id="signup">Registrati</button>
+<div id="auth">
+  <input id="email" placeholder="email">
+  <input id="password" type="password" placeholder="password">
+  <button onclick="login()">Login</button>
+  <button onclick="register()">Registrati</button>
 </div>
 
-<!-- APP -->
 <div id="app" style="display:none">
-  <button id="logout">Logout</button>
-  <a href="editing.html">➕ Aggiungi serie</a>
 
-  <div class="card">
-    <input id="search" placeholder="Cerca per titolo">
-    <select id="editoreFilter">
-      <option value="">Tutti gli editori</option>
-    </select>
-  </div>
+<a href="editing.html">➕ Editing</a>
+<button onclick="logout()">Logout</button>
 
-  <div id="serie" class="grid"></div>
+<h2>🔍 Ricerca serie</h2>
+<input id="search" placeholder="titolo serie" oninput="loadSerie()">
+
+<select id="filterCodice" onchange="loadSerie()">
+  <option value="">Tutti i codici editore</option>
+</select>
+
+<div id="serie" class="grid"></div>
 </div>
 
 <script>
-// FIREBASE
-const firebaseConfig={
-  apiKey:"AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",
-  authDomain:"comiczoo.firebaseapp.com",
-  projectId:"comiczoo"
+const firebaseConfig = {
+  apiKey: "AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",
+  authDomain: "comiczoo.firebaseapp.com",
+  projectId: "comiczoo"
 };
+
 firebase.initializeApp(firebaseConfig);
-const auth=firebase.auth(), db=firebase.firestore();
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-// DOM
-const authDiv=document.getElementById("auth");
-const appDiv=document.getElementById("app");
-const serieDiv=document.getElementById("serie");
-const search=document.getElementById("search");
-const editoreFilter=document.getElementById("editoreFilter");
-
-// LOGIN/REGISTRAZIONE
-login.onclick=()=>auth.signInWithEmailAndPassword(email.value,password.value).catch(e=>alert(e.message));
-signup.onclick=()=>auth.createUserWithEmailAndPassword(email.value,password.value).catch(e=>alert(e.message));
-logout.onclick=()=>auth.signOut();
-
-// ONAUTH
 auth.onAuthStateChanged(u=>{
-  authDiv.style.display=u?"none":"block";
-  appDiv.style.display=u?"block":"none";
-  if(u) loadSerie();
+  auth.style.display = u ? "none":"block";
+  app.style.display = u ? "block":"none";
+  if(u){
+    loadCodici();
+    loadSerie();
+  }
 });
 
-// LOAD SERIE
-function loadSerie(){
-  db.collection("serie")
-    .where("uid","==",auth.currentUser.uid)
-    .onSnapshot(snap=>{
-      serieDiv.innerHTML="";
-      const editori=new Set();
+function login(){
+  auth.signInWithEmailAndPassword(email.value,password.value);
+}
+function register(){
+  auth.createUserWithEmailAndPassword(email.value,password.value);
+}
+function logout(){ auth.signOut(); }
 
-      snap.forEach(doc=>{
-        const s=doc.data();
-        editori.add(s.codiceEditore);
-
-        if(search.value && !s.titolo.toLowerCase().includes(search.value.toLowerCase())) return;
-        if(editoreFilter.value && s.codiceEditore!==editoreFilter.value) return;
-
-        serieDiv.innerHTML+=`
-          <div class="card">
-            ${s.immagine?`<img src="${s.immagine}">`:""}
-            <h3>${s.titolo}</h3>
-            <p>${s.codiceEditore}</p>
-            <a href="serie.html?id=${doc.id}">📘 Apri serie</a><br>
-            <a href="editing.html?id=${doc.id}">✏️ Edit</a>
-          </div>`;
-      });
-
-      // aggiorna filtro editori
-      editoreFilter.innerHTML='<option value="">Tutti gli editori</option>';
-      editori.forEach(e=>editoreFilter.innerHTML+=`<option>${e}</option>`);
-    });
+async function loadCodici(){
+  filterCodice.innerHTML=`<option value="">Tutti</option>`;
+  const snap = await db.collection("codiciEditore").get();
+  snap.forEach(d=>{
+    filterCodice.innerHTML+=`<option>${d.id}</option>`;
+  });
 }
 
-search.oninput=loadSerie;
-editoreFilter.onchange=loadSerie;
+async function loadSerie(){
+  const q = await db.collection("serie").get();
+  const s = search.value.toLowerCase();
+  const c = filterCodice.value;
+
+  serie.innerHTML="";
+  q.forEach(d=>{
+    const x=d.data();
+    if(s && !x.titolo.toLowerCase().includes(s)) return;
+    if(c && x.codiceEditore!==c) return;
+
+    serie.innerHTML+=`
+      <div class="card">
+        <img src="${x.immagine||''}">
+        <h3>${x.titolo}</h3>
+        <a href="serie.html?id=${d.id}">Apri</a>
+        |
+        <a href="editing.html?serie=${d.id}">Edit</a>
+      </div>`;
+  });
+}
 </script>
 </body>
 </html>
