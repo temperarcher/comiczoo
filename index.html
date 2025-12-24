@@ -10,7 +10,7 @@
 
 <style>
 body{font-family:Arial;background:#f4f4f4;padding:20px}
-.card{background:#fff;padding:15px;margin:10px;border-radius:8px}
+.card{background:#fff;padding:10px;border-radius:8px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,200px);gap:15px}
 img{width:100%;border-radius:6px}
 </style>
@@ -27,73 +27,53 @@ img{width:100%;border-radius:6px}
 </div>
 
 <div id="app" style="display:none">
+  <a href="editing.html">➕ Editing</a>
+  <button onclick="logout()">Logout</button>
 
-<a href="editing.html">➕ Editing</a>
-<button onclick="logout()">Logout</button>
+  <h2>🔍 Ricerca serie</h2>
+  <input id="search" placeholder="Titolo serie" oninput="loadSerie()">
 
-<h2>🔍 Ricerca serie</h2>
-<input id="search" placeholder="titolo serie" oninput="loadSerie()">
+  <select id="filterCodice" onchange="loadSerie()">
+    <option value="">Tutti i codici editore</option>
+  </select>
 
-<select id="filterCodice" onchange="loadSerie()">
-  <option value="">Tutti i codici editore</option>
-</select>
-
-<div id="serie" class="grid"></div>
+  <div id="serie" class="grid"></div>
 </div>
 
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",
-  authDomain: "comiczoo.firebaseapp.com",
-  projectId: "comiczoo"
-};
-
 firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
+const auth=firebase.auth(), db=firebase.firestore();
 
 auth.onAuthStateChanged(u=>{
-  auth.style.display = u ? "none":"block";
-  app.style.display = u ? "block":"none";
-  if(u){
-    loadCodici();
-    loadSerie();
-  }
+  authDiv.style.display=u?"none":"block";
+  app.style.display=u?"block":"none";
+  if(u){loadCodici();loadSerie();}
 });
 
-function login(){
-  auth.signInWithEmailAndPassword(email.value,password.value);
-}
-function register(){
-  auth.createUserWithEmailAndPassword(email.value,password.value);
-}
-function logout(){ auth.signOut(); }
+function login(){auth.signInWithEmailAndPassword(email.value,password.value);}
+function register(){auth.createUserWithEmailAndPassword(email.value,password.value);}
+function logout(){auth.signOut();}
 
 async function loadCodici(){
   filterCodice.innerHTML=`<option value="">Tutti</option>`;
-  const snap = await db.collection("codiciEditore").get();
-  snap.forEach(d=>{
-    filterCodice.innerHTML+=`<option>${d.id}</option>`;
-  });
+  const s=await db.collection("codiciEditore").get();
+  s.forEach(d=>filterCodice.innerHTML+=`<option>${d.id}</option>`);
 }
 
 async function loadSerie(){
-  const q = await db.collection("serie").get();
-  const s = search.value.toLowerCase();
-  const c = filterCodice.value;
-
+  const q=await db.collection("serie").get();
+  const t=search.value.toLowerCase();
+  const c=filterCodice.value;
   serie.innerHTML="";
   q.forEach(d=>{
     const x=d.data();
-    if(s && !x.titolo.toLowerCase().includes(s)) return;
+    if(t && !x.titolo.toLowerCase().includes(t)) return;
     if(c && x.codiceEditore!==c) return;
-
     serie.innerHTML+=`
       <div class="card">
         <img src="${x.immagine||''}">
-        <h3>${x.titolo}</h3>
-        <a href="serie.html?id=${d.id}">Apri</a>
-        |
+        <b>${x.titolo}</b><br>
+        <a href="serie.html?id=${d.id}">Apri</a> |
         <a href="editing.html?serie=${d.id}">Edit</a>
       </div>`;
   });
