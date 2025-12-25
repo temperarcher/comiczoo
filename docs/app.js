@@ -1,67 +1,55 @@
-/*********************************
- * 1️⃣ Firebase setup
- *********************************/
+// Firebase
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-/*********************************
- * 2️⃣ DOM elements
- *********************************/
+// DOM
 const loginBtn = document.getElementById("login-btn");
 const logoutBtn = document.getElementById("logout-btn");
 const comicForm = document.getElementById("comic-form");
 const comicsList = document.getElementById("comics-list");
 
-/*********************************
- * 3️⃣ Login / Logout
- *********************************/
+// Login
 loginBtn.addEventListener("click", () => {
   const provider = new firebase.auth.GoogleAuthProvider();
   auth.signInWithPopup(provider);
 });
 
+// Logout
 logoutBtn.addEventListener("click", () => {
   auth.signOut();
 });
 
-/*********************************
- * 4️⃣ Render fumetto (UI)
- *********************************/
+// Render comic
 function renderComic(doc) {
   const data = doc.data();
 
   const card = document.createElement("div");
   card.className = "comic-card";
 
-  card.innerHTML = `
-    <img src="${data.imageUrl}" alt="${data.name}">
-    <div class="content">
-      <h3>${data.name}</h3>
-      <span class="badge ${data.owned ? "owned" : "missing"}">
-        ${data.owned ? "Ce l'ho" : "Manca"}
-      </span>
-    </div>
-  `;
+  card.innerHTML =
+    '<img src="' + data.imageUrl + '" alt="' + data.name + '">' +
+    '<div class="content">' +
+      '<h3>' + data.name + '</h3>' +
+      '<span class="badge ' + (data.owned ? 'owned' : 'missing') + '">' +
+        (data.owned ? "Ce l'ho" : "Manca") +
+      '</span>' +
+    '</div>';
 
   comicsList.appendChild(card);
 }
 
-/*********************************
- * 5️⃣ Firestore listener (post-login)
- *********************************/
-let unsubscribeComics = null;
+// Listener Firestore
+let unsubscribe = null;
 
 auth.onAuthStateChanged(user => {
   if (user) {
-    // UI
     loginBtn.style.display = "none";
     logoutBtn.style.display = "inline-block";
     comicForm.style.display = "block";
 
-    // sicurezza: rimuove listener precedenti
-    if (unsubscribeComics) unsubscribeComics();
+    if (unsubscribe) unsubscribe();
 
-    unsubscribeComics = db
+    unsubscribe = db
       .collection("comics")
       .where("ownerUid", "==", user.uid)
       .orderBy("createdAt", "desc")
@@ -71,33 +59,26 @@ auth.onAuthStateChanged(user => {
       });
 
   } else {
-    // logout
     loginBtn.style.display = "inline-block";
     logoutBtn.style.display = "none";
     comicForm.style.display = "none";
-
     comicsList.innerHTML = "";
-    if (unsubscribeComics) unsubscribeComics();
+
+    if (unsubscribe) unsubscribe();
   }
 });
 
-/*********************************
- * 6️⃣ Submit form → Firestore
- *********************************/
+// Submit form
 comicForm.addEventListener("submit", e => {
   e.preventDefault();
-
-  const name = comicForm.name.value;
-  const imageUrl = comicForm.imageUrl.value;
-  const owned = comicForm.owned.checked;
 
   const user = auth.currentUser;
   if (!user) return;
 
   db.collection("comics").add({
-    name,
-    imageUrl,
-    owned,
+    name: comicForm.name.value,
+    imageUrl: comicForm.imageUrl.value,
+    owned: comicForm.owned.checked,
     ownerUid: user.uid,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   });
