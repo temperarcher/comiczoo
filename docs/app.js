@@ -58,5 +58,49 @@ auth.onAuthStateChanged(user => {
     logoutBtn.style.display = "inline-block";
     comicForm.style.display = "block";
 
-    // sicurezza: rimuove listener pr
-}
+    // sicurezza: rimuove listener precedenti
+    if (unsubscribeComics) unsubscribeComics();
+
+    unsubscribeComics = db
+      .collection("comics")
+      .where("ownerUid", "==", user.uid)
+      .orderBy("createdAt", "desc")
+      .onSnapshot(snapshot => {
+        comicsList.innerHTML = "";
+        snapshot.forEach(doc => renderComic(doc));
+      });
+
+  } else {
+    // logout
+    loginBtn.style.display = "inline-block";
+    logoutBtn.style.display = "none";
+    comicForm.style.display = "none";
+
+    comicsList.innerHTML = "";
+    if (unsubscribeComics) unsubscribeComics();
+  }
+});
+
+/*********************************
+ * 6️⃣ Submit form → Firestore
+ *********************************/
+comicForm.addEventListener("submit", e => {
+  e.preventDefault();
+
+  const name = comicForm.name.value;
+  const imageUrl = comicForm.imageUrl.value;
+  const owned = comicForm.owned.checked;
+
+  const user = auth.currentUser;
+  if (!user) return;
+
+  db.collection("comics").add({
+    name,
+    imageUrl,
+    owned,
+    ownerUid: user.uid,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  comicForm.reset();
+});
