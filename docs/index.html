@@ -9,44 +9,37 @@
 <body>
     <header>
         <h1>Archivio Fumetti</h1>
-        <button id="loginBtn">Login con Google</button>
-        <button id="logoutBtn" style="display:none;">Logout</button>
+        <button id="login-btn">Login con Google</button>
+        <button id="logout-btn" style="display:none;">Logout</button>
     </header>
 
     <main>
-        <section id="fumettiList">
-            <h2>Fumetti della Collezione</h2>
-            <ul id="fumettiListContent"></ul>
-        </section>
-
-        <section id="addComic">
+        <section id="add-comic-form">
             <h2>Aggiungi un Fumetto</h2>
-            <form id="addComicForm">
+            <form id="comic-form">
                 <label for="name">Nome:</label>
                 <input type="text" id="name" required><br>
-
-                <label for="seriesId">Serie:</label>
-                <input type="text" id="seriesId" required><br>
 
                 <label for="imageUrl">URL Immagine:</label>
                 <input type="url" id="imageUrl" required><br>
 
-                <label for="publisherId">Editore ID:</label>
-                <input type="text" id="publisherId" required><br>
+                <label for="owned">Ce l'ho:</label>
+                <input type="checkbox" id="owned"><br>
 
                 <button type="submit">Aggiungi Fumetto</button>
             </form>
-            <h2>📚 La mia collezione</h2>
-            <div id="comics-list" class="comics-grid"></div>
+        </section>
 
+        <section id="comics-list-section">
+            <h2>La mia Collezione</h2>
+            <div id="comics-list" class="comics-grid"></div>
         </section>
     </main>
 
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-    <script src="firebase-config.js"></script>
-    <script src="app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-firestore.js"></script>
+    <script src="firebase-config.js"></script> <!-- Your Firebase config file -->
+    <script src="app.js"></script> <!-- The script you are working on -->
 </body>
 </html>
-
