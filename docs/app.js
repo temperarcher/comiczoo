@@ -1,8 +1,8 @@
-// Firebase
+// Firebase setup
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// DOM
+// DOM elements
 const loginBtn = document.getElementById("login-btn");
 const logoutBtn = document.getElementById("logout-btn");
 const comicForm = document.getElementById("comic-form");
@@ -42,10 +42,12 @@ let unsubscribe = null;
 
 auth.onAuthStateChanged(function (user) {
   if (user) {
+    // Display UI for logged-in user
     loginBtn.style.display = "none";
     logoutBtn.style.display = "inline-block";
     comicForm.style.display = "block";
 
+    // Set up Firestore listener to fetch comics
     if (unsubscribe) unsubscribe();
 
     unsubscribe = db
@@ -60,6 +62,7 @@ auth.onAuthStateChanged(function (user) {
       });
 
   } else {
+    // UI for logged-out user
     loginBtn.style.display = "inline-block";
     logoutBtn.style.display = "none";
     comicForm.style.display = "none";
@@ -69,7 +72,7 @@ auth.onAuthStateChanged(function (user) {
   }
 });
 
-// Submit
+// Submit form to add a comic
 comicForm.addEventListener("submit", function (e) {
   e.preventDefault();
 
