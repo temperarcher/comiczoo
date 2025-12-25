@@ -72,3 +72,24 @@ firebase.auth().onAuthStateChanged(user => {
     }
 });
 
+const comicsList = document.getElementById("comics-list");
+
+function renderComic(doc) {
+  const data = doc.data();
+
+  const card = document.createElement("div");
+  card.className = "comic-card";
+
+  card.innerHTML = `
+    <img src="${data.imageUrl}" alt="${data.name}">
+    <div class="content">
+      <h3>${data.name}</h3>
+      <span class="badge ${data.owned ? "owned" : "missing"}">
+        ${data.owned ? "Ce l'ho" : "Manca"}
+      </span>
+    </div>
+  `;
+
+  comicsList.appendChild(card);
+}
+
