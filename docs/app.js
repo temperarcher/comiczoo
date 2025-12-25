@@ -9,39 +9,38 @@ const comicForm = document.getElementById("comic-form");
 const comicsList = document.getElementById("comics-list");
 
 // Login
-loginBtn.addEventListener("click", () => {
+loginBtn.addEventListener("click", function () {
   const provider = new firebase.auth.GoogleAuthProvider();
   auth.signInWithPopup(provider);
 });
 
 // Logout
-logoutBtn.addEventListener("click", () => {
+logoutBtn.addEventListener("click", function () {
   auth.signOut();
 });
 
 // Render comic
 function renderComic(doc) {
   const data = doc.data();
-
   const card = document.createElement("div");
   card.className = "comic-card";
 
   card.innerHTML =
     '<img src="' + data.imageUrl + '" alt="' + data.name + '">' +
     '<div class="content">' +
-      '<h3>' + data.name + '</h3>' +
-      '<span class="badge ' + (data.owned ? 'owned' : 'missing') + '">' +
-        (data.owned ? "Ce l'ho" : "Manca") +
-      '</span>' +
+    '<h3>' + data.name + '</h3>' +
+    '<span class="badge ' + (data.owned ? 'owned' : 'missing') + '">' +
+    (data.owned ? "Ce l'ho" : "Manca") +
+    '</span>' +
     '</div>';
 
   comicsList.appendChild(card);
 }
 
-// Listener Firestore
+// Firestore listener
 let unsubscribe = null;
 
-auth.onAuthStateChanged(user => {
+auth.onAuthStateChanged(function (user) {
   if (user) {
     loginBtn.style.display = "none";
     logoutBtn.style.display = "inline-block";
@@ -53,9 +52,11 @@ auth.onAuthStateChanged(user => {
       .collection("comics")
       .where("ownerUid", "==", user.uid)
       .orderBy("createdAt", "desc")
-      .onSnapshot(snapshot => {
+      .onSnapshot(function (snapshot) {
         comicsList.innerHTML = "";
-        snapshot.forEach(doc => renderComic(doc));
+        snapshot.forEach(function (doc) {
+          renderComic(doc);
+        });
       });
 
   } else {
@@ -68,8 +69,8 @@ auth.onAuthStateChanged(user => {
   }
 });
 
-// Submit form
-comicForm.addEventListener("submit", e => {
+// Submit
+comicForm.addEventListener("submit", function (e) {
   e.preventDefault();
 
   const user = auth.currentUser;
