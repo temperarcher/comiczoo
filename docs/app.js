@@ -1,79 +1,32 @@
-const loginBtn = document.getElementById("loginBtn");
-const logoutBtn = document.getElementById("logoutBtn");
-const fumettiListContent = document.getElementById("fumettiListContent");
-const addComicForm = document.getElementById("addComicForm");
+/*********************************
+ * 1️⃣ Firebase setup
+ *********************************/
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-loginBtn.addEventListener("click", signInWithGoogle);
-logoutBtn.addEventListener("click", signOut);
-
-function signInWithGoogle() {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    firebase.auth().signInWithPopup(provider).then(result => {
-        loginBtn.style.display = "none";
-        logoutBtn.style.display = "inline";
-        loadComics();
-    }).catch(error => {
-        console.error("Errore nel login:", error);
-    });
-}
-
-function signOut() {
-    firebase.auth().signOut().then(() => {
-        loginBtn.style.display = "inline";
-        logoutBtn.style.display = "none";
-    });
-}
-
-function loadComics() {
-    const comicsRef = db.collection("comics");
-    comicsRef.get().then(snapshot => {
-        fumettiListContent.innerHTML = "";
-        snapshot.forEach(doc => {
-            const comic = doc.data();
-            const li = document.createElement("li");
-            li.textContent = `${comic.name} - Serie: ${comic.seriesId}`;
-            fumettiListContent.appendChild(li);
-        });
-    });
-}
-
-addComicForm.addEventListener("submit", function(e) {
-    e.preventDefault();
-
-    const name = document.getElementById("name").value;
-    const seriesId = document.getElementById("seriesId").value;
-    const imageUrl = document.getElementById("imageUrl").value;
-    const publisherId = document.getElementById("publisherId").value;
-
-    db.collection("comics").add({
-        name: name,
-        seriesId: seriesId,
-        imageUrl: imageUrl,
-        publisherId: publisherId,
-        owned: true,
-        condition: "mint",
-        publicationDate: new Date().toISOString(),
-    }).then(() => {
-        alert("Fumetto aggiunto!");
-        loadComics();
-    }).catch(error => {
-        console.error("Errore nell'aggiungere il fumetto:", error);
-    });
-});
-
-firebase.auth().onAuthStateChanged(user => {
-    if (user) {
-        loginBtn.style.display = "none";
-        logoutBtn.style.display = "inline";
-        loadComics();
-    } else {
-        loginBtn.style.display = "inline";
-        logoutBtn.style.display = "none";
-    }
-});
-
+/*********************************
+ * 2️⃣ DOM elements
+ *********************************/
+const loginBtn = document.getElementById("login-btn");
+const logoutBtn = document.getElementById("logout-btn");
+const comicForm = document.getElementById("comic-form");
 const comicsList = document.getElementById("comics-list");
 
+/*********************************
+ * 3️⃣ Login / Logout
+ *********************************/
+loginBtn.addEventListener("click", () => {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider);
+});
+
+logoutBtn.addEventListener("click", () => {
+  auth.signOut();
+});
+
+/*********************************
+ * 4️⃣ Render fumetto (UI)
+ *********************************/
 function renderComic(doc) {
   const data = doc.data();
 
@@ -93,3 +46,16 @@ function renderComic(doc) {
   comicsList.appendChild(card);
 }
 
+/*********************************
+ * 5️⃣ Firestore listener (post-login)
+ *********************************/
+let unsubscribeComics = null;
+
+auth.onAuthStateChanged(user => {
+  if (user) {
+    // UI
+    loginBtn.style.display = "none";
+    logoutBtn.style.display = "inline-block";
+    comicForm.style.display = "block";
+
+    // sicurezza: rimuove listener pr
