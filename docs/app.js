@@ -59,3 +59,4 @@ auth.onAuthStateChanged(user => {
     comicForm.style.display = "block";
 
     // sicurezza: rimuove listener pr
+}
