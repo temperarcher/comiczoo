@@ -53,25 +53,25 @@ auth.onAuthStateChanged(function (user) {
     logoutBtn.style.display = "inline";
     comicForm.style.display = "block";
 
-    // Start Firestore listener per l'utente autenticato
-    if (unsubscribe) unsubscribe(); // Unsubscribe dal vecchio listener
+    // Firestore listener per l'utente loggato
+    if (unsubscribe) unsubscribe();
 
     unsubscribe = db
       .collection("comics")
       .where("ownerUid", "==", user.uid)
       .orderBy("createdAt", "desc")
       .onSnapshot(function (snapshot) {
-        comicsList.innerHTML = ""; // Svuota la lista
-        snapshot.forEach(renderComic); // Aggiungi ogni fumetto
+        comicsList.innerHTML = "";
+        snapshot.forEach(renderComic);
       });
 
   } else {
     loginBtn.style.display = "inline";
     logoutBtn.style.display = "none";
     comicForm.style.display = "none";
-    comicsList.innerHTML = ""; // Svuota la lista quando disconnesso
+    comicsList.innerHTML = "";
 
-    if (unsubscribe) unsubscribe(); // Unsubscribe quando utente esce
+    if (unsubscribe) unsubscribe();
   }
 });
 
@@ -86,7 +86,7 @@ comicForm.onsubmit = function (e) {
     imageUrl: document.getElementById("imageUrl").value,
     owned: document.getElementById("owned").checked,
     ownerUid: auth.currentUser.uid,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp() // Timestamp per ordine cronologico
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
   });
 
   comicForm.reset();
