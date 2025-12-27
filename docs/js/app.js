@@ -1,4 +1,4 @@
-import { login, logout, observeAuth } from "./auth.js";
+import { auth, db, GoogleAuthProvider, signInWithPopup, signOut } from "./firebase-config.js";
 import { getUserComics, addComic } from "./comics.js";
 
 const loginBtn = document.getElementById("login");
@@ -26,7 +26,7 @@ comicForm.onsubmit = async (event) => {
   const cover = document.getElementById("cover").value;
 
   // Recupera l'ID dell'utente autenticato
-  const user = firebase.auth().currentUser;
+  const user = auth.currentUser;  // Usa auth da firebase-config
   if (user) {
     // Crea un oggetto fumetto con i nuovi campi
     const comic = {
@@ -51,6 +51,10 @@ comicForm.onsubmit = async (event) => {
     comicForm.reset();
   }
 };
+
+async function observeAuth(callback) {
+  auth.onAuthStateChanged(callback);
+}
 
 observeAuth(async (user) => {
   if (!user) {
@@ -82,4 +86,23 @@ function renderComics(comics) {
       <img src="${c.coverUrl}" alt="${c.title}" width="150">
     </div>
   `).join("");
+}
+
+async function login() {
+  const provider = new GoogleAuthProvider();
+  try {
+    const result = await signInWithPopup(auth, provider);
+    // Puoi accedere al result, che contiene l'informazione sull'utente
+    console.log(result.user);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+async function logout() {
+  try {
+    await signOut(auth);
+  } catch (error) {
+    console.error(error);
+  }
 }
