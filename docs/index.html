@@ -2,43 +2,21 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Archivio Fumetti</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-  <h1>Archivio Fumetti</h1>
-  <p>Setup funzionante!</p>
+<header>
+  <h1>📚 Archivio Fumetti</h1>
+  <button id="login">Login Google</button>
+  <button id="logout">Logout</button>
+</header>
 
-  <!-- Bottoni per login e logout -->
-  <button id="login-btn">Login con Google</button>
-  <button id="logout-btn" style="display:none;">Logout</button>
+<main id="comics"></main>
 
-  <!-- Form per aggiungere fumetti -->
-  <form id="comic-form" style="display:none;">
-    <input type="text" id="name" placeholder="Nome fumetto" required>
-    <input type="url" id="imageUrl" placeholder="URL immagine" required>
-    <label>
-      <input type="checkbox" id="owned"> Ce l'ho
-    </label>
-    <button type="submit">Aggiungi</button>
-  </form>
-
-  <!-- Lista dei fumetti -->
-  <h2>Collezione</h2>
-  <div id="comics-list"></div>
-
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-
-  <!-- Config Firebase -->
-  <script src="firebase-config.js"></script>
-
-  <!-- App JS -->
-  <script src="app.js"></script>
-
+<script type="module" src="js/app.js"></script>
 </body>
 </html>
