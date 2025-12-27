@@ -1,93 +1,21 @@
-// === Firebase instances ===
-const auth = firebase.auth();
-const db = firebase.firestore();
+import { auth } from "./firebase-config.js";
+import {
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
-// === DOM elements ===
-const loginBtn = document.getElementById("login-btn");
-const logoutBtn = document.getElementById("logout-btn");
-const comicForm = document.getElementById("comic-form");
-const comicsList = document.getElementById("comics-list");
+const provider = new GoogleAuthProvider();
 
-// === Login con Google ===
-loginBtn.onclick = function () {
-  const provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider)
-    .then(function(result) {
-      console.log("User signed in: ", result.user);
-    })
-    .catch(function(error) {
-      console.error("Error during login: ", error);
-    });
-};
-
-// === Logout ===
-logoutBtn.onclick = function () {
-  auth.signOut()
-    .then(function() {
-      console.log("User signed out");
-    })
-    .catch(function(error) {
-      console.error("Error during logout: ", error);
-    });
-};
-
-// === Render comic to DOM ===
-function renderComic(doc) {
-  const data = doc.data();
-  const div = document.createElement("div");
-  div.innerHTML =
-    `<img src="${data.imageUrl}" width="100"><br>
-     <strong>${data.name}</strong><br>
-     ${data.owned ? "✔ Ce l'ho" : "❌ Manca"}`;
-  comicsList.appendChild(div);
+export function login() {
+  signInWithPopup(auth, provider);
 }
 
-// === Firestore listener (solo per utenti loggati) ===
-let unsubscribe = null;
+export function logout() {
+  signOut(auth);
+}
 
-auth.onAuthStateChanged(function (user) {
-  comicsList.innerHTML = "";
-
-  if (user) {
-    loginBtn.style.display = "none";
-    logoutBtn.style.display = "inline";
-    comicForm.style.display = "block";
-
-    // Firestore listener per l'utente loggato
-    if (unsubscribe) unsubscribe();
-
-    unsubscribe = db
-      .collection("comics")
-      .where("ownerUid", "==", user.uid)
-      .orderBy("createdAt", "desc")
-      .onSnapshot(function (snapshot) {
-        comicsList.innerHTML = "";
-        snapshot.forEach(renderComic);
-      });
-
-  } else {
-    loginBtn.style.display = "inline";
-    logoutBtn.style.display = "none";
-    comicForm.style.display = "none";
-    comicsList.innerHTML = "";
-
-    if (unsubscribe) unsubscribe();
-  }
-});
-
-// === Aggiungi fumetto a Firestore ===
-comicForm.onsubmit = function (e) {
-  e.preventDefault();
-
-  if (!auth.currentUser) return;
-
-  db.collection("comics").add({
-    name: document.getElementById("name").value,
-    imageUrl: document.getElementById("imageUrl").value,
-    owned: document.getElementById("owned").checked,
-    ownerUid: auth.currentUser.uid,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  });
-
-  comicForm.reset();
-};
+export function observeAuth(callback) {
+  onAuthStateChanged(auth, callback);
+}
