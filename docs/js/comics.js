@@ -1,9 +1,5 @@
 import { db } from "./firebase-config.js";
-import {
-  collection,
-  addDoc,
-  getDocs
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
 export async function getUserComics(uid) {
   const ref = collection(db, "users", uid, "comics");
