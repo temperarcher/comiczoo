@@ -6,7 +6,12 @@
 //  appId: "1:854173216358:web:3b0485ceab341046f907a7"
 // firebase-config.js
 
-var firebaseConfig = {
+// Firebase SDK v9 (modulare)
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+const firebaseConfig = {
   apiKey: "AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",
   authDomain: "comiczoo.firebaseapp.com",
   projectId: "comiczoo",
@@ -15,5 +20,6 @@ var firebaseConfig = {
   appId: "1:854173216358:web:3b0485ceab341046f907a7"
 };
 
-// Inizializza Firebase
-firebase.initializeApp(firebaseConfig);
+export const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const db = getFirestore(app);
