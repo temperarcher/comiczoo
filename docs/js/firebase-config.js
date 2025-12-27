@@ -11,6 +11,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebas
 import { getAuth } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
+// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyCMWWtqeymGjCxQiQbGcIEZUAEkhaUt-TI",
   authDomain: "comiczoo.firebaseapp.com",
@@ -19,6 +20,7 @@ const firebaseConfig = {
   messagingSenderId: "854173216358",
   appId: "1:854173216358:web:3b0485ceab341046f907a7"
 };
+
 
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
