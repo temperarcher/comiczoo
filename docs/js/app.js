@@ -73,27 +73,23 @@ observeAuth(async (user) => {
 });
 
 function renderComics(comics) {
-  comicsList.innerHTML = comics.map(c => {
-    // Controlla se la publicationDate è un oggetto Date valido
-    const formattedDate = c.publicationDate instanceof Date && !isNaN(c.publicationDate)
-      ? c.publicationDate.toLocaleDateString()  // Mostra la data formattata
-      : 'Data non disponibile';  // Fallback se la data non è valida o è assente
-
-    return `
-      <div class="comic-card">
-        <h3>${c.title}</h3>
-        <p>${c.series} (${formattedDate})</p>
-        <p>${c.publisher}</p>
-        <p>Annata: ${c.annata || 'N/A'}</p>
-        <p>Collana: ${c.collana || 'N/A'}</p>
-        <p>Testata: ${c.testata || 'N/A'}</p>
-        <p>Condizione: ${c.condition}</p>
-        <p>Valore: €${c.value}</p>
-        <img src="${c.coverUrl}" alt="${c.title}" width="150">
-      </div>
-    `;
-  }).join("");
+  comicsList.innerHTML = comics.map(c => `
+    <div class="comic-card">
+      <h3>${c.title}</h3>
+      <p>
+        ${c.testata || c.series || ""}
+        ${c.publicationDate ? `(${c.publicationDate.toLocaleDateString()})` : ""}
+      </p>
+      <p>Editore: ${c.publisher} (${c.publisherCode || "-"})</p>
+      <p>Annata: ${c.annata || "—"}</p>
+      <p>Collana: ${c.collana || "—"}</p>
+      <p>Condizione: ${c.condition}</p>
+      <p>Valore: €${c.value}</p>
+      <img src="${c.coverUrl}" alt="${c.title}" width="150">
+    </div>
+  `).join("");
 }
+
 
 
 async function login() {
