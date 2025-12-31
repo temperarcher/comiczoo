@@ -16,30 +16,23 @@
 
     <header class="bg-slate-800 border-b border-slate-700 p-6 sticky top-0 z-50 shadow-2xl">
         <div class="container mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-            <h1 class="text-3xl font-black text-yellow-500 tracking-tighter uppercase italic">Comic Archive</h1>
-            
+            <h1 class="text-3xl font-black text-yellow-500 tracking-tighter uppercase italic cursor-pointer" onclick="loadRecent()">Comic Archive</h1>
             <div class="relative w-full md:w-1/2">
                 <input type="text" id="serie-search" 
-                       class="w-full bg-slate-900 border border-slate-600 p-3 rounded-full pl-12 focus:ring-2 focus:ring-yellow-500 outline-none transition-all"
-                       placeholder="Cerca una serie (es. Batman, Spiderman)...">
+                       class="w-full bg-slate-900 border border-slate-600 p-3 rounded-full pl-12 focus:ring-2 focus:ring-yellow-500 outline-none"
+                       placeholder="Cerca una serie...">
                 <span class="absolute left-4 top-3.5 opacity-40">🔍</span>
-                
-                <div id="serie-results" class="absolute w-full mt-2 bg-slate-800 border border-slate-700 rounded-xl hidden shadow-2xl max-h-60 overflow-y-auto custom-scrollbar z-50">
-                </div>
+                <div id="serie-results" class="absolute w-full mt-2 bg-slate-800 border border-slate-700 rounded-xl hidden shadow-2xl max-h-60 overflow-y-auto custom-scrollbar z-50"></div>
             </div>
         </div>
     </header>
 
     <main class="container mx-auto p-6">
-        
         <div class="mb-8 border-l-4 border-yellow-500 pl-4">
-            <h2 id="view-title" class="text-2xl font-bold">Ultimi Arrivi</h2>
-            <p id="view-subtitle" class="text-slate-400">Visualizzazione cronologica degli ultimi fumetti inseriti.</p>
+            <h2 id="view-title" class="text-2xl font-bold">Caricamento...</h2>
+            <p id="view-subtitle" class="text-slate-400">In attesa di dati dal database.</p>
         </div>
-
-        <div id="comic-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
-            <div class="col-span-full py-20 text-center opacity-50 italic">Caricamento archivio...</div>
-        </div>
+        <div id="comic-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8"></div>
     </main>
 
     <script>
@@ -49,109 +42,101 @@
         const viewSubtitle = document.getElementById('view-subtitle');
         const grid = document.getElementById('comic-grid');
 
-        // 1. RICERCA SERIE (Autocomplete)
+        // RICERCA SERIE
         searchInput.addEventListener('input', async (e) => {
             const term = e.target.value.trim();
-            if (term.length < 2) {
-                resultsDiv.classList.add('hidden');
-                return;
-            }
+            if (term.length < 2) { resultsDiv.classList.add('hidden'); return; }
 
-            const { data, error } = await window.supabaseClient
+            const { data } = await window.supabaseClient
                 .from('serie')
                 .select('id, nome, immagine_url')
-                .ilike('nome', `%${term}%`)
-                .limit(6);
+                .ilike('nome', `%${term}%`).limit(6);
 
-            if (data && data.length > 0) {
+            if (data?.length > 0) {
                 resultsDiv.innerHTML = data.map(serie => `
                     <div onclick="selectSerie('${serie.id}', '${serie.nome.replace(/'/g, "\\'")}')" 
-                         class="flex items-center p-3 hover:bg-slate-700 cursor-pointer transition-colors border-b border-slate-700 last:border-0">
-                        <img src="${serie.immagine_url || 'https://via.placeholder.com/40'}" class="w-10 h-10 object-cover rounded mr-3 bg-slate-700">
+                         class="flex items-center p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700 last:border-0">
+                        <img src="${serie.immagine_url || 'https://via.placeholder.com/40'}" class="w-10 h-10 object-cover rounded mr-3">
                         <span class="font-semibold">${serie.nome}</span>
-                    </div>
-                `).join('');
+                    </div>`).join('');
                 resultsDiv.classList.remove('hidden');
-            } else {
-                resultsDiv.classList.add('hidden');
-            }
+            } else { resultsDiv.classList.add('hidden'); }
         });
 
-        // 2. SELEZIONE SERIE E VISTA ANTEPRIMA
+        // SELEZIONE SERIE (Corretta per gestire NULL)
         async function selectSerie(serieId, serieNome) {
             searchInput.value = serieNome;
             resultsDiv.classList.add('hidden');
             viewTitle.innerText = serieNome;
-            viewSubtitle.innerText = `Tutti gli albi appartenenti a questa serie`;
-            
-            grid.innerHTML = '<div class="col-span-full text-center py-10 opacity-50 italic animate-pulse">Generando anteprime...</div>';
+            viewSubtitle.innerText = `Visualizzando albi correlati a questa serie`;
+            grid.innerHTML = '<div class="col-span-full text-center py-20 opacity-50">Ricerca in corso...</div>';
 
+            // Recuperiamo tutte le annate collegate alla serie
+            const { data: annate } = await window.supabaseClient
+                .from('annata')
+                .select('id')
+                .eq('serie_id', serieId);
+            
+            const annateIds = annate?.map(a => a.id) || [];
+
+            // Query flessibile: cerchiamo issue che appartengono a quelle annate
             const { data, error } = await window.supabaseClient
                 .from('issue')
-                .select(`
-                    id, numero, nome, immagine_url, possesso, condizione, valore, pubblicazione,
-                    annata!inner(serie_id)
-                `)
-                .eq('annata.serie_id', serieId)
+                .select(`*, annata(nome, serie(nome))`)
+                .in('annata_id', annateIds) // Filtra per gli ID annata trovati
                 .order('numero', { ascending: true });
 
-            if (error) { renderError(error.message); return; }
-            renderGrid(data);
+            if (error) renderError(error.message);
+            else renderGrid(data);
         }
 
-        // 3. CARICAMENTO INIZIALE (Ultimi fumetti)
+        // CARICAMENTO RECENTI (Corretto per gestire NULL)
         async function loadRecent() {
+            viewTitle.innerText = "Ultimi Inserimenti";
+            viewSubtitle.innerText = "Lista cronologica di tutti i fumetti nell'archivio.";
+            
             const { data, error } = await window.supabaseClient
                 .from('issue')
-                .select(`
-                    id, numero, nome, immagine_url, possesso, condizione, valore, pubblicazione,
-                    annata ( serie ( nome ) )
-                `)
+                .select(`*, annata(nome, serie(nome))`)
                 .order('created_at', { ascending: false })
-                .limit(10);
+                .limit(20);
 
-            if (error) { renderError(error.message); return; }
-            renderGrid(data);
+            if (error) renderError(error.message);
+            else renderGrid(data);
         }
 
-        // 4. RENDERING GRIGLIA
         function renderGrid(items) {
-            if (items.length === 0) {
-                grid.innerHTML = '<div class="col-span-full py-20 text-center text-slate-500">Nessun fumetto trovato.</div>';
+            if (!items || items.length === 0) {
+                grid.innerHTML = '<div class="col-span-full py-20 text-center text-slate-500 font-italic">Nessun fumetto trovato per questa selezione.</div>';
                 return;
             }
 
             grid.innerHTML = items.map(comic => {
-                const serieNome = comic.annata?.serie?.nome || "";
+                // Gestione sicura dei nomi serie/annata null
+                const serieNome = comic.annata?.serie?.nome || "Serie non definita";
                 const isOwned = comic.possesso === 'celo';
-                const borderColor = isOwned ? 'border-green-500/50' : 'border-red-500/50';
-                const badgeColor = isOwned ? 'bg-green-600' : 'bg-red-600';
+                const statusBorder = isOwned ? 'border-green-500/50 shadow-green-900/20' : 'border-red-500/50 shadow-red-900/20';
 
                 return `
-                <div class="bg-slate-800 rounded-xl overflow-hidden border ${borderColor} shadow-lg hover:shadow-yellow-500/10 hover:-translate-y-1 transition-all group">
-                    <div class="relative h-64 overflow-hidden">
+                <div class="bg-slate-800 rounded-xl overflow-hidden border ${statusBorder} shadow-lg transition-all group hover:scale-[1.02]">
+                    <div class="relative h-64 bg-slate-700">
                         <img src="${comic.immagine_url || 'https://via.placeholder.com/300x450?text=No+Cover'}" 
-                             class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                             class="w-full h-full object-cover">
                         <div class="absolute top-0 right-0 p-2">
-                            <span class="${badgeColor} text-[10px] font-bold px-2 py-1 rounded shadow-lg uppercase">
+                            <span class="${isOwned ? 'bg-green-600' : 'bg-red-600'} text-[10px] font-bold px-2 py-1 rounded shadow-md uppercase">
                                 ${comic.possesso}
                             </span>
                         </div>
-                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-900 p-3">
-                             <span class="text-yellow-500 font-mono text-sm font-bold">€ ${comic.valore ? comic.valore.toFixed(2) : '0.00'}</span>
-                        </div>
                     </div>
-                    
                     <div class="p-4">
-                        <p class="text-[10px] text-slate-500 uppercase tracking-widest truncate">${serieNome}</p>
-                        <h4 class="font-bold text-lg leading-tight">#${comic.numero || '?'} ${comic.nome || ''}</h4>
-                        <div class="mt-3 flex items-center justify-between">
-                            <span class="text-[10px] bg-slate-700 px-2 py-1 rounded text-slate-300">${comic.condizione || 'N.D.'}</span>
-                            <span class="text-[10px] italic text-slate-500">${comic.pubblicazione || ''}</span>
+                        <p class="text-[10px] text-yellow-500 font-bold uppercase tracking-widest truncate">${serieNome}</p>
+                        <h4 class="font-bold text-lg leading-tight truncate">#${comic.numero || '?'} ${comic.nome || ''}</h4>
+                        <div class="mt-3 flex items-center justify-between border-t border-slate-700 pt-3">
+                            <span class="text-xs text-slate-400 font-mono">€ ${comic.valore ? Number(comic.valore).toFixed(2) : '0.00'}</span>
+                            <span class="text-[10px] bg-slate-900 px-2 py-0.5 rounded text-slate-400 border border-slate-700">${comic.condizione || 'N.D.'}</span>
                         </div>
                     </div>
-                </div>
-                `;
+                </div>`;
             }).join('');
         }
 
@@ -159,10 +144,8 @@
             grid.innerHTML = `<div class="col-span-full p-4 bg-red-900/20 border border-red-900 text-red-400 rounded text-center">${msg}</div>`;
         }
 
-        // Init
         loadRecent();
 
-        // Chiudi dropdown se clicchi fuori
         document.addEventListener('click', (e) => {
             if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
                 resultsDiv.classList.add('hidden');
