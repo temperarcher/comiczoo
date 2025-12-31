@@ -1,415 +1,208 @@
 <!DOCTYPE html>
-
 <html lang="it">
-
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Comic Archive Pro</title>
-
     <script src="https://cdn.tailwindcss.com"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <script src="config.js"></script>
-
     <style>
-
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
-
         .comic-image { transition: filter 0.5s ease, transform 0.5s ease, opacity 0.5s ease; }
-
         .comic-card:hover .grayscale { filter: grayscale(0); opacity: 1; }
-
         .filter-btn.active { background-color: #eab308; color: #0f172a; border-color: #eab308; }
-
     </style>
-
 </head>
-
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
 
-
-
     <header class="bg-slate-800 border-b border-slate-700 p-6 sticky top-0 z-50 shadow-2xl">
-
         <div class="container mx-auto flex flex-col lg:flex-row justify-between items-center gap-6">
-
             <h1 class="text-3xl font-black text-yellow-500 tracking-tighter uppercase italic cursor-pointer select-none shrink-0" onclick="loadRecent()">
-
                 Comic Archive
-
             </h1>
-
             
-
             <div class="flex flex-col md:flex-row w-full gap-4 items-center">
-
                 <div class="relative w-full">
-
                     <input type="text" id="serie-search" 
-
                            class="w-full bg-slate-900 border border-slate-600 p-3 rounded-full pl-12 focus:ring-2 focus:ring-yellow-500 outline-none transition-all"
-
                            placeholder="Cerca una serie...">
-
                     <span class="absolute left-4 top-3.5 opacity-40">🔍</span>
-
                     <div id="serie-results" class="absolute w-full mt-2 bg-slate-800 border border-slate-700 rounded-xl hidden shadow-2xl max-h-60 overflow-y-auto custom-scrollbar z-50"></div>
-
                 </div>
-
-
 
                 <div class="flex bg-slate-900 p-1 rounded-full border border-slate-700 shrink-0">
-
                     <button onclick="setFilter('all')" id="btn-all" class="filter-btn active px-4 py-1.5 rounded-full text-xs font-bold uppercase transition-all">Tutti</button>
-
                     <button onclick="setFilter('celo')" id="btn-celo" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold uppercase transition-all">Celo</button>
-
                     <button onclick="setFilter('manca')" id="btn-manca" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold uppercase transition-all">Manca</button>
-
                 </div>
-
             </div>
-
         </div>
-
     </header>
 
-
-
     <main class="container mx-auto p-6">
-
         <div class="mb-8 border-l-4 border-yellow-500 pl-4 flex justify-between items-end">
-
             <div>
-
                 <h2 id="view-title" class="text-2xl font-bold uppercase tracking-tight">Caricamento...</h2>
-
                 <p id="view-subtitle" class="text-slate-400 text-sm italic"></p>
-
             </div>
-
             <div id="stats-count" class="text-slate-500 text-xs font-mono uppercase"></div>
-
         </div>
 
-
-
         <div id="comic-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8"></div>
-
     </main>
 
-
-
     <script>
-
         const searchInput = document.getElementById('serie-search');
-
         const resultsDiv = document.getElementById('serie-results');
-
         const viewTitle = document.getElementById('view-title');
-
         const viewSubtitle = document.getElementById('view-subtitle');
-
         const grid = document.getElementById('comic-grid');
-
         const statsCount = document.getElementById('stats-count');
 
-
-
         let currentFilter = 'all'; 
-
         let currentSerieId = null;
-
         let currentSerieFullNome = ""; 
 
-
-
         const FULL_QUERY = `*, 
-
             annata(nome, serie(nome, collana(nome))), 
-
             serie(nome, collana(nome)),
-
             tipo_pubblicazione(nome)`;
 
-
-
         function getStarsHTML(valore) {
-
             if (valore === null || valore === undefined) {
-
                 return `<div class="flex gap-0.5 opacity-20">${'<span class="text-slate-500 text-xs">★</span>'.repeat(5)}</div>`;
-
             }
-
             const num = parseInt(valore);
-
             let colorClass = num >= 5 ? 'text-yellow-500' : (num <= 2 ? 'text-red-500' : 'text-white');
-
             let starsHTML = '';
-
             for (let i = 1; i <= 5; i++) {
-
                 starsHTML += `<span class="${colorClass} ${i <= num ? 'opacity-100' : 'opacity-20'} text-xs">★</span>`;
-
             }
-
             return `<div class="flex gap-0.5">${starsHTML}</div>`;
-
         }
-
-
 
         function setFilter(filter) {
-
             currentFilter = filter;
-
             document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-
             document.getElementById(`btn-${filter}`).classList.add('active');
-
             if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome);
-
             else loadRecent();
-
         }
-
-
 
         searchInput.addEventListener('input', async (e) => {
-
             const term = e.target.value.trim();
-
             if (term.length < 2) { resultsDiv.classList.add('hidden'); return; }
 
-
-
             const { data } = await window.supabaseClient
-
                 .from('serie')
-
                 .select('id, nome, collana(nome), immagine_url')
-
                 .ilike('nome', `%${term}%`).limit(6);
 
-
-
             if (data?.length > 0) {
-
                 resultsDiv.innerHTML = data.map(serie => {
-
                     const fullTitle = serie.collana?.nome ? `${serie.nome} (${serie.collana.nome})` : serie.nome;
-
                     return `
-
                     <div onclick="selectSerie('${serie.id}', '${fullTitle.replace(/'/g, "\\'")}')" class="flex items-center p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700 last:border-0">
-
                         <img src="${serie.immagine_url || 'https://via.placeholder.com/40'}" class="w-10 h-10 object-cover rounded mr-3 bg-slate-700">
-
                         <span class="font-semibold">${fullTitle}</span>
-
                     </div>`;
-
                 }).join('');
-
                 resultsDiv.classList.remove('hidden');
-
             } else resultsDiv.classList.add('hidden');
-
         });
 
-
-
         async function selectSerie(serieId, fullSerieNome) {
-
             currentSerieId = serieId;
-
             currentSerieFullNome = fullSerieNome;
-
             searchInput.value = fullSerieNome;
-
             resultsDiv.classList.add('hidden');
-
             
-
             viewTitle.innerText = fullSerieNome;
-
             viewSubtitle.innerText = `Filtro: ${currentFilter.toUpperCase()}`;
-
             grid.innerHTML = '<div class="col-span-full text-center py-20 opacity-50 italic animate-pulse">Caricamento...</div>';
 
-
-
             const { data: annate } = await window.supabaseClient.from('annata').select('id').eq('serie_id', serieId);
-
             const annateIds = annate?.map(a => a.id) || [];
-
             const annateFilter = annateIds.length > 0 ? annateIds.join(',') : '00000000-0000-0000-0000-000000000000';
-
             
-
             let query = window.supabaseClient.from('issue').select(FULL_QUERY);
-
             query = query.or(`annata_id.in.(${annateFilter}),serie_id.eq.${serieId}`);
-
             if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
-
-
 
             const { data, error } = await query.order('numero', { ascending: true });
-
             if (error) renderError(error.message);
-
             else renderGrid(data, fullSerieNome);
-
         }
-
-
 
         async function loadRecent() {
-
             currentSerieId = null;
-
             viewTitle.innerText = "Ultimi Arrivi";
-
             viewSubtitle.innerText = `Filtro: ${currentFilter.toUpperCase()}`;
-
             
-
             let query = window.supabaseClient.from('issue').select(FULL_QUERY);
-
             if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
-
             
-
             const { data, error } = await query.order('created_at', { ascending: false }).limit(20);
-
             if (error) renderError(error.message);
-
             else renderGrid(data);
-
         }
-
-
 
         function renderGrid(items, fallbackSerieFullNome = "") {
-
             statsCount.innerText = items ? `${items.length} fumetti` : "";
-
             if (!items || items.length === 0) {
-
                 grid.innerHTML = '<div class="col-span-full py-20 text-center text-slate-500 italic">Nessun fumetto trovato.</div>';
-
                 return;
-
             }
 
-
-
             grid.innerHTML = items.map(comic => {
-
                 const serieObj = comic.annata?.serie || comic.serie;
-
                 let displayTitle = fallbackSerieFullNome;
 
-
-
                 if (!displayTitle && serieObj) {
-
                     const sNome = serieObj.nome || "Serie Ignota";
-
                     const cNome = serieObj.collana?.nome;
-
                     displayTitle = cNome ? `${sNome} (${cNome})` : sNome;
-
                 }
 
-
-
                 const isOwned = comic.possesso === 'celo';
-
                 const valoreNum = parseFloat(comic.valore);
 
-
-
                 return `
-
                 <div class="comic-card bg-slate-800 rounded-xl overflow-hidden border ${isOwned ? 'border-slate-700 shadow-xl' : 'border-slate-800 opacity-80'} transition-all duration-300">
-
                     <div class="relative h-72 bg-slate-950 overflow-hidden">
-
                         <img src="${comic.immagine_url || 'https://via.placeholder.com/300x450?text=No+Image'}" 
-
                              class="comic-image w-full h-full object-cover ${isOwned ? '' : 'grayscale opacity-40'}">
-
                         
-
                         ${valoreNum > 0 ? `
-
                         <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-900 to-transparent p-4">
-
                              <span class="text-yellow-500 font-mono text-sm font-bold">€ ${valoreNum.toFixed(2)}</span>
-
                         </div>` : ''}
-
                     </div>
-
                     <div class="p-4">
-
                         <p class="text-[10px] text-yellow-500 font-bold uppercase tracking-widest truncate mb-1">${displayTitle}</p>
-
                         <h4 class="font-bold text-lg leading-tight truncate">
-
                             ${comic.annata?.nome ? `<span class="text-slate-400 font-medium mr-1">${comic.annata.nome}</span>` : ''}#${comic.numero || '?'} ${comic.nome || ''}
-
                         </h4>
-
                         <div class="mt-4 flex items-center justify-between border-t border-slate-700 pt-3">
-
                             ${getStarsHTML(comic.condizione)}
-
                             ${comic.tipo_pubblicazione?.nome ? `<span class="text-[9px] text-slate-500 uppercase font-bold truncate ml-2">${comic.tipo_pubblicazione.nome}</span>` : ''}
-
                         </div>
-
                     </div>
-
                 </div>`;
-
             }).join('');
-
         }
-
-
 
         function renderError(msg) {
-
             grid.innerHTML = `<div class="col-span-full p-4 bg-red-900/20 border border-red-900 text-red-400 rounded text-center">Errore: ${msg}</div>`;
-
         }
-
-
 
         loadRecent();
 
-
-
         document.addEventListener('click', (e) => {
-
             if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) resultsDiv.classList.add('hidden');
-
         });
-
     </script>
-
 </body>
-
 </html>
