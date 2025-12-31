@@ -63,7 +63,7 @@
 
         let currentFilter = 'all'; 
         let currentSerieId = null;
-        let currentSerieFullNome = ""; // Memorizza "Serie (Collana)"
+        let currentSerieFullNome = ""; 
 
         const FULL_QUERY = `*, 
             annata(nome, serie(nome, collana(nome))), 
@@ -91,7 +91,6 @@
             else loadRecent();
         }
 
-        // RICERCA SERIE: Visualizzazione Serie (Collana)
         searchInput.addEventListener('input', async (e) => {
             const term = e.target.value.trim();
             if (term.length < 2) { resultsDiv.classList.add('hidden'); return; }
@@ -114,7 +113,6 @@
             } else resultsDiv.classList.add('hidden');
         });
 
-        // SELEZIONE SERIE: Titolo vista aggiornato
         async function selectSerie(serieId, fullSerieNome) {
             currentSerieId = serieId;
             currentSerieFullNome = fullSerieNome;
@@ -162,7 +160,6 @@
                 const serieObj = comic.annata?.serie || comic.serie;
                 let displayTitle = fallbackSerieFullNome;
 
-                // Se non abbiamo un fallback (es. in Ultimi Arrivi), costruiamo il nome Serie (Collana)
                 if (!displayTitle && serieObj) {
                     const sNome = serieObj.nome || "Serie Ignota";
                     const cNome = serieObj.collana?.nome;
@@ -170,15 +167,21 @@
                 }
 
                 const isOwned = comic.possesso === 'celo';
+                
+                // LOGICA VALORE: Mostra solo se > 0
+                const valoreNum = parseFloat(comic.valore);
+                const showValore = valoreNum > 0;
 
                 return `
                 <div class="comic-card bg-slate-800 rounded-xl overflow-hidden border ${isOwned ? 'border-slate-700 shadow-xl' : 'border-slate-800 opacity-80'} transition-all duration-300">
                     <div class="relative h-72 bg-slate-950 overflow-hidden">
                         <img src="${comic.immagine_url || 'https://via.placeholder.com/300x450?text=No+Image'}" 
                              class="comic-image w-full h-full object-cover ${isOwned ? '' : 'grayscale opacity-40'}">
+                        
+                        ${showValore ? `
                         <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-900 to-transparent p-4">
-                             <span class="text-yellow-500 font-mono text-sm font-bold">€ ${comic.valore ? Number(comic.valore).toFixed(2) : '0.00'}</span>
-                        </div>
+                             <span class="text-yellow-500 font-mono text-sm font-bold">€ ${valoreNum.toFixed(2)}</span>
+                        </div>` : ''}
                     </div>
                     <div class="p-4">
                         <p class="text-[10px] text-yellow-500 font-bold uppercase tracking-widest truncate mb-1">${displayTitle}</p>
