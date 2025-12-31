@@ -61,7 +61,7 @@
         const grid = document.getElementById('comic-grid');
         const statsCount = document.getElementById('stats-count');
 
-        let currentFilter = 'all'; // 'all', 'celo', 'manca'
+        let currentFilter = 'all'; 
         let currentSerieId = null;
         let currentSerieNome = "";
 
@@ -83,26 +83,33 @@
             return `<div class="flex gap-0.5">${starsHTML}</div>`;
         }
 
-        // Gestione Filtri UI
         function setFilter(filter) {
             currentFilter = filter;
             document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById(`btn-${filter}`).classList.add('active');
-            
             if (currentSerieId) selectSerie(currentSerieId, currentSerieNome);
             else loadRecent();
         }
 
+        // RICERCA SERIE (Aggiornata con Collana nel dropdown)
         searchInput.addEventListener('input', async (e) => {
             const term = e.target.value.trim();
             if (term.length < 2) { resultsDiv.classList.add('hidden'); return; }
-            const { data } = await window.supabaseClient.from('serie').select('id, nome, immagine_url').ilike('nome', `%${term}%`).limit(6);
+
+            const { data } = await window.supabaseClient
+                .from('serie')
+                .select('id, nome, immagine_url, collana(nome)')
+                .ilike('nome', `%${term}%`).limit(6);
+
             if (data?.length > 0) {
-                resultsDiv.innerHTML = data.map(serie => `
+                resultsDiv.innerHTML = data.map(serie => {
+                    const display = serie.collana?.nome ? `${serie.nome} (${serie.collana.nome})` : serie.nome;
+                    return `
                     <div onclick="selectSerie('${serie.id}', '${serie.nome.replace(/'/g, "\\'")}')" class="flex items-center p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700 last:border-0">
                         <img src="${serie.immagine_url || 'https://via.placeholder.com/40'}" class="w-10 h-10 object-cover rounded mr-3 bg-slate-700">
-                        <span class="font-semibold">${serie.nome}</span>
-                    </div>`).join('');
+                        <span class="font-semibold">${display}</span>
+                    </div>`;
+                }).join('');
                 resultsDiv.classList.remove('hidden');
             } else resultsDiv.classList.add('hidden');
         });
@@ -110,7 +117,6 @@
         async function selectSerie(serieId, serieNome) {
             currentSerieId = serieId;
             currentSerieNome = serieNome;
-            searchInput.value = serieNome;
             resultsDiv.classList.add('hidden');
             viewTitle.innerText = serieNome;
             viewSubtitle.innerText = `Filtro attivo: ${currentFilter.toUpperCase()}`;
@@ -121,10 +127,7 @@
             const annateFilter = annateIds.length > 0 ? annateIds.join(',') : '00000000-0000-0000-0000-000000000000';
             
             let query = window.supabaseClient.from('issue').select(FULL_QUERY);
-            
-            // Applica filtri combinati
-            let orCondition = `annata_id.in.(${annateFilter}),serie_id.eq.${serieId}`;
-            query = query.or(orCondition);
+            query = query.or(`annata_id.in.(${annateFilter}),serie_id.eq.${serieId}`);
             if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
 
             const { data, error } = await query.order('numero', { ascending: true });
@@ -148,14 +151,18 @@
         function renderGrid(items, fallbackSerieNome = "") {
             statsCount.innerText = items ? `${items.length} fumetti` : "";
             if (!items || items.length === 0) {
-                grid.innerHTML = '<div class="col-span-full py-20 text-center text-slate-500 italic">Nessun fumetto corrisponde ai criteri.</div>';
+                grid.innerHTML = '<div class="col-span-full py-20 text-center text-slate-500 italic">Nessun fumetto trovato.</div>';
                 return;
             }
 
             grid.innerHTML = items.map(comic => {
                 const serieObj = comic.annata?.serie || comic.serie;
                 const serieNome = serieObj?.nome || fallbackSerieNome || "Serie Ignota";
-                const displayTitle = serieObj?.collana?.nome ? `${serieNome} <span class="text-slate-600 font-normal italic">(${serieObj.collana.nome})</span>` : serieNome;
+                const collanaNome = serieObj?.collana?.nome;
+                
+                // NOME SERIE SEMPRE CON COLLANA SE PRESENTE
+                const displayTitle = collanaNome ? `${serieNome} <span class="text-slate-500 font-normal italic text-[9px]">(${collanaNome})</span>` : serieNome;
+                
                 const isOwned = comic.possesso === 'celo';
 
                 return `
