@@ -13,7 +13,6 @@
         .comic-image { transition: filter 0.5s ease, transform 0.5s ease, opacity 0.5s ease; }
         .comic-card:hover .grayscale { filter: grayscale(0); opacity: 1; }
         .filter-btn.active { background-color: #eab308; color: #0f172a; border-color: #eab308; }
-        .modal { transition: opacity 0.3s ease; }
         .modal.hidden { display: none; }
     </style>
 </head>
@@ -21,23 +20,19 @@
 
     <header class="bg-slate-800 border-b border-slate-700 p-6 sticky top-0 z-50 shadow-2xl">
         <div class="container mx-auto flex flex-col lg:flex-row justify-between items-center gap-6">
-            <h1 class="text-3xl font-black text-yellow-500 tracking-tighter uppercase italic cursor-pointer select-none shrink-0" onclick="loadRecent()">
+            <h1 class="text-3xl font-black text-yellow-500 tracking-tighter uppercase italic cursor-pointer select-none" onclick="loadRecent()">
                 Comic Archive
             </h1>
-            
             <div class="flex flex-col md:flex-row w-full gap-4 items-center">
                 <div class="relative w-full">
-                    <input type="text" id="serie-search" 
-                           class="w-full bg-slate-900 border border-slate-600 p-3 rounded-full pl-12 focus:ring-2 focus:ring-yellow-500 outline-none transition-all"
-                           placeholder="Cerca una serie (es. Topolino, Batman...)">
+                    <input type="text" id="serie-search" class="w-full bg-slate-900 border border-slate-600 p-3 rounded-full pl-12 focus:ring-2 focus:ring-yellow-500 outline-none" placeholder="Cerca una serie...">
                     <span class="absolute left-4 top-3.5 opacity-40">🔍</span>
                     <div id="serie-results" class="absolute w-full mt-2 bg-slate-800 border border-slate-700 rounded-xl hidden shadow-2xl max-h-60 overflow-y-auto custom-scrollbar z-50"></div>
                 </div>
-
-                <div class="flex bg-slate-900 p-1 rounded-full border border-slate-700 shrink-0">
-                    <button onclick="setFilter('all')" id="btn-all" class="filter-btn active px-4 py-1.5 rounded-full text-xs font-bold uppercase transition-all">Tutti</button>
-                    <button onclick="setFilter('celo')" id="btn-celo" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold uppercase transition-all">Celo</button>
-                    <button onclick="setFilter('manca')" id="btn-manca" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold uppercase transition-all">Manca</button>
+                <div class="flex bg-slate-900 p-1 rounded-full border border-slate-700">
+                    <button onclick="setFilter('all')" id="btn-all" class="filter-btn active px-4 py-1.5 rounded-full text-xs font-bold uppercase">Tutti</button>
+                    <button onclick="setFilter('celo')" id="btn-celo" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold uppercase">Celo</button>
+                    <button onclick="setFilter('manca')" id="btn-manca" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold uppercase">Manca</button>
                 </div>
             </div>
         </div>
@@ -46,83 +41,83 @@
     <main class="container mx-auto p-6">
         <div class="mb-8 border-l-4 border-yellow-500 pl-4 flex justify-between items-end">
             <div>
-                <h2 id="view-title" class="text-2xl font-bold uppercase tracking-tight">Caricamento...</h2>
-                <p id="view-subtitle" class="text-slate-400 text-sm italic"></p>
+                <h2 id="view-title" class="text-2xl font-bold uppercase tracking-tight">Ultimi Arrivi</h2>
+                <p id="view-subtitle" class="text-slate-400 text-sm italic">Filtro: TUTTI</p>
             </div>
             <div id="stats-count" class="text-slate-500 text-xs font-mono uppercase"></div>
         </div>
-
         <div id="comic-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8"></div>
     </main>
 
-    <button onclick="openModal()" class="fixed bottom-8 right-8 bg-yellow-500 hover:bg-yellow-400 text-slate-900 w-16 h-16 rounded-full shadow-2xl flex items-center justify-center text-4xl font-bold transition-transform hover:scale-110 z-40">
-        +
-    </button>
+    <button onclick="openModal()" class="fixed bottom-8 right-8 bg-yellow-500 hover:bg-yellow-400 text-slate-900 w-16 h-16 rounded-full shadow-2xl flex items-center justify-center text-4xl font-bold z-40 shadow-yellow-500/20">+</button>
 
     <div id="add-modal" class="modal hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
             <div class="p-6 border-b border-slate-700 flex justify-between items-center">
-                <h3 class="text-xl font-bold uppercase text-yellow-500">Aggiungi nuovo albo</h3>
+                <h3 class="text-xl font-bold uppercase text-yellow-500">Nuovo Record Tabella Issue</h3>
                 <button onclick="closeModal()" class="text-slate-400 hover:text-white text-2xl">✕</button>
             </div>
             
-            <form id="add-comic-form" class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
+            <form id="add-comic-form" class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto custom-scrollbar">
                 <div class="md:col-span-2">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Serie / Testata</label>
-                    <select id="form-serie" onchange="loadAnnatePerForm(this.value)" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none" required></select>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">serie_id (Serie / Collana)</label>
+                    <select id="form-serie_id" onchange="loadAnnatePerForm(this.value)" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none" required></select>
                 </div>
 
                 <div class="md:col-span-2">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Annata</label>
-                    <select id="form-annata" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none">
-                        <option value="">Seleziona prima una serie...</option>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">annata_id (Anno / Volume)</label>
+                    <select id="form-annata_id" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-lg outline-none">
+                        <option value="">Nessuna annata</option>
                     </select>
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Numero</label>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">numero</label>
                     <input type="number" id="form-numero" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-lg" required>
                 </div>
+
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Titolo Albo (opzionale)</label>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">nome (Titolo Albo)</label>
                     <input type="text" id="form-nome" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-lg">
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Stato</label>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">possesso ('celo' o 'manca')</label>
                     <select id="form-possesso" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-lg">
-                        <option value="celo">Celo</option>
-                        <option value="manca">Manca</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Condizione</label>
-                    <select id="form-condizione" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-lg">
-                        <option value="">N/D</option>
-                        <option value="5">5 ★ (Ottimo)</option>
-                        <option value="4">4 ★ (Molto Buono)</option>
-                        <option value="3">3 ★ (Buono)</option>
-                        <option value="2">2 ★ (Discreto)</option>
-                        <option value="1">1 ★ (Scarso)</option>
+                        <option value="celo">celo</option>
+                        <option value="manca">manca</option>
                     </select>
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Tipo Pubblicazione</label>
-                    <select id="form-tipo-pub" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-lg"></select>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">condizione (1-5)</label>
+                    <select id="form-condizione" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-lg">
+                        <option value="">NULL</option>
+                        <option value="5">5</option>
+                        <option value="4">4</option>
+                        <option value="3">3</option>
+                        <option value="2">2</option>
+                        <option value="1">1</option>
+                    </select>
                 </div>
+
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Valore (€)</label>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">tipo_pubblicazione_id</label>
+                    <select id="form-tipo_pubblicazione_id" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-lg"></select>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">valore (Numerico)</label>
                     <input type="number" step="0.01" id="form-valore" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-lg">
                 </div>
 
                 <div class="md:col-span-2">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">URL Immagine</label>
-                    <input type="url" id="form-img" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-lg" placeholder="https://...">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">immagine_url</label>
+                    <input type="url" id="form-immagine_url" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-lg" placeholder="https://...">
                 </div>
 
                 <div class="md:col-span-2 pt-4">
-                    <button type="submit" class="w-full bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-bold p-3 rounded-lg uppercase tracking-widest">Salva</button>
+                    <button type="submit" class="w-full bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-bold p-3 rounded-lg uppercase tracking-widest transition-all">Inserisci nella tabella issue</button>
                 </div>
             </form>
         </div>
@@ -144,7 +139,49 @@
             serie(nome, collana(nome)),
             tipo_pubblicazione(nome)`;
 
-        // --- RENDER UTILS ---
+        // --- FUNZIONI MODALE ---
+        async function openModal() {
+            document.getElementById('add-modal').classList.remove('hidden');
+            const { data: serie } = await window.supabaseClient.from('serie').select('id, nome, collana(nome)').order('nome');
+            const { data: pub } = await window.supabaseClient.from('tipo_pubblicazione').select('id, nome').order('nome');
+
+            document.getElementById('form-serie_id').innerHTML = '<option value="">Seleziona serie_id...</option>' + 
+                serie.map(s => `<option value="${s.id}">${s.nome} ${s.collana ? '('+s.collana.nome+')' : ''}</option>`).join('');
+            
+            document.getElementById('form-tipo_pubblicazione_id').innerHTML = '<option value="">Standard (NULL)</option>' + 
+                pub.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+        }
+
+        async function loadAnnatePerForm(serieId) {
+            const select = document.getElementById('form-annata_id');
+            if(!serieId) { select.innerHTML = '<option value="">Scegli serie...</option>'; return; }
+            const { data } = await window.supabaseClient.from('annata').select('id, nome').eq('serie_id', serieId).order('nome');
+            select.innerHTML = '<option value="">Nessuna annata_id</option>' + 
+                data.map(a => `<option value="${a.id}">${a.nome}</option>`).join('');
+        }
+
+        function closeModal() { document.getElementById('add-modal').classList.add('hidden'); }
+
+        document.getElementById('add-comic-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                serie_id: document.getElementById('form-serie_id').value,
+                annata_id: document.getElementById('form-annata_id').value || null,
+                numero: parseInt(document.getElementById('form-numero').value),
+                nome: document.getElementById('form-nome').value || null,
+                possesso: document.getElementById('form-possesso').value,
+                condizione: document.getElementById('form-condizione').value || null,
+                tipo_pubblicazione_id: document.getElementById('form-tipo_pubblicazione_id').value || null,
+                valore: parseFloat(document.getElementById('form-valore').value) || 0,
+                immagine_url: document.getElementById('form-immagine_url').value || null
+            };
+
+            const { error } = await window.supabaseClient.from('issue').insert([payload]);
+            if (error) alert("Errore Database: " + error.message);
+            else { closeModal(); loadRecent(); e.target.reset(); }
+        });
+
+        // --- LOGICA DISPLAY ---
         function getStarsHTML(valore) {
             if (!valore) return `<div class="flex gap-0.5 opacity-20">${'★'.repeat(5)}</div>`;
             const num = parseInt(valore);
@@ -157,50 +194,10 @@
         function setFilter(filter) {
             currentFilter = filter;
             document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.toggle('active', btn.id === `btn-${filter}`));
+            document.getElementById('view-subtitle').innerText = `Filtro: ${filter.toUpperCase()}`;
             if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome); else loadRecent();
         }
 
-        // --- MODALE LOGICA ---
-        async function openModal() {
-            document.getElementById('add-modal').classList.remove('hidden');
-            const { data: serie } = await window.supabaseClient.from('serie').select('id, nome, collana(nome)').order('nome');
-            const { data: pub } = await window.supabaseClient.from('tipo_pubblicazione').select('id, nome').order('nome');
-
-            document.getElementById('form-serie').innerHTML = '<option value="">Scegli una serie...</option>' + 
-                serie.map(s => `<option value="${s.id}">${s.nome} ${s.collana ? '('+s.collana.nome+')' : ''}</option>`).join('');
-            
-            document.getElementById('form-tipo-pub').innerHTML = '<option value="">Standard</option>' + 
-                pub.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
-        }
-
-        async function loadAnnatePerForm(serieId) {
-            const select = document.getElementById('form-annata');
-            if(!serieId) { select.innerHTML = '<option value="">Scegli una serie...</option>'; return; }
-            const { data } = await window.supabaseClient.from('annata').select('id, nome').eq('serie_id', serieId).order('nome');
-            select.innerHTML = '<option value="">Nessuna annata specifica</option>' + 
-                data.map(a => `<option value="${a.id}">${a.nome}</option>`).join('');
-        }
-
-        function closeModal() { document.getElementById('add-modal').classList.add('hidden'); }
-
-        document.getElementById('add-comic-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const payload = {
-                serie_id: document.getElementById('form-serie').value,
-                annata_id: document.getElementById('form-annata').value || null,
-                numero: parseInt(document.getElementById('form-numero').value),
-                nome: document.getElementById('form-nome').value || null,
-                possesso: document.getElementById('form-possesso').value,
-                condizione: document.getElementById('form-condizione').value || null,
-                tipo_pubblicazione_id: document.getElementById('form-tipo-pub').value || null,
-                valore: parseFloat(document.getElementById('form-valore').value) || 0,
-                immagine_url: document.getElementById('form-img').value || null
-            };
-            const { error } = await window.supabaseClient.from('issue').insert([payload]);
-            if (error) alert(error.message); else { closeModal(); loadRecent(); e.target.reset(); }
-        });
-
-        // --- RICERCA E VISUALIZZAZIONE ---
         searchInput.addEventListener('input', async (e) => {
             const term = e.target.value.trim();
             if (term.length < 2) { resultsDiv.classList.add('hidden'); return; }
@@ -208,7 +205,7 @@
             resultsDiv.innerHTML = data.map(serie => {
                 const full = serie.collana?.nome ? `${serie.nome} (${serie.collana.nome})` : serie.nome;
                 return `<div onclick="selectSerie('${serie.id}', '${full.replace(/'/g, "\\'")}')" class="flex items-center p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700">
-                    <img src="${serie.immagine_url || 'https://via.placeholder.com/40'}" class="w-10 h-10 object-cover rounded mr-3 bg-slate-700">
+                    <img src="${serie.immagine_url || 'https://via.placeholder.com/40'}" class="w-10 h-10 object-cover rounded mr-3">
                     <span class="font-semibold">${full}</span>
                 </div>`;
             }).join('');
