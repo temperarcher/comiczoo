@@ -46,6 +46,26 @@
         const viewSubtitle = document.getElementById('view-subtitle');
         const grid = document.getElementById('comic-grid');
 
+        // Configurazione Colori e Stelle per Condizione
+        const conditionConfig = {
+            'Mint':      { stars: 5, color: 'text-yellow-500' }, // Oro
+            'Near Mint': { stars: 4, color: 'text-white' },      // Bianco
+            'Very Fine': { stars: 3, color: 'text-white' },      // Bianco
+            'Fine':      { stars: 2, color: 'text-red-500' },    // Rosso
+            'Good':      { stars: 1, color: 'text-red-500' },    // Rosso
+            'N.D.':      { stars: 0, color: 'text-slate-600' }   // Grigio
+        };
+
+        function getStarsHTML(cond) {
+            const config = conditionConfig[cond] || conditionConfig['N.D.'];
+            let starsHTML = '';
+            for (let i = 1; i <= 5; i++) {
+                const opacity = i <= config.stars ? 'opacity-100' : 'opacity-20';
+                starsHTML += `<span class="${config.color} ${opacity} text-xs">★</span>`;
+            }
+            return `<div class="flex gap-0.5" title="${cond}">${starsHTML}</div>`;
+        }
+
         // RICERCA SERIE
         searchInput.addEventListener('input', async (e) => {
             const term = e.target.value.trim();
@@ -111,13 +131,10 @@
             }
 
             grid.innerHTML = items.map(comic => {
-                // Estrazione dati gerarchici
                 const serieObj = comic.annata?.serie || comic.serie;
                 const serieNome = serieObj?.nome || fallbackSerieNome || "Serie Sconosciuta";
                 const collanaNome = serieObj?.collana?.nome;
-                
-                // Formatta il titolo della serie con la collana tra parentesi se presente
-                const displayTitle = collanaNome ? `${serieNome} <span class="text-slate-600 font-normal">(${collanaNome})</span>` : serieNome;
+                const displayTitle = collanaNome ? `${serieNome} <span class="text-slate-600 font-normal italic">(${collanaNome})</span>` : serieNome;
 
                 const isOwned = comic.possesso === 'celo';
                 const imageEffect = isOwned ? "" : "grayscale opacity-40 shadow-none";
@@ -135,11 +152,11 @@
                     <div class="p-4">
                         <p class="text-[10px] text-yellow-500 font-bold uppercase tracking-widest truncate mb-1">${displayTitle}</p>
                         <h4 class="font-bold text-lg leading-tight truncate">#${comic.numero || '?'} ${comic.nome || ''}</h4>
+                        
                         <div class="mt-4 flex items-center justify-between border-t border-slate-700 pt-3">
-                            <span class="text-[10px] bg-slate-900 px-2 py-1 rounded text-slate-400 border border-slate-700 uppercase italic">
-                                ${comic.condizione || 'STATO N.D.'}
-                            </span>
-                            ${comic.pubblicazione ? `<span class="text-[10px] text-slate-600 truncate ml-2">${comic.pubblicazione}</span>` : ''}
+                            ${getStarsHTML(comic.condizione)}
+                            
+                            ${comic.pubblicazione ? `<span class="text-[9px] text-slate-600 uppercase font-bold truncate ml-2">${comic.pubblicazione}</span>` : ''}
                         </div>
                     </div>
                 </div>`;
