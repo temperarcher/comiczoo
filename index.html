@@ -10,11 +10,7 @@
     <style>
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
-        
-        /* Effetto transizione fluido per il passaggio da grigio a colori al passaggio del mouse */
         .comic-image { transition: filter 0.5s ease, transform 0.5s ease, opacity 0.5s ease; }
-        
-        /* Se vuoi che al passaggio del mouse il fumetto torni a colori anche se manca */
         .comic-card:hover .grayscale { filter: grayscale(0); opacity: 1; }
     </style>
 </head>
@@ -25,14 +21,12 @@
             <h1 class="text-3xl font-black text-yellow-500 tracking-tighter uppercase italic cursor-pointer select-none" onclick="loadRecent()">
                 Comic Archive
             </h1>
-            
             <div class="relative w-full md:w-1/2">
                 <input type="text" id="serie-search" 
                        class="w-full bg-slate-900 border border-slate-600 p-3 rounded-full pl-12 focus:ring-2 focus:ring-yellow-500 outline-none transition-all"
                        placeholder="Cerca una serie...">
                 <span class="absolute left-4 top-3.5 opacity-40">🔍</span>
-                <div id="serie-results" class="absolute w-full mt-2 bg-slate-800 border border-slate-700 rounded-xl hidden shadow-2xl max-h-60 overflow-y-auto custom-scrollbar z-50">
-                </div>
+                <div id="serie-results" class="absolute w-full mt-2 bg-slate-800 border border-slate-700 rounded-xl hidden shadow-2xl max-h-60 overflow-y-auto custom-scrollbar z-50"></div>
             </div>
         </div>
     </header>
@@ -42,9 +36,7 @@
             <h2 id="view-title" class="text-2xl font-bold uppercase tracking-tight">Caricamento...</h2>
             <p id="view-subtitle" class="text-slate-400 text-sm italic"></p>
         </div>
-
-        <div id="comic-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
-            </div>
+        <div id="comic-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8"></div>
     </main>
 
     <script>
@@ -89,7 +81,7 @@
             
             const { data, error } = await window.supabaseClient
                 .from('issue')
-                .select(`*, annata(nome, serie(nome)), serie(nome)`)
+                .select(`*, annata(nome, serie(nome, collana(nome))), serie(nome, collana(nome))`)
                 .or(`annata_id.in.(${annateFilter}),serie_id.eq.${serieId}`)
                 .order('numero', { ascending: true });
 
@@ -104,14 +96,14 @@
             viewSubtitle.innerText = "Le ultime novità inserite nel tuo archivio";
             const { data, error } = await window.supabaseClient
                 .from('issue')
-                .select(`*, annata(nome, serie(nome)), serie(nome)`)
+                .select(`*, annata(nome, serie(nome, collana(nome))), serie(nome, collana(nome))`)
                 .order('created_at', { ascending: false }).limit(20);
 
             if (error) renderError(error.message);
             else renderGrid(data);
         }
 
-        // RENDERING (Nuova logica Greyscale)
+        // RENDERING
         function renderGrid(items, fallbackSerieNome = "") {
             if (!items || items.length === 0) {
                 grid.innerHTML = '<div class="col-span-full py-20 text-center text-slate-500 italic">Nessun fumetto trovato.</div>';
@@ -119,10 +111,15 @@
             }
 
             grid.innerHTML = items.map(comic => {
-                const serieDisplay = comic.annata?.serie?.nome || comic.serie?.nome || fallbackSerieNome || "Serie Sconosciuta";
-                const isOwned = comic.possesso === 'celo';
+                // Estrazione dati gerarchici
+                const serieObj = comic.annata?.serie || comic.serie;
+                const serieNome = serieObj?.nome || fallbackSerieNome || "Serie Sconosciuta";
+                const collanaNome = serieObj?.collana?.nome;
                 
-                // Classi dinamiche: se manca applica grayscale e riduci opacità
+                // Formatta il titolo della serie con la collana tra parentesi se presente
+                const displayTitle = collanaNome ? `${serieNome} <span class="text-slate-600 font-normal">(${collanaNome})</span>` : serieNome;
+
+                const isOwned = comic.possesso === 'celo';
                 const imageEffect = isOwned ? "" : "grayscale opacity-40 shadow-none";
                 const cardEffect = isOwned ? "border-slate-700 shadow-xl" : "border-slate-800 opacity-80";
 
@@ -131,19 +128,16 @@
                     <div class="relative h-72 bg-slate-900 overflow-hidden">
                         <img src="${comic.immagine_url || 'https://via.placeholder.com/300x450?text=Senza+Copertina'}" 
                              class="comic-image w-full h-full object-cover ${imageEffect}">
-                        
                         <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-900 to-transparent p-4">
                              <span class="text-yellow-500 font-mono text-sm font-bold">€ ${comic.valore ? Number(comic.valore).toFixed(2) : '0.00'}</span>
                         </div>
                     </div>
-                    
                     <div class="p-4">
-                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest truncate mb-1">${serieDisplay}</p>
+                        <p class="text-[10px] text-yellow-500 font-bold uppercase tracking-widest truncate mb-1">${displayTitle}</p>
                         <h4 class="font-bold text-lg leading-tight truncate">#${comic.numero || '?'} ${comic.nome || ''}</h4>
-                        
                         <div class="mt-4 flex items-center justify-between border-t border-slate-700 pt-3">
                             <span class="text-[10px] bg-slate-900 px-2 py-1 rounded text-slate-400 border border-slate-700 uppercase italic">
-                                ${comic.condizione || 'STADO N.D.'}
+                                ${comic.condizione || 'STATO N.D.'}
                             </span>
                             ${comic.pubblicazione ? `<span class="text-[10px] text-slate-600 truncate ml-2">${comic.pubblicazione}</span>` : ''}
                         </div>
