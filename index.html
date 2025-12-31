@@ -46,23 +46,19 @@
         const viewSubtitle = document.getElementById('view-subtitle');
         const grid = document.getElementById('comic-grid');
 
-        const conditionConfig = {
-            'Mint':      { stars: 5, color: 'text-yellow-500' },
-            'Near Mint': { stars: 4, color: 'text-white' },
-            'Very Fine': { stars: 3, color: 'text-white' },
-            'Fine':      { stars: 2, color: 'text-red-500' },
-            'Good':      { stars: 1, color: 'text-red-500' },
-            'N.D.':      { stars: 0, color: 'text-slate-600' }
-        };
+        // Configurazione Colori basata sul valore numerico 1-5
+        function getStarsHTML(valore) {
+            const num = parseInt(valore) || 0;
+            let colorClass = 'text-white';
+            if (num >= 5) colorClass = 'text-yellow-500'; // Oro per il top
+            if (num <= 2) colorClass = 'text-red-500';    // Rosso per i bassi
 
-        function getStarsHTML(cond) {
-            const config = conditionConfig[cond] || conditionConfig['N.D.'];
             let starsHTML = '';
             for (let i = 1; i <= 5; i++) {
-                const opacity = i <= config.stars ? 'opacity-100' : 'opacity-20';
-                starsHTML += `<span class="${config.color} ${opacity} text-xs">★</span>`;
+                const opacity = i <= num ? 'opacity-100' : 'opacity-20';
+                starsHTML += `<span class="${colorClass} ${opacity} text-xs">★</span>`;
             }
-            return `<div class="flex gap-0.5" title="${cond}">${starsHTML}</div>`;
+            return `<div class="flex gap-0.5" title="Condizione: ${num}/5">${starsHTML}</div>`;
         }
 
         searchInput.addEventListener('input', async (e) => {
@@ -79,12 +75,18 @@
             } else { resultsDiv.classList.add('hidden'); }
         });
 
+        // Query aggiornata per includere tipo_pubblicazione
+        const ISSUE_QUERY = `*, 
+            annata(nome, serie(nome, collana(nome))), 
+            serie(nome, collana(nome)),
+            tipo_pubblicazione(nome)`;
+
         async function selectSerie(serieId, serieNome) {
             searchInput.value = serieNome;
             resultsDiv.classList.add('hidden');
             viewTitle.innerText = serieNome;
             viewSubtitle.innerText = `Collezione completa della serie`;
-            grid.innerHTML = '<div class="col-span-full text-center py-20 opacity-50 italic animate-pulse">Recupero albi...</div>';
+            grid.innerHTML = '<div class="col-span-full text-center py-20 opacity-50">Recupero albi...</div>';
 
             const { data: annate } = await window.supabaseClient.from('annata').select('id').eq('serie_id', serieId);
             const annateIds = annate?.map(a => a.id) || [];
@@ -92,7 +94,7 @@
             
             const { data, error } = await window.supabaseClient
                 .from('issue')
-                .select(`*, annata(nome, serie(nome, collana(nome))), serie(nome, collana(nome))`)
+                .select(ISSUE_QUERY)
                 .or(`annata_id.in.(${annateFilter}),serie_id.eq.${serieId}`)
                 .order('numero', { ascending: true });
 
@@ -106,7 +108,7 @@
             viewSubtitle.innerText = "Le ultime novità inserite nel tuo archivio";
             const { data, error } = await window.supabaseClient
                 .from('issue')
-                .select(`*, annata(nome, serie(nome, collana(nome))), serie(nome, collana(nome))`)
+                .select(ISSUE_QUERY)
                 .order('created_at', { ascending: false }).limit(20);
 
             if (error) renderError(error.message);
@@ -125,17 +127,14 @@
                 const collanaNome = serieObj?.collana?.nome;
                 const displayTitle = collanaNome ? `${serieNome} <span class="text-slate-600 font-normal italic">(${collanaNome})</span>` : serieNome;
 
-                // NUOVA LOGICA: Annata + Numero
                 const annataNome = comic.annata?.nome ? `<span class="text-slate-400 font-medium mr-1">${comic.annata.nome}</span>` : "";
-                const numeroDisplay = comic.numero || '?';
-                const comicNome = comic.nome || '';
+                const pubNome = comic.tipo_pubblicazione?.nome || "";
 
                 const isOwned = comic.possesso === 'celo';
-                const imageEffect = isOwned ? "" : "grayscale opacity-40 shadow-none";
-                const cardEffect = isOwned ? "border-slate-700 shadow-xl" : "border-slate-800 opacity-80";
+                const imageEffect = isOwned ? "" : "grayscale opacity-40";
 
                 return `
-                <div class="comic-card bg-slate-800 rounded-xl overflow-hidden border ${cardEffect} transition-all duration-300">
+                <div class="comic-card bg-slate-800 rounded-xl overflow-hidden border ${isOwned ? 'border-slate-700' : 'border-slate-800'} transition-all duration-300">
                     <div class="relative h-72 bg-slate-900 overflow-hidden">
                         <img src="${comic.immagine_url || 'https://via.placeholder.com/300x450?text=Senza+Copertina'}" 
                              class="comic-image w-full h-full object-cover ${imageEffect}">
@@ -146,12 +145,12 @@
                     <div class="p-4">
                         <p class="text-[10px] text-yellow-500 font-bold uppercase tracking-widest truncate mb-1">${displayTitle}</p>
                         <h4 class="font-bold text-lg leading-tight truncate">
-                            ${annataNome}#${numeroDisplay} ${comicNome}
+                            ${annataNome}#${comic.numero || '?'} ${comic.nome || ''}
                         </h4>
                         
                         <div class="mt-4 flex items-center justify-between border-t border-slate-700 pt-3">
                             ${getStarsHTML(comic.condizione)}
-                            ${comic.pubblicazione ? `<span class="text-[9px] text-slate-600 uppercase font-bold truncate ml-2">${comic.pubblicazione}</span>` : ''}
+                            ${pubNome ? `<span class="text-[9px] text-slate-500 uppercase font-bold truncate ml-2">${pubNome}</span>` : ''}
                         </div>
                     </div>
                 </div>`;
