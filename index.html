@@ -1,354 +1,415 @@
 <!DOCTYPE html>
+
 <html lang="it">
+
 <head>
+
     <meta charset="UTF-8">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comic Archive Pro - Full Database Control</title>
+
+    <title>Comic Archive Pro</title>
+
     <script src="https://cdn.tailwindcss.com"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <script src="config.js"></script>
+
     <style>
+
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
-        .comic-image { transition: filter 0.5s ease, transform 0.5s ease; }
+
+        .comic-image { transition: filter 0.5s ease, transform 0.5s ease, opacity 0.5s ease; }
+
         .comic-card:hover .grayscale { filter: grayscale(0); opacity: 1; }
+
         .filter-btn.active { background-color: #eab308; color: #0f172a; border-color: #eab308; }
-        .modal.hidden { display: none; }
-        select, input, textarea { color-scheme: dark; }
+
     </style>
+
 </head>
+
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
 
+
+
     <header class="bg-slate-800 border-b border-slate-700 p-6 sticky top-0 z-50 shadow-2xl">
+
         <div class="container mx-auto flex flex-col lg:flex-row justify-between items-center gap-6">
-            <h1 class="text-3xl font-black text-yellow-500 tracking-tighter uppercase italic cursor-pointer shrink-0" onclick="loadRecent()">
+
+            <h1 class="text-3xl font-black text-yellow-500 tracking-tighter uppercase italic cursor-pointer select-none shrink-0" onclick="loadRecent()">
+
                 Comic Archive
+
             </h1>
+
             
+
             <div class="flex flex-col md:flex-row w-full gap-4 items-center">
+
                 <div class="relative w-full">
+
                     <input type="text" id="serie-search" 
+
                            class="w-full bg-slate-900 border border-slate-600 p-3 rounded-full pl-12 focus:ring-2 focus:ring-yellow-500 outline-none transition-all"
+
                            placeholder="Cerca una serie...">
+
                     <span class="absolute left-4 top-3.5 opacity-40">🔍</span>
+
                     <div id="serie-results" class="absolute w-full mt-2 bg-slate-800 border border-slate-700 rounded-xl hidden shadow-2xl max-h-60 overflow-y-auto custom-scrollbar z-50"></div>
+
                 </div>
+
+
 
                 <div class="flex bg-slate-900 p-1 rounded-full border border-slate-700 shrink-0">
+
                     <button onclick="setFilter('all')" id="btn-all" class="filter-btn active px-4 py-1.5 rounded-full text-xs font-bold uppercase transition-all">Tutti</button>
+
                     <button onclick="setFilter('celo')" id="btn-celo" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold uppercase transition-all">Celo</button>
+
                     <button onclick="setFilter('manca')" id="btn-manca" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold uppercase transition-all">Manca</button>
+
                 </div>
+
             </div>
+
         </div>
+
     </header>
 
+
+
     <main class="container mx-auto p-6">
+
         <div class="mb-8 border-l-4 border-yellow-500 pl-4 flex justify-between items-end">
+
             <div>
-                <h2 id="view-title" class="text-2xl font-bold uppercase tracking-tight text-slate-100">Ultimi Arrivi</h2>
+
+                <h2 id="view-title" class="text-2xl font-bold uppercase tracking-tight">Caricamento...</h2>
+
                 <p id="view-subtitle" class="text-slate-400 text-sm italic"></p>
+
             </div>
+
             <div id="stats-count" class="text-slate-500 text-xs font-mono uppercase"></div>
+
         </div>
+
+
+
         <div id="comic-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8"></div>
+
     </main>
 
-    <button onclick="openModal()" class="fixed bottom-8 right-8 bg-yellow-500 text-slate-900 w-16 h-16 rounded-full shadow-2xl flex items-center justify-center text-4xl font-bold z-40 transition-transform hover:scale-110">
-        +
-    </button>
 
-    <div id="add-modal" class="modal hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-sm">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-            <div class="p-6 border-b border-slate-700 flex justify-between items-center">
-                <h3 id="modal-title" class="text-xl font-bold uppercase text-yellow-500 tracking-widest">Nuovo Albo</h3>
-                <button onclick="closeModal()" class="text-slate-400 hover:text-white text-2xl">✕</button>
-            </div>
-            
-            <form id="add-comic-form" class="p-6 grid grid-cols-1 md:grid-cols-3 gap-4 overflow-y-auto custom-scrollbar">
-                <div class="md:col-span-2">
-                    <label class="block text-[10px] font-bold text-yellow-500 mb-1 uppercase">Serie *</label>
-                    <select id="form-serie_id" onchange="loadAnnatePerForm(this.value)" class="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg" required></select>
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase">Annata</label>
-                    <select id="form-annata_id" class="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg"></select>
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase">Testata</label>
-                    <select id="form-testata_id" class="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg"></select>
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase">Editore</label>
-                    <select id="form-editore_id" class="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg"></select>
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase">Tipo Pubblicazione</label>
-                    <select id="form-tipo_pubblicazione_id" class="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg"></select>
-                </div>
-
-                <div>
-                    <label class="block text-[10px] font-bold text-yellow-500 mb-1 uppercase">Numero *</label>
-                    <input type="number" id="form-numero" class="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg" required>
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase">Titolo Albo (Nome)</label>
-                    <input type="text" id="form-nome" class="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg">
-                </div>
-
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase">Data Pubblicazione</label>
-                    <input type="date" id="form-data_pubblicazione" class="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg">
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase">Possesso</label>
-                    <select id="form-possesso" class="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg">
-                        <option value="celo">Celo</option>
-                        <option value="manca">Manca</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase">Supplemento</label>
-                    <select id="form-supplemento_id" class="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg"></select>
-                </div>
-
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase">Condizione (1-5)</label>
-                    <input type="number" id="form-condizione" min="1" max="5" class="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg">
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase">Valore (€)</label>
-                    <input type="number" step="0.01" id="form-valore" class="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg">
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase">Prezzo (€)</label>
-                    <input type="number" step="0.01" id="form-prezzo" class="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg">
-                </div>
-
-                <div class="md:col-span-3">
-                    <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase">Immagine URL</label>
-                    <input type="url" id="form-immagine_url" class="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg">
-                </div>
-
-                <div class="md:col-span-3">
-                    <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase">Descrizione / Note</label>
-                    <textarea id="form-descrizione" rows="2" class="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg text-sm"></textarea>
-                </div>
-
-                <div class="md:col-span-3 pt-4">
-                    <button type="submit" class="w-full bg-yellow-500 text-slate-900 font-black p-4 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all">Salva Record</button>
-                </div>
-            </form>
-        </div>
-    </div>
 
     <script>
-        const grid = document.getElementById('comic-grid');
-        const viewTitle = document.getElementById('view-title');
-        const resultsDiv = document.getElementById('serie-results');
+
         const searchInput = document.getElementById('serie-search');
 
-        let currentFilter = 'all';
+        const resultsDiv = document.getElementById('serie-results');
+
+        const viewTitle = document.getElementById('view-title');
+
+        const viewSubtitle = document.getElementById('view-subtitle');
+
+        const grid = document.getElementById('comic-grid');
+
+        const statsCount = document.getElementById('stats-count');
+
+
+
+        let currentFilter = 'all'; 
+
         let currentSerieId = null;
-        let currentSerieFullNome = "";
-        let editingId = null;
+
+        let currentSerieFullNome = ""; 
+
+
 
         const FULL_QUERY = `*, 
-            annata(nome), 
+
+            annata(nome, serie(nome, collana(nome))), 
+
             serie(nome, collana(nome)),
-            testata(nome),
-            editore(nome),
-            tipo_pubblicazione(nome),
-            supplemento(nome)`;
 
-        // --- CARICAMENTO DATI ---
-        async function loadRecent() {
-            currentSerieId = null;
-            viewTitle.innerText = "Ultimi Arrivi";
-            let q = window.supabaseClient.from('issue').select(FULL_QUERY);
-            if (currentFilter !== 'all') q = q.eq('possesso', currentFilter);
-            const { data, error } = await q.order('created_at', { ascending: false }).limit(20);
-            if (!error) renderGrid(data);
-        }
+            tipo_pubblicazione(nome)`;
 
-        async function selectSerie(id, fullNome) {
-            currentSerieId = id; currentSerieFullNome = fullNome;
-            searchInput.value = fullNome; resultsDiv.classList.add('hidden');
-            viewTitle.innerText = fullNome;
-            
-            const { data: annate } = await window.supabaseClient.from('annata').select('id').eq('serie_id', id);
-            const aIds = annate?.map(a => a.id) || [];
-            
-            let q = window.supabaseClient.from('issue').select(FULL_QUERY);
-            if (aIds.length > 0) q = q.or(`annata_id.in.(${aIds.join(',')}),serie_id.eq.${id}`);
-            else q = q.eq('serie_id', id);
 
-            if (currentFilter !== 'all') q = q.eq('possesso', currentFilter);
-            const { data, error } = await q.order('numero', { ascending: true });
-            if (!error) renderGrid(data, fullNome);
-        }
 
-        function renderGrid(items, fallbackTitle = "") {
-            document.getElementById('stats-count').innerText = `${items?.length || 0} albi`;
-            if (!items?.length) {
-                grid.innerHTML = '<div class="col-span-full py-20 text-center text-slate-500 italic">Nessun risultato.</div>';
-                return;
+        function getStarsHTML(valore) {
+
+            if (valore === null || valore === undefined) {
+
+                return `<div class="flex gap-0.5 opacity-20">${'<span class="text-slate-500 text-xs">★</span>'.repeat(5)}</div>`;
+
             }
-            grid.innerHTML = items.map(comic => {
-                const isOwned = comic.possesso === 'celo';
-                const s = comic.annata?.serie || comic.serie;
-                const displayTitle = fallbackTitle || (s?.collana ? `${s.nome} (${s.collana.nome})` : s?.nome || "Serie Ignota");
-                
-                return `
-                <div class="comic-card group bg-slate-800 rounded-xl overflow-hidden border ${isOwned ? 'border-slate-700 shadow-xl' : 'border-slate-800 opacity-60'} transition-all duration-300 relative">
-                    <div class="absolute top-2 right-2 flex gap-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onclick="prepareEdit('${comic.id}')" class="bg-blue-600 p-2 rounded-full hover:scale-110 shadow-lg">✏️</button>
-                        <button onclick="deleteComic('${comic.id}')" class="bg-red-600 p-2 rounded-full hover:scale-110 shadow-lg">🗑️</button>
-                    </div>
-                    <div class="relative h-72 bg-slate-950">
-                        <img src="${comic.immagine_url || 'https://via.placeholder.com/300x450?text=No+Cover'}" 
-                             class="comic-image w-full h-full object-cover ${isOwned ? '' : 'grayscale'}">
-                        ${comic.valore > 0 ? `<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-900 to-transparent p-4"><span class="text-yellow-500 font-bold">€ ${comic.valore.toFixed(2)}</span></div>` : ''}
-                    </div>
-                    <div class="p-4">
-                        <p class="text-[9px] text-yellow-500 font-bold uppercase truncate mb-1 tracking-wider">${displayTitle}</p>
-                        <h4 class="font-bold truncate text-sm leading-tight">
-                            ${comic.annata?.nome ? `<span class="text-slate-500">${comic.annata.nome}</span> ` : ''}#${comic.numero}
-                        </h4>
-                        <div class="mt-4 flex items-center justify-between border-t border-slate-700 pt-3">
-                            <div class="flex gap-0.5">${'★'.repeat(comic.condizione || 0).split('').map(()=>`<span class="text-yellow-500 text-[10px]">★</span>`).join('')}</div>
-                            <span class="text-[8px] text-slate-500 uppercase font-black">${comic.tipo_pubblicazione?.nome || ''}</span>
-                        </div>
-                    </div>
-                </div>`;
-            }).join('');
-        }
 
-        // --- GESTIONE MODALE E FORM ---
-        async function openModal() {
-            document.getElementById('add-modal').classList.remove('hidden');
-            const [series, testate, editori, tipi, supp] = await Promise.all([
-                window.supabaseClient.from('serie').select('id, nome').order('nome'),
-                window.supabaseClient.from('testata').select('id, nome').order('nome'),
-                window.supabaseClient.from('editore').select('id, nome').order('nome'),
-                window.supabaseClient.from('tipo_pubblicazione').select('id, nome').order('nome'),
-                window.supabaseClient.from('supplemento').select('id, nome').order('nome')
-            ]);
+            const num = parseInt(valore);
 
-            const fillSelect = (id, data) => {
-                document.getElementById(id).innerHTML = '<option value="">-- Seleziona --</option>' + 
-                    data.map(item => `<option value="${item.id}">${item.nome}</option>`).join('');
-            };
+            let colorClass = num >= 5 ? 'text-yellow-500' : (num <= 2 ? 'text-red-500' : 'text-white');
 
-            fillSelect('form-serie_id', series.data || []);
-            fillSelect('form-testata_id', testate.data || []);
-            fillSelect('form-editore_id', editori.data || []);
-            fillSelect('form-tipo_pubblicazione_id', tipi.data || []);
-            fillSelect('form-supplemento_id', supp.data || []);
-        }
+            let starsHTML = '';
 
-        async function loadAnnatePerForm(sid) {
-            const { data } = await window.supabaseClient.from('annata').select('id, nome').eq('serie_id', sid).order('nome');
-            document.getElementById('form-annata_id').innerHTML = '<option value="">Nessuna</option>' + 
-                data.map(a => `<option value="${a.id}">${a.nome}</option>`).join('');
-        }
+            for (let i = 1; i <= 5; i++) {
 
-        function closeModal() {
-            document.getElementById('add-modal').classList.add('hidden');
-            document.getElementById('add-comic-form').reset();
-            editingId = null;
-            document.getElementById('modal-title').innerText = "Nuovo Albo";
-        }
+                starsHTML += `<span class="${colorClass} ${i <= num ? 'opacity-100' : 'opacity-20'} text-xs">★</span>`;
 
-        async function prepareEdit(id) {
-            editingId = id;
-            const { data: comic } = await window.supabaseClient.from('issue').select('*').eq('id', id).single();
-            if (!comic) return;
-
-            await openModal();
-            document.getElementById('modal-title').innerText = "Modifica Albo #" + comic.numero;
-            
-            // Popolamento campi
-            document.getElementById('form-serie_id').value = comic.serie_id || "";
-            await loadAnnatePerForm(comic.serie_id);
-            document.getElementById('form-annata_id').value = comic.annata_id || "";
-            document.getElementById('form-testata_id').value = comic.testata_id || "";
-            document.getElementById('form-editore_id').value = comic.editore_id || "";
-            document.getElementById('form-tipo_pubblicazione_id').value = comic.tipo_pubblicazione_id || "";
-            document.getElementById('form-supplemento_id').value = comic.supplemento_id || "";
-            document.getElementById('form-numero').value = comic.numero || "";
-            document.getElementById('form-nome').value = comic.nome || "";
-            document.getElementById('form-data_pubblicazione').value = comic.data_pubblicazione || "";
-            document.getElementById('form-possesso').value = comic.possesso || "celo";
-            document.getElementById('form-condizione').value = comic.condizione || "";
-            document.getElementById('form-valore').value = comic.valore || 0;
-            document.getElementById('form-prezzo').value = comic.prezzo || 0;
-            document.getElementById('form-immagine_url').value = comic.immagine_url || "";
-            document.getElementById('form-descrizione').value = comic.descrizione || "";
-        }
-
-        document.getElementById('add-comic-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const payload = {
-                serie_id: document.getElementById('form-serie_id').value || null,
-                annata_id: document.getElementById('form-annata_id').value || null,
-                testata_id: document.getElementById('form-testata_id').value || null,
-                editore_id: document.getElementById('form-editore_id').value || null,
-                tipo_pubblicazione_id: document.getElementById('form-tipo_pubblicazione_id').value || null,
-                supplemento_id: document.getElementById('form-supplemento_id').value || null,
-                numero: parseInt(document.getElementById('form-numero').value),
-                nome: document.getElementById('form-nome').value || null,
-                data_pubblicazione: document.getElementById('form-data_pubblicazione').value || null,
-                possesso: document.getElementById('form-possesso').value,
-                condizione: document.getElementById('form-condizione').value || null,
-                valore: parseFloat(document.getElementById('form-valore').value) || 0,
-                prezzo: parseFloat(document.getElementById('form-prezzo').value) || 0,
-                immagine_url: document.getElementById('form-immagine_url').value || null,
-                descrizione: document.getElementById('form-descrizione').value || null
-            };
-
-            const { error } = editingId 
-                ? await window.supabaseClient.from('issue').update(payload).eq('id', editingId)
-                : await window.supabaseClient.from('issue').insert([payload]);
-
-            if (error) alert("Errore: " + error.message);
-            else { closeModal(); refreshView(); }
-        });
-
-        async function deleteComic(id) {
-            if (confirm("Eliminare definitivamente questo albo?")) {
-                const { error } = await window.supabaseClient.from('issue').delete().eq('id', id);
-                if (!error) refreshView();
             }
+
+            return `<div class="flex gap-0.5">${starsHTML}</div>`;
+
         }
 
-        // --- FILTRI E RICERCA ---
-        function setFilter(f) {
-            currentFilter = f;
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.id === `btn-${f}`));
-            refreshView();
+
+
+        function setFilter(filter) {
+
+            currentFilter = filter;
+
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+
+            document.getElementById(`btn-${filter}`).classList.add('active');
+
+            if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome);
+
+            else loadRecent();
+
         }
 
-        function refreshView() {
-            if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome); else loadRecent();
-        }
+
 
         searchInput.addEventListener('input', async (e) => {
+
             const term = e.target.value.trim();
+
             if (term.length < 2) { resultsDiv.classList.add('hidden'); return; }
-            const { data } = await window.supabaseClient.from('serie').select('id, nome, collana(nome)').ilike('nome', `%${term}%`).limit(6);
-            if (data?.length) {
-                resultsDiv.innerHTML = data.map(s => `
-                    <div onclick="selectSerie('${s.id}', '${s.nome.replace(/'/g, "\\'")}')" class="p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700 text-sm font-bold">
-                        ${s.nome} ${s.collana?.nome ? `<span class="opacity-50 text-xs">(${s.collana.nome})</span>` : ''}
-                    </div>`).join('');
+
+
+
+            const { data } = await window.supabaseClient
+
+                .from('serie')
+
+                .select('id, nome, collana(nome), immagine_url')
+
+                .ilike('nome', `%${term}%`).limit(6);
+
+
+
+            if (data?.length > 0) {
+
+                resultsDiv.innerHTML = data.map(serie => {
+
+                    const fullTitle = serie.collana?.nome ? `${serie.nome} (${serie.collana.nome})` : serie.nome;
+
+                    return `
+
+                    <div onclick="selectSerie('${serie.id}', '${fullTitle.replace(/'/g, "\\'")}')" class="flex items-center p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700 last:border-0">
+
+                        <img src="${serie.immagine_url || 'https://via.placeholder.com/40'}" class="w-10 h-10 object-cover rounded mr-3 bg-slate-700">
+
+                        <span class="font-semibold">${fullTitle}</span>
+
+                    </div>`;
+
+                }).join('');
+
                 resultsDiv.classList.remove('hidden');
-            }
+
+            } else resultsDiv.classList.add('hidden');
+
         });
 
-        document.addEventListener('click', (e) => { if (!searchInput.contains(e.target)) resultsDiv.classList.add('hidden'); });
+
+
+        async function selectSerie(serieId, fullSerieNome) {
+
+            currentSerieId = serieId;
+
+            currentSerieFullNome = fullSerieNome;
+
+            searchInput.value = fullSerieNome;
+
+            resultsDiv.classList.add('hidden');
+
+            
+
+            viewTitle.innerText = fullSerieNome;
+
+            viewSubtitle.innerText = `Filtro: ${currentFilter.toUpperCase()}`;
+
+            grid.innerHTML = '<div class="col-span-full text-center py-20 opacity-50 italic animate-pulse">Caricamento...</div>';
+
+
+
+            const { data: annate } = await window.supabaseClient.from('annata').select('id').eq('serie_id', serieId);
+
+            const annateIds = annate?.map(a => a.id) || [];
+
+            const annateFilter = annateIds.length > 0 ? annateIds.join(',') : '00000000-0000-0000-0000-000000000000';
+
+            
+
+            let query = window.supabaseClient.from('issue').select(FULL_QUERY);
+
+            query = query.or(`annata_id.in.(${annateFilter}),serie_id.eq.${serieId}`);
+
+            if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
+
+
+
+            const { data, error } = await query.order('numero', { ascending: true });
+
+            if (error) renderError(error.message);
+
+            else renderGrid(data, fullSerieNome);
+
+        }
+
+
+
+        async function loadRecent() {
+
+            currentSerieId = null;
+
+            viewTitle.innerText = "Ultimi Arrivi";
+
+            viewSubtitle.innerText = `Filtro: ${currentFilter.toUpperCase()}`;
+
+            
+
+            let query = window.supabaseClient.from('issue').select(FULL_QUERY);
+
+            if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
+
+            
+
+            const { data, error } = await query.order('created_at', { ascending: false }).limit(20);
+
+            if (error) renderError(error.message);
+
+            else renderGrid(data);
+
+        }
+
+
+
+        function renderGrid(items, fallbackSerieFullNome = "") {
+
+            statsCount.innerText = items ? `${items.length} fumetti` : "";
+
+            if (!items || items.length === 0) {
+
+                grid.innerHTML = '<div class="col-span-full py-20 text-center text-slate-500 italic">Nessun fumetto trovato.</div>';
+
+                return;
+
+            }
+
+
+
+            grid.innerHTML = items.map(comic => {
+
+                const serieObj = comic.annata?.serie || comic.serie;
+
+                let displayTitle = fallbackSerieFullNome;
+
+
+
+                if (!displayTitle && serieObj) {
+
+                    const sNome = serieObj.nome || "Serie Ignota";
+
+                    const cNome = serieObj.collana?.nome;
+
+                    displayTitle = cNome ? `${sNome} (${cNome})` : sNome;
+
+                }
+
+
+
+                const isOwned = comic.possesso === 'celo';
+
+                const valoreNum = parseFloat(comic.valore);
+
+
+
+                return `
+
+                <div class="comic-card bg-slate-800 rounded-xl overflow-hidden border ${isOwned ? 'border-slate-700 shadow-xl' : 'border-slate-800 opacity-80'} transition-all duration-300">
+
+                    <div class="relative h-72 bg-slate-950 overflow-hidden">
+
+                        <img src="${comic.immagine_url || 'https://via.placeholder.com/300x450?text=No+Image'}" 
+
+                             class="comic-image w-full h-full object-cover ${isOwned ? '' : 'grayscale opacity-40'}">
+
+                        
+
+                        ${valoreNum > 0 ? `
+
+                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-900 to-transparent p-4">
+
+                             <span class="text-yellow-500 font-mono text-sm font-bold">€ ${valoreNum.toFixed(2)}</span>
+
+                        </div>` : ''}
+
+                    </div>
+
+                    <div class="p-4">
+
+                        <p class="text-[10px] text-yellow-500 font-bold uppercase tracking-widest truncate mb-1">${displayTitle}</p>
+
+                        <h4 class="font-bold text-lg leading-tight truncate">
+
+                            ${comic.annata?.nome ? `<span class="text-slate-400 font-medium mr-1">${comic.annata.nome}</span>` : ''}#${comic.numero || '?'} ${comic.nome || ''}
+
+                        </h4>
+
+                        <div class="mt-4 flex items-center justify-between border-t border-slate-700 pt-3">
+
+                            ${getStarsHTML(comic.condizione)}
+
+                            ${comic.tipo_pubblicazione?.nome ? `<span class="text-[9px] text-slate-500 uppercase font-bold truncate ml-2">${comic.tipo_pubblicazione.nome}</span>` : ''}
+
+                        </div>
+
+                    </div>
+
+                </div>`;
+
+            }).join('');
+
+        }
+
+
+
+        function renderError(msg) {
+
+            grid.innerHTML = `<div class="col-span-full p-4 bg-red-900/20 border border-red-900 text-red-400 rounded text-center">Errore: ${msg}</div>`;
+
+        }
+
+
 
         loadRecent();
+
+
+
+        document.addEventListener('click', (e) => {
+
+            if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) resultsDiv.classList.add('hidden');
+
+        });
+
     </script>
+
 </body>
+
 </html>
