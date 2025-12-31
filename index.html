@@ -10,7 +10,12 @@
     <style>
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
-        .comic-card:hover .comic-image { transform: scale(1.05); }
+        
+        /* Effetto transizione fluido per il passaggio da grigio a colori al passaggio del mouse */
+        .comic-image { transition: filter 0.5s ease, transform 0.5s ease, opacity 0.5s ease; }
+        
+        /* Se vuoi che al passaggio del mouse il fumetto torni a colori anche se manca */
+        .comic-card:hover .grayscale { filter: grayscale(0); opacity: 1; }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
@@ -26,7 +31,6 @@
                        class="w-full bg-slate-900 border border-slate-600 p-3 rounded-full pl-12 focus:ring-2 focus:ring-yellow-500 outline-none transition-all"
                        placeholder="Cerca una serie...">
                 <span class="absolute left-4 top-3.5 opacity-40">🔍</span>
-                
                 <div id="serie-results" class="absolute w-full mt-2 bg-slate-800 border border-slate-700 rounded-xl hidden shadow-2xl max-h-60 overflow-y-auto custom-scrollbar z-50">
                 </div>
             </div>
@@ -34,7 +38,6 @@
     </header>
 
     <main class="container mx-auto p-6">
-        
         <div class="mb-8 border-l-4 border-yellow-500 pl-4">
             <h2 id="view-title" class="text-2xl font-bold uppercase tracking-tight">Caricamento...</h2>
             <p id="view-subtitle" class="text-slate-400 text-sm italic"></p>
@@ -51,53 +54,37 @@
         const viewSubtitle = document.getElementById('view-subtitle');
         const grid = document.getElementById('comic-grid');
 
-        // 1. RICERCA SERIE (Autocomplete mentre scrivi)
+        // RICERCA SERIE
         searchInput.addEventListener('input', async (e) => {
             const term = e.target.value.trim();
-            if (term.length < 2) {
-                resultsDiv.classList.add('hidden');
-                return;
-            }
+            if (term.length < 2) { resultsDiv.classList.add('hidden'); return; }
 
-            const { data, error } = await window.supabaseClient
+            const { data } = await window.supabaseClient
                 .from('serie')
                 .select('id, nome, immagine_url')
-                .ilike('nome', `%${term}%`)
-                .limit(6);
+                .ilike('nome', `%${term}%`).limit(6);
 
-            if (data && data.length > 0) {
+            if (data?.length > 0) {
                 resultsDiv.innerHTML = data.map(serie => `
                     <div onclick="selectSerie('${serie.id}', '${serie.nome.replace(/'/g, "\\'")}')" 
-                         class="flex items-center p-3 hover:bg-slate-700 cursor-pointer transition-colors border-b border-slate-700 last:border-0">
+                         class="flex items-center p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700 last:border-0">
                         <img src="${serie.immagine_url || 'https://via.placeholder.com/40'}" class="w-10 h-10 object-cover rounded mr-3 bg-slate-700">
                         <span class="font-semibold">${serie.nome}</span>
-                    </div>
-                `).join('');
+                    </div>`).join('');
                 resultsDiv.classList.remove('hidden');
-            } else {
-                resultsDiv.classList.add('hidden');
-            }
+            } else { resultsDiv.classList.add('hidden'); }
         });
 
-        // 2. SELEZIONE SERIE E CARICAMENTO FUMETTI (Logica Rinforzata)
+        // SELEZIONE SERIE
         async function selectSerie(serieId, serieNome) {
             searchInput.value = serieNome;
             resultsDiv.classList.add('hidden');
             viewTitle.innerText = serieNome;
-            viewSubtitle.innerText = `Visualizzando tutti gli albi della serie`;
-            
+            viewSubtitle.innerText = `Collezione completa della serie`;
             grid.innerHTML = '<div class="col-span-full text-center py-20 opacity-50 italic animate-pulse">Recupero albi...</div>';
 
-            // Passaggio A: Recuperiamo gli ID di tutte le annate di questa serie
-            const { data: annate } = await window.supabaseClient
-                .from('annata')
-                .select('id')
-                .eq('serie_id', serieId);
-            
+            const { data: annate } = await window.supabaseClient.from('annata').select('id').eq('serie_id', serieId);
             const annateIds = annate?.map(a => a.id) || [];
-            
-            // Passaggio B: Query "OR"
-            // Trova issue se (annata_id è tra quelli della serie) OPPURE (serie_id è quello cercato)
             const annateFilter = annateIds.length > 0 ? annateIds.join(',') : '00000000-0000-0000-0000-000000000000';
             
             const { data, error } = await window.supabaseClient
@@ -106,92 +93,71 @@
                 .or(`annata_id.in.(${annateFilter}),serie_id.eq.${serieId}`)
                 .order('numero', { ascending: true });
 
-            if (error) {
-                renderError(error.message);
-            } else {
-                renderGrid(data, serieNome);
-            }
+            if (error) renderError(error.message);
+            else renderGrid(data, serieNome);
         }
 
-        // 3. CARICAMENTO INIZIALE (Ultimi 20 inseriti)
+        // RECENTI
         async function loadRecent() {
             searchInput.value = "";
-            viewTitle.innerText = "Ultimi Inserimenti";
-            viewSubtitle.innerText = "Cronologia completa di tutto l'archivio";
-            grid.innerHTML = '<div class="col-span-full text-center py-20 opacity-50">Caricamento...</div>';
-
+            viewTitle.innerText = "Ultimi Arrivi";
+            viewSubtitle.innerText = "Le ultime novità inserite nel tuo archivio";
             const { data, error } = await window.supabaseClient
                 .from('issue')
                 .select(`*, annata(nome, serie(nome)), serie(nome)`)
-                .order('created_at', { ascending: false })
-                .limit(20);
+                .order('created_at', { ascending: false }).limit(20);
 
             if (error) renderError(error.message);
             else renderGrid(data);
         }
 
-        // 4. RENDERING DELLA GRIGLIA
+        // RENDERING (Nuova logica Greyscale)
         function renderGrid(items, fallbackSerieNome = "") {
             if (!items || items.length === 0) {
-                grid.innerHTML = '<div class="col-span-full py-20 text-center text-slate-500 italic">Nessun fumetto trovato in questa sezione.</div>';
+                grid.innerHTML = '<div class="col-span-full py-20 text-center text-slate-500 italic">Nessun fumetto trovato.</div>';
                 return;
             }
 
             grid.innerHTML = items.map(comic => {
-                // Determina il nome della serie con priorità: Annata > Serie Diretta > Fallback della ricerca
                 const serieDisplay = comic.annata?.serie?.nome || comic.serie?.nome || fallbackSerieNome || "Serie Sconosciuta";
                 const isOwned = comic.possesso === 'celo';
-                const statusBorder = isOwned ? 'border-green-500/50' : 'border-red-500/50';
-                const badgeColor = isOwned ? 'bg-green-600' : 'bg-red-600';
+                
+                // Classi dinamiche: se manca applica grayscale e riduci opacità
+                const imageEffect = isOwned ? "" : "grayscale opacity-40 shadow-none";
+                const cardEffect = isOwned ? "border-slate-700 shadow-xl" : "border-slate-800 opacity-80";
 
                 return `
-                <div class="comic-card bg-slate-800 rounded-xl overflow-hidden border ${statusBorder} shadow-lg transition-all duration-300">
-                    <div class="relative h-64 bg-slate-700 overflow-hidden">
+                <div class="comic-card bg-slate-800 rounded-xl overflow-hidden border ${cardEffect} transition-all duration-300">
+                    <div class="relative h-72 bg-slate-900 overflow-hidden">
                         <img src="${comic.immagine_url || 'https://via.placeholder.com/300x450?text=Senza+Copertina'}" 
-                             class="comic-image w-full h-full object-cover transition-transform duration-500">
+                             class="comic-image w-full h-full object-cover ${imageEffect}">
                         
-                        <div class="absolute top-0 right-0 p-2">
-                            <span class="${badgeColor} text-[10px] font-bold px-2 py-1 rounded shadow-md uppercase">
-                                ${comic.possesso}
-                            </span>
-                        </div>
-                        
-                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-900 p-3">
+                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-900 to-transparent p-4">
                              <span class="text-yellow-500 font-mono text-sm font-bold">€ ${comic.valore ? Number(comic.valore).toFixed(2) : '0.00'}</span>
                         </div>
                     </div>
                     
                     <div class="p-4">
-                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest truncate mb-1">
-                            ${serieDisplay}
-                        </p>
-                        <h4 class="font-bold text-lg leading-tight truncate">
-                            #${comic.numero || '?'} ${comic.nome || ''}
-                        </h4>
+                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest truncate mb-1">${serieDisplay}</p>
+                        <h4 class="font-bold text-lg leading-tight truncate">#${comic.numero || '?'} ${comic.nome || ''}</h4>
                         
                         <div class="mt-4 flex items-center justify-between border-t border-slate-700 pt-3">
-                            <span class="text-[10px] bg-slate-900 px-2 py-1 rounded text-slate-400 border border-slate-700 uppercase">
-                                ${comic.condizione || 'N.D.'}
+                            <span class="text-[10px] bg-slate-900 px-2 py-1 rounded text-slate-400 border border-slate-700 uppercase italic">
+                                ${comic.condizione || 'STADO N.D.'}
                             </span>
-                            <span class="text-[10px] italic text-slate-500 truncate ml-2">
-                                ${comic.pubblicazione || ''}
-                            </span>
+                            ${comic.pubblicazione ? `<span class="text-[10px] text-slate-600 truncate ml-2">${comic.pubblicazione}</span>` : ''}
                         </div>
                     </div>
-                </div>
-                `;
+                </div>`;
             }).join('');
         }
 
-        // Utility per errori
         function renderError(msg) {
             grid.innerHTML = `<div class="col-span-full p-4 bg-red-900/20 border border-red-900 text-red-400 rounded text-center">Errore: ${msg}</div>`;
         }
 
-        // Init
         loadRecent();
 
-        // Chiudi dropdown se clicchi fuori dalla barra di ricerca
         document.addEventListener('click', (e) => {
             if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
                 resultsDiv.classList.add('hidden');
