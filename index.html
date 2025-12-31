@@ -63,7 +63,7 @@
 
         let currentFilter = 'all'; 
         let currentSerieId = null;
-        let currentSerieNome = "";
+        let currentSerieFullNome = ""; // Memorizza "Serie (Collana)"
 
         const FULL_QUERY = `*, 
             annata(nome, serie(nome, collana(nome))), 
@@ -87,40 +87,43 @@
             currentFilter = filter;
             document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById(`btn-${filter}`).classList.add('active');
-            if (currentSerieId) selectSerie(currentSerieId, currentSerieNome);
+            if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome);
             else loadRecent();
         }
 
-        // RICERCA SERIE (Aggiornata con Collana nel dropdown)
+        // RICERCA SERIE: Visualizzazione Serie (Collana)
         searchInput.addEventListener('input', async (e) => {
             const term = e.target.value.trim();
             if (term.length < 2) { resultsDiv.classList.add('hidden'); return; }
 
             const { data } = await window.supabaseClient
                 .from('serie')
-                .select('id, nome, immagine_url, collana(nome)')
+                .select('id, nome, collana(nome), immagine_url')
                 .ilike('nome', `%${term}%`).limit(6);
 
             if (data?.length > 0) {
                 resultsDiv.innerHTML = data.map(serie => {
-                    const display = serie.collana?.nome ? `${serie.nome} (${serie.collana.nome})` : serie.nome;
+                    const fullTitle = serie.collana?.nome ? `${serie.nome} (${serie.collana.nome})` : serie.nome;
                     return `
-                    <div onclick="selectSerie('${serie.id}', '${serie.nome.replace(/'/g, "\\'")}')" class="flex items-center p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700 last:border-0">
+                    <div onclick="selectSerie('${serie.id}', '${fullTitle.replace(/'/g, "\\'")}')" class="flex items-center p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700 last:border-0">
                         <img src="${serie.immagine_url || 'https://via.placeholder.com/40'}" class="w-10 h-10 object-cover rounded mr-3 bg-slate-700">
-                        <span class="font-semibold">${display}</span>
+                        <span class="font-semibold">${fullTitle}</span>
                     </div>`;
                 }).join('');
                 resultsDiv.classList.remove('hidden');
             } else resultsDiv.classList.add('hidden');
         });
 
-        async function selectSerie(serieId, serieNome) {
+        // SELEZIONE SERIE: Titolo vista aggiornato
+        async function selectSerie(serieId, fullSerieNome) {
             currentSerieId = serieId;
-            currentSerieNome = serieNome;
+            currentSerieFullNome = fullSerieNome;
+            searchInput.value = fullSerieNome;
             resultsDiv.classList.add('hidden');
-            viewTitle.innerText = serieNome;
-            viewSubtitle.innerText = `Filtro attivo: ${currentFilter.toUpperCase()}`;
-            grid.innerHTML = '<div class="col-span-full text-center py-20 opacity-50 italic animate-pulse">Filtraggio in corso...</div>';
+            
+            viewTitle.innerText = fullSerieNome;
+            viewSubtitle.innerText = `Filtro: ${currentFilter.toUpperCase()}`;
+            grid.innerHTML = '<div class="col-span-full text-center py-20 opacity-50 italic animate-pulse">Caricamento...</div>';
 
             const { data: annate } = await window.supabaseClient.from('annata').select('id').eq('serie_id', serieId);
             const annateIds = annate?.map(a => a.id) || [];
@@ -132,13 +135,13 @@
 
             const { data, error } = await query.order('numero', { ascending: true });
             if (error) renderError(error.message);
-            else renderGrid(data, serieNome);
+            else renderGrid(data, fullSerieNome);
         }
 
         async function loadRecent() {
             currentSerieId = null;
             viewTitle.innerText = "Ultimi Arrivi";
-            viewSubtitle.innerText = `Filtro attivo: ${currentFilter.toUpperCase()}`;
+            viewSubtitle.innerText = `Filtro: ${currentFilter.toUpperCase()}`;
             
             let query = window.supabaseClient.from('issue').select(FULL_QUERY);
             if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
@@ -148,7 +151,7 @@
             else renderGrid(data);
         }
 
-        function renderGrid(items, fallbackSerieNome = "") {
+        function renderGrid(items, fallbackSerieFullNome = "") {
             statsCount.innerText = items ? `${items.length} fumetti` : "";
             if (!items || items.length === 0) {
                 grid.innerHTML = '<div class="col-span-full py-20 text-center text-slate-500 italic">Nessun fumetto trovato.</div>';
@@ -157,12 +160,15 @@
 
             grid.innerHTML = items.map(comic => {
                 const serieObj = comic.annata?.serie || comic.serie;
-                const serieNome = serieObj?.nome || fallbackSerieNome || "Serie Ignota";
-                const collanaNome = serieObj?.collana?.nome;
-                
-                // NOME SERIE SEMPRE CON COLLANA SE PRESENTE
-                const displayTitle = collanaNome ? `${serieNome} <span class="text-slate-500 font-normal italic text-[9px]">(${collanaNome})</span>` : serieNome;
-                
+                let displayTitle = fallbackSerieFullNome;
+
+                // Se non abbiamo un fallback (es. in Ultimi Arrivi), costruiamo il nome Serie (Collana)
+                if (!displayTitle && serieObj) {
+                    const sNome = serieObj.nome || "Serie Ignota";
+                    const cNome = serieObj.collana?.nome;
+                    displayTitle = cNome ? `${sNome} (${cNome})` : sNome;
+                }
+
                 const isOwned = comic.possesso === 'celo';
 
                 return `
