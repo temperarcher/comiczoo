@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comic Archive Pro - Master Editor</title>
+    <title>Comic Archive Pro - V1 Editor</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
@@ -12,19 +12,26 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
         .comic-card:hover .grayscale { filter: grayscale(0); opacity: 1; }
         .filter-btn.active { background-color: #eab308; color: #0f172a; border-color: #eab308; }
-        select, input, textarea { color-scheme: dark; }
+        input { color-scheme: dark; }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
 
     <header class="bg-slate-800 border-b border-slate-700 p-6 sticky top-0 z-50 shadow-2xl">
         <div class="container mx-auto flex flex-col lg:flex-row justify-between items-center gap-6">
-            <h1 class="text-3xl font-black text-yellow-500 tracking-tighter uppercase italic cursor-pointer shrink-0" onclick="loadRecent()">Comic Archive</h1>
+            <h1 class="text-3xl font-black text-yellow-500 tracking-tighter uppercase italic cursor-pointer shrink-0" onclick="loadRecent()">
+                Comic Archive
+            </h1>
+            
             <div class="flex flex-col md:flex-row w-full gap-4 items-center">
                 <div class="relative w-full">
-                    <input type="text" id="serie-search" class="w-full bg-slate-900 border border-slate-600 p-3 rounded-full pl-12 focus:ring-2 focus:ring-yellow-500 outline-none transition-all" placeholder="Cerca una serie...">
-                    <div id="serie-results" class="absolute w-full mt-2 bg-slate-800 border border-slate-700 rounded-xl hidden shadow-2xl max-h-60 overflow-y-auto z-50"></div>
+                    <input type="text" id="serie-search" 
+                           class="w-full bg-slate-900 border border-slate-600 p-3 rounded-full pl-12 focus:ring-2 focus:ring-yellow-500 outline-none transition-all"
+                           placeholder="Cerca una serie...">
+                    <span class="absolute left-4 top-3.5 opacity-40">🔍</span>
+                    <div id="serie-results" class="absolute w-full mt-2 bg-slate-800 border border-slate-700 rounded-xl hidden shadow-2xl max-h-60 overflow-y-auto custom-scrollbar z-50"></div>
                 </div>
+
                 <div class="flex bg-slate-900 p-1 rounded-full border border-slate-700 shrink-0">
                     <button onclick="setFilter('all')" id="btn-all" class="filter-btn active px-4 py-1.5 rounded-full text-xs font-bold uppercase transition-all">Tutti</button>
                     <button onclick="setFilter('celo')" id="btn-celo" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold uppercase transition-all">Celo</button>
@@ -35,133 +42,58 @@
     </header>
 
     <main class="container mx-auto p-6">
+        <div class="mb-8 border-l-4 border-yellow-500 pl-4 flex justify-between items-end">
+            <div>
+                <h2 id="view-title" class="text-2xl font-bold uppercase tracking-tight text-white">Caricamento...</h2>
+                <p id="view-subtitle" class="text-slate-400 text-sm italic"></p>
+            </div>
+            <div id="stats-count" class="text-slate-500 text-xs font-mono uppercase"></div>
+        </div>
         <div id="comic-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8"></div>
     </main>
 
-    <div id="edit-modal" class="hidden fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-5xl shadow-2xl flex flex-col max-h-[90vh]">
-            <div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800/50">
-                <div>
-                    <h3 id="modal-title" class="text-xl font-bold text-yellow-500 uppercase italic tracking-widest">Modifica Albo</h3>
-                    <p class="text-xs text-slate-400 font-mono" id="display-id"></p>
-                </div>
-                <button onclick="closeModal()" class="text-slate-400 hover:text-white text-3xl transition-transform hover:rotate-90">&times;</button>
+    <div id="edit-modal" class="hidden fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl">
+            <div class="p-6 border-b border-slate-700 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-yellow-500 uppercase italic">Modifica Albo</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
             </div>
-            
-            <form id="edit-form" class="p-6 overflow-y-auto custom-scrollbar grid grid-cols-1 md:grid-cols-3 gap-6">
+            <form id="edit-form" class="p-6 space-y-4">
                 <input type="hidden" id="edit-id">
-                
-                <div class="space-y-4">
-                    <h4 class="text-[10px] font-black text-slate-500 uppercase border-b border-slate-700 pb-1">Dati Base</h4>
-                    <div>
-                        <label class="text-[10px] font-bold text-yellow-500 uppercase">Titolo Albo (Nome)</label>
-                        <input type="text" id="edit-nome" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-sm focus:border-yellow-500 outline-none">
-                    </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="text-[10px] font-bold text-yellow-500 uppercase">Numero</label>
-                            <input type="number" id="edit-numero" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-sm">
-                        </div>
-                        <div>
-                            <label class="text-[10px] font-bold text-slate-400 uppercase">Condizione (1-5)</label>
-                            <input type="number" id="edit-condizione" min="1" max="5" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-sm">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-bold text-slate-400 uppercase">Serie ID (UUID)</label>
-                        <input type="text" id="edit-serie_id" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-xs opacity-70">
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-bold text-slate-400 uppercase">Annata ID (UUID)</label>
-                        <input type="text" id="edit-annata_id" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-xs opacity-70">
-                    </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ID Serie (UUID)</label>
+                    <input type="text" id="edit-serie_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-mono text-yellow-500 outline-none focus:ring-1 focus:ring-yellow-500">
                 </div>
-
-                <div class="space-y-4">
-                    <h4 class="text-[10px] font-black text-slate-500 uppercase border-b border-slate-700 pb-1">Editoriale</h4>
-                    <div>
-                        <label class="text-[10px] font-bold text-slate-400 uppercase">Editore ID</label>
-                        <input type="text" id="edit-editore_id" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-xs">
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-bold text-slate-400 uppercase">Testata ID</label>
-                        <input type="text" id="edit-testata_id" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-xs">
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-bold text-slate-400 uppercase">Tipo Pubblicazione ID</label>
-                        <input type="text" id="edit-tipo_pubblicazione_id" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-xs">
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-bold text-slate-400 uppercase">Supplemento di (Issue ID)</label>
-                        <input type="text" id="edit-supplemento_id" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-xs">
-                    </div>
-                </div>
-
-                <div class="space-y-4">
-                    <h4 class="text-[10px] font-black text-slate-500 uppercase border-b border-slate-700 pb-1">Stato & Media</h4>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="text-[10px] font-bold text-yellow-500 uppercase">Possesso</label>
-                            <select id="edit-possesso" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-sm">
-                                <option value="celo">Celo</option>
-                                <option value="manca">Manca</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="text-[10px] font-bold text-slate-400 uppercase">Valore (€)</label>
-                            <input type="number" step="0.01" id="edit-valore" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-sm font-mono text-yellow-500">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-bold text-slate-400 uppercase">Data Pubblicazione</label>
-                        <input type="date" id="edit-data_pubblicazione" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-sm">
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-bold text-slate-400 uppercase">URL Copertina</label>
-                        <textarea id="edit-immagine_url" rows="2" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-xs font-mono"></textarea>
-                    </div>
-                    <div class="pt-2">
-                        <button type="submit" class="w-full bg-yellow-500 text-slate-900 font-black py-4 rounded-xl hover:bg-yellow-400 transition-all uppercase tracking-widest shadow-lg active:scale-95">Salva Record</button>
-                    </div>
+                <div class="pt-4 flex gap-3">
+                    <button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all">Salva</button>
+                    <button type="button" onclick="closeModal()" class="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl uppercase tracking-widest hover:bg-slate-600 transition-all">Annulla</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
-        // Logica JavaScript aggiornata con i nuovi riferimenti ID
-        const FULL_QUERY = `*, annata(nome, serie(nome, collana(nome))), serie(nome, collana(nome)), tipo_pubblicazione(nome)`;
+        const searchInput = document.getElementById('serie-search');
+        const resultsDiv = document.getElementById('serie-results');
+        const viewTitle = document.getElementById('view-title');
+        const viewSubtitle = document.getElementById('view-subtitle');
+        const grid = document.getElementById('comic-grid');
+        const statsCount = document.getElementById('stats-count');
 
-        async function loadRecent() {
-            let query = window.supabaseClient.from('issue').select(FULL_QUERY);
-            if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
-            const { data } = await query.order('created_at', { ascending: false }).limit(20);
-            renderGrid(data);
-        }
+        let currentFilter = 'all'; 
+        let currentSerieId = null;
+        let currentSerieFullNome = ""; 
 
+        const FULL_QUERY = `*, 
+            annata(nome, serie(nome, collana(nome))), 
+            serie(nome, collana(nome)),
+            tipo_pubblicazione(nome)`;
+
+        // --- FUNZIONI MODALE ---
         function openEditModal(comicJson) {
-            const c = JSON.parse(decodeURIComponent(comicJson));
-            
-            // Popolamento campi (Mappatura 1:1 con il tuo SQL)
-            document.getElementById('edit-id').value = c.id;
-            document.getElementById('display-id').innerText = c.id;
-            document.getElementById('edit-nome').value = c.nome || '';
-            document.getElementById('edit-numero').value = c.numero || '';
-            document.getElementById('edit-data_pubblicazione').value = c.data_pubblicazione || '';
-            document.getElementById('edit-possesso').value = c.possesso;
-            document.getElementById('edit-condizione').value = c.condizione || '';
-            document.getElementById('edit-valore').value = c.valore || 0;
-            document.getElementById('edit-immagine_url').value = c.immagine_url || '';
-            
-            // Nuovi Campi SQL aggiunti
-            document.getElementById('edit-serie_id').value = c.serie_id || '';
-            document.getElementById('edit-annata_id').value = c.annata_id || '';
-            document.getElementById('edit-editore_id').value = c.editore_id || '';
-            document.getElementById('edit-testata_id').value = c.testata_id || '';
-            document.getElementById('edit-tipo_pubblicazione_id').value = c.tipo_pubblicazione_id || '';
-            document.getElementById('edit-supplemento_id').value = c.supplemento_id || '';
-            
-            // Rende visibile la modale
+            const comic = JSON.parse(decodeURIComponent(comicJson));
+            document.getElementById('edit-id').value = comic.id;
+            document.getElementById('edit-serie_id').value = comic.serie_id || '';
             document.getElementById('edit-modal').classList.remove('hidden');
         }
 
@@ -172,48 +104,82 @@
         document.getElementById('edit-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = document.getElementById('edit-id').value;
-            const payload = {
-                nome: document.getElementById('edit-nome').value || null,
-                numero: parseInt(document.getElementById('edit-numero').value) || null,
-                data_pubblicazione: document.getElementById('edit-data_pubblicazione').value || null,
-                possesso: document.getElementById('edit-possesso').value,
-                condizione: parseInt(document.getElementById('edit-condizione').value) || null,
-                valore: parseFloat(document.getElementById('edit-valore').value) || 0,
-                immagine_url: document.getElementById('edit-immagine_url').value || null,
-                serie_id: document.getElementById('edit-serie_id').value || null,
-                annata_id: document.getElementById('edit-annata_id').value || null,
-                editore_id: document.getElementById('edit-editore_id').value || null,
-                testata_id: document.getElementById('edit-testata_id').value || null,
-                tipo_pubblicazione_id: document.getElementById('edit-tipo_pubblicazione_id').value || null,
-                supplemento_id: document.getElementById('edit-supplemento_id').value || null
-            };
+            const newSerieId = document.getElementById('edit-serie_id').value;
 
-            const { error } = await window.supabaseClient.from('issue').update(payload).eq('id', id);
+            const { error } = await window.supabaseClient.from('issue').update({ serie_id: newSerieId || null }).eq('id', id);
+
             if (error) alert("Errore: " + error.message);
-            else { closeModal(); location.reload(); } // Reload semplice per rinfrescare i dati
+            else {
+                closeModal();
+                if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome); else loadRecent();
+            }
         });
 
-        // Funzione helper per le stelle e renderGrid rimangono simili, con l'aggiunta dell'id al JSON
-        function renderGrid(items) {
-            const grid = document.getElementById('comic-grid');
-            grid.innerHTML = items.map(c => {
-                const comicData = encodeURIComponent(JSON.stringify(c));
-                const isOwned = c.possesso === 'celo';
+        // --- LOGICA GRID & FILTRI ---
+        async function loadRecent() {
+            currentSerieId = null;
+            viewTitle.innerText = "Ultimi Arrivi";
+            viewSubtitle.innerText = `Filtro: ${currentFilter.toUpperCase()}`;
+            let query = window.supabaseClient.from('issue').select(FULL_QUERY);
+            if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
+            const { data } = await query.order('created_at', { ascending: false }).limit(20);
+            renderGrid(data);
+        }
+
+        async function selectSerie(serieId, fullSerieNome) {
+            currentSerieId = serieId; currentSerieFullNome = fullSerieNome;
+            searchInput.value = fullSerieNome; resultsDiv.classList.add('hidden');
+            viewTitle.innerText = fullSerieNome;
+            viewSubtitle.innerText = `Filtro: ${currentFilter.toUpperCase()}`;
+            
+            const { data: annate } = await window.supabaseClient.from('annata').select('id').eq('serie_id', serieId);
+            const aIds = annate?.map(a => a.id) || [];
+            const aFilter = aIds.length > 0 ? aIds.join(',') : '00000000-0000-0000-0000-000000000000';
+            
+            let query = window.supabaseClient.from('issue').select(FULL_QUERY).or(`annata_id.in.(${aFilter}),serie_id.eq.${serieId}`);
+            if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
+            const { data } = await query.order('numero', { ascending: true });
+            renderGrid(data, fullSerieNome);
+        }
+
+        function renderGrid(items, fallbackTitle = "") {
+            statsCount.innerText = items ? `${items.length} fumetti` : "0 fumetti";
+            grid.innerHTML = (items || []).map(comic => {
+                const isOwned = comic.possesso === 'celo';
+                const sObj = comic.annata?.serie || comic.serie;
+                const title = fallbackTitle || (sObj?.collana ? `${sObj.nome} (${sObj.collana.nome})` : sObj?.nome || "Serie");
+                const comicData = encodeURIComponent(JSON.stringify(comic));
+
                 return `
-                <div class="group bg-slate-800 rounded-xl overflow-hidden border border-slate-700 relative transition-transform hover:scale-[1.02]">
-                    <button onclick='openEditModal("${comicData}")' class="absolute top-2 right-2 z-40 bg-yellow-500 p-2 rounded-full shadow-xl opacity-0 group-hover:opacity-100 transition-opacity">✏️</button>
-                    <div class="h-64 bg-slate-900">
-                        <img src="${c.immagine_url || ''}" class="w-full h-full object-cover ${isOwned ? '' : 'grayscale opacity-40'}">
+                <div class="group relative bg-slate-800 rounded-xl overflow-hidden border ${isOwned ? 'border-slate-700 shadow-xl' : 'border-slate-800 opacity-60'} transition-all">
+                    <button onclick="openEditModal('${comicData}')" class="absolute top-2 right-2 z-40 bg-yellow-500 text-slate-900 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">✏️</button>
+                    <div class="h-72 bg-slate-950">
+                        <img src="${comic.immagine_url || 'https://via.placeholder.com/300x450?text=No+Cover'}" class="w-full h-full object-cover ${isOwned ? '' : 'grayscale opacity-40'}">
                     </div>
                     <div class="p-4">
-                        <h4 class="font-bold truncate">#${c.numero} ${c.nome || ''}</h4>
-                        <p class="text-[10px] text-slate-500 mt-2">${c.tipo_pubblicazione?.nome || 'N/A'}</p>
+                        <p class="text-[10px] text-yellow-500 font-bold uppercase truncate mb-1">${title}</p>
+                        <h4 class="font-bold truncate text-lg">#${comic.numero || '?'}</h4>
                     </div>
                 </div>`;
             }).join('');
         }
 
-        let currentFilter = 'all';
+        function setFilter(f) {
+            currentFilter = f;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.toggle('active', btn.id === `btn-${f}`));
+            if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome); else loadRecent();
+        }
+
+        searchInput.addEventListener('input', async (e) => {
+            const term = e.target.value.trim();
+            if (term.length < 2) { resultsDiv.classList.add('hidden'); return; }
+            const { data } = await window.supabaseClient.from('serie').select('id, nome, collana(nome)').ilike('nome', `%${term}%`).limit(6);
+            if (data?.length > 0) {
+                resultsDiv.innerHTML = data.map(s => `<div onclick="selectSerie('${s.id}', '${s.nome.replace(/'/g, "\\'")}')" class="p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700 text-sm font-semibold">${s.nome}</div>`).join('');
+                resultsDiv.classList.remove('hidden');
+            }
+        });
+
         loadRecent();
     </script>
 </body>
