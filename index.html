@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comic Archive Pro - V1 Editor</title>
+    <title>Comic Archive Pro - V1 Stabile</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <style>
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
+        .comic-image { transition: filter 0.5s ease, transform 0.5s ease, opacity 0.5s ease; }
         .comic-card:hover .grayscale { filter: grayscale(0); opacity: 1; }
         .filter-btn.active { background-color: #eab308; color: #0f172a; border-color: #eab308; }
         input { color-scheme: dark; }
@@ -19,7 +20,7 @@
 
     <header class="bg-slate-800 border-b border-slate-700 p-6 sticky top-0 z-50 shadow-2xl">
         <div class="container mx-auto flex flex-col lg:flex-row justify-between items-center gap-6">
-            <h1 class="text-3xl font-black text-yellow-500 tracking-tighter uppercase italic cursor-pointer shrink-0" onclick="loadRecent()">
+            <h1 class="text-3xl font-black text-yellow-500 tracking-tighter uppercase italic cursor-pointer select-none shrink-0" onclick="loadRecent()">
                 Comic Archive
             </h1>
             
@@ -44,7 +45,7 @@
     <main class="container mx-auto p-6">
         <div class="mb-8 border-l-4 border-yellow-500 pl-4 flex justify-between items-end">
             <div>
-                <h2 id="view-title" class="text-2xl font-bold uppercase tracking-tight text-white">Caricamento...</h2>
+                <h2 id="view-title" class="text-2xl font-bold uppercase tracking-tight">Caricamento...</h2>
                 <p id="view-subtitle" class="text-slate-400 text-sm italic"></p>
             </div>
             <div id="stats-count" class="text-slate-500 text-xs font-mono uppercase"></div>
@@ -89,6 +90,16 @@
             serie(nome, collana(nome)),
             tipo_pubblicazione(nome)`;
 
+        function getStarsHTML(valore) {
+            if (valore === null || valore === undefined) return '';
+            const num = parseInt(valore);
+            let starsHTML = '';
+            for (let i = 1; i <= 5; i++) {
+                starsHTML += `<span class="${i <= num ? 'text-yellow-500' : 'text-slate-600'} text-xs">★</span>`;
+            }
+            return `<div class="flex gap-0.5">${starsHTML}</div>`;
+        }
+
         // --- FUNZIONI MODALE ---
         function openEditModal(comicJson) {
             const comic = JSON.parse(decodeURIComponent(comicJson));
@@ -105,14 +116,9 @@
             e.preventDefault();
             const id = document.getElementById('edit-id').value;
             const newSerieId = document.getElementById('edit-serie_id').value;
-
             const { error } = await window.supabaseClient.from('issue').update({ serie_id: newSerieId || null }).eq('id', id);
-
             if (error) alert("Errore: " + error.message);
-            else {
-                closeModal();
-                if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome); else loadRecent();
-            }
+            else { closeModal(); if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome); else loadRecent(); }
         });
 
         // --- LOGICA GRID & FILTRI ---
@@ -131,11 +137,9 @@
             searchInput.value = fullSerieNome; resultsDiv.classList.add('hidden');
             viewTitle.innerText = fullSerieNome;
             viewSubtitle.innerText = `Filtro: ${currentFilter.toUpperCase()}`;
-            
             const { data: annate } = await window.supabaseClient.from('annata').select('id').eq('serie_id', serieId);
             const aIds = annate?.map(a => a.id) || [];
             const aFilter = aIds.length > 0 ? aIds.join(',') : '00000000-0000-0000-0000-000000000000';
-            
             let query = window.supabaseClient.from('issue').select(FULL_QUERY).or(`annata_id.in.(${aFilter}),serie_id.eq.${serieId}`);
             if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
             const { data } = await query.order('numero', { ascending: true });
@@ -151,14 +155,29 @@
                 const comicData = encodeURIComponent(JSON.stringify(comic));
 
                 return `
-                <div class="group relative bg-slate-800 rounded-xl overflow-hidden border ${isOwned ? 'border-slate-700 shadow-xl' : 'border-slate-800 opacity-60'} transition-all">
-                    <button onclick="openEditModal('${comicData}')" class="absolute top-2 right-2 z-40 bg-yellow-500 text-slate-900 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">✏️</button>
-                    <div class="h-72 bg-slate-950">
-                        <img src="${comic.immagine_url || 'https://via.placeholder.com/300x450?text=No+Cover'}" class="w-full h-full object-cover ${isOwned ? '' : 'grayscale opacity-40'}">
+                <div class="comic-card group relative bg-slate-800 rounded-xl overflow-hidden border ${isOwned ? 'border-slate-700 shadow-xl' : 'border-slate-800 opacity-60'} transition-all">
+                    <button onclick="openEditModal('${comicData}')" class="absolute top-2 right-2 z-40 bg-yellow-500 text-slate-900 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                        ✏️
+                    </button>
+
+                    <div class="relative h-72 bg-slate-950 overflow-hidden">
+                        <img src="${comic.immagine_url || 'https://via.placeholder.com/300x450?text=No+Cover'}" 
+                             class="comic-image w-full h-full object-cover ${isOwned ? '' : 'grayscale opacity-40'}">
+                        
+                        ${parseFloat(comic.valore) > 0 ? `
+                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-900 to-transparent p-4">
+                             <span class="text-yellow-500 font-mono text-sm font-bold">€ ${parseFloat(comic.valore).toFixed(2)}</span>
+                        </div>` : ''}
                     </div>
                     <div class="p-4">
-                        <p class="text-[10px] text-yellow-500 font-bold uppercase truncate mb-1">${title}</p>
-                        <h4 class="font-bold truncate text-lg">#${comic.numero || '?'}</h4>
+                        <p class="text-[10px] text-yellow-500 font-bold uppercase tracking-widest truncate mb-1">${title}</p>
+                        <h4 class="font-bold text-lg leading-tight truncate">
+                            ${comic.annata?.nome ? `<span class="text-slate-400 font-medium mr-1">${comic.annata.nome}</span>` : ''}#${comic.numero || '?'}
+                        </h4>
+                        <div class="mt-4 flex items-center justify-between border-t border-slate-700 pt-3">
+                            ${getStarsHTML(comic.condizione)}
+                            ${comic.tipo_pubblicazione?.nome ? `<span class="text-[9px] text-slate-500 uppercase font-bold truncate ml-2">${comic.tipo_pubblicazione.nome}</span>` : ''}
+                        </div>
                     </div>
                 </div>`;
             }).join('');
