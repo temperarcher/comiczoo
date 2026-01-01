@@ -62,10 +62,15 @@
             </div>
             <form id="edit-form" class="p-6 space-y-4">
                 <input type="hidden" id="edit-id">
+                <input type="hidden" id="edit-serie_id">
+                
                 <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ID Serie (UUID)</label>
-                    <input type="text" id="edit-serie_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-mono text-yellow-500 outline-none focus:ring-1 focus:ring-yellow-500">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Serie Collegata</label>
+                    <input type="text" id="edit-serie_nome" readonly
+                           class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-yellow-500 cursor-not-allowed outline-none">
+                    <p class="text-[9px] text-slate-500 mt-2 italic uppercase">Il nome della serie viene recuperato dalla tabella serie tramite l'ID.</p>
                 </div>
+
                 <div class="pt-4 flex gap-3">
                     <button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all">Salva</button>
                     <button type="button" onclick="closeModal()" class="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl uppercase tracking-widest hover:bg-slate-600 transition-all">Annulla</button>
@@ -107,8 +112,19 @@
         // --- FUNZIONI MODALE ---
         function openEditModal(comicJson) {
             const comic = JSON.parse(decodeURIComponent(comicJson));
+            
             document.getElementById('edit-id').value = comic.id;
             document.getElementById('edit-serie_id').value = comic.serie_id || '';
+            
+            const serieObj = comic.annata?.serie || comic.serie;
+            let nomeVisualizzato = "Serie non definita";
+            if (serieObj) {
+                nomeVisualizzato = serieObj.collana?.nome 
+                    ? `${serieObj.nome} (${serieObj.collana.nome})` 
+                    : serieObj.nome;
+            }
+            document.getElementById('edit-serie_nome').value = nomeVisualizzato;
+            
             document.getElementById('edit-modal').classList.remove('hidden');
         }
 
