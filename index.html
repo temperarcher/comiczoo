@@ -63,9 +63,16 @@
                 <input type="hidden" id="edit-id">
                 
                 <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sposta in un'altra Serie</label>
-                    <select id="edit-serie_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-yellow-500 outline-none focus:ring-1 focus:ring-yellow-500">
-                        </select>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Serie</label>
+                    <select id="edit-serie_id" onchange="updateTestateDropdown(this.value)" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-yellow-500 outline-none focus:ring-1 focus:ring-yellow-500">
+                    </select>
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Testata</label>
+                    <select id="edit-testata_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500">
+                        <option value="">Seleziona una serie prima...</option>
+                    </select>
                 </div>
 
                 <div class="pt-4 flex gap-3">
@@ -103,26 +110,47 @@
         }
 
         // --- FUNZIONI MODALE ---
+
+        async function updateTestateDropdown(serieId, selectedTestataId = null) {
+            const testataSelect = document.getElementById('edit-testata_id');
+            testataSelect.innerHTML = '<option value="">Caricamento testate...</option>';
+            
+            if (!serieId) return;
+
+            // Recupero le testate collegate alla serie selezionata
+            const { data: testate } = await window.supabaseClient
+                .from('testata')
+                .select('id, nome')
+                .eq('serie_id', serieId)
+                .order('nome');
+
+            if (testate && testate.length > 0) {
+                testataSelect.innerHTML = '<option value="">Nessuna testata</option>' + testate.map(t => 
+                    `<option value="${t.id}" ${t.id === selectedTestataId ? 'selected' : ''}>${t.nome}</option>`
+                ).join('');
+            } else {
+                testataSelect.innerHTML = '<option value="">Nessuna testata trovata per questa serie</option>';
+            }
+        }
+
         async function openEditModal(comicJson) {
             const comic = JSON.parse(decodeURIComponent(comicJson));
             document.getElementById('edit-id').value = comic.id;
             
-            const select = document.getElementById('edit-serie_id');
-            select.innerHTML = '<option>Caricamento serie...</option>';
+            const serieSelect = document.getElementById('edit-serie_id');
+            serieSelect.innerHTML = '<option>Caricamento serie...</option>';
             
-            // Recupero tutte le serie per la tendina
-            const { data: allSeries } = await window.supabaseClient
-                .from('serie')
-                .select('id, nome, collana(nome)')
-                .order('nome');
+            const { data: allSeries } = await window.supabaseClient.from('serie').select('id, nome, collana(nome)').order('nome');
 
             if (allSeries) {
-                select.innerHTML = allSeries.map(s => {
+                serieSelect.innerHTML = allSeries.map(s => {
                     const label = s.collana?.nome ? `${s.nome} (${s.collana.nome})` : s.nome;
-                    const selected = s.id === comic.serie_id ? 'selected' : '';
-                    return `<option value="${s.id}" ${selected}>${label}</option>`;
+                    return `<option value="${s.id}" ${s.id === comic.serie_id ? 'selected' : ''}>${label}</option>`;
                 }).join('');
             }
+
+            // Popola le testate basandosi sulla serie dell'albo cliccato e seleziona quella attuale
+            await updateTestateDropdown(comic.serie_id, comic.testata_id);
 
             document.getElementById('edit-modal').classList.remove('hidden');
         }
@@ -135,7 +163,15 @@
             e.preventDefault();
             const id = document.getElementById('edit-id').value;
             const newSerieId = document.getElementById('edit-serie_id').value;
-            const { error } = await window.supabaseClient.from('issue').update({ serie_id: newSerieId }).eq('id', id);
+            const newTestataId = document.getElementById('edit-testata_id').value;
+
+            const { error } = await window.supabaseClient.from('issue')
+                .update({ 
+                    serie_id: newSerieId,
+                    testata_id: newTestataId || null 
+                })
+                .eq('id', id);
+
             if (error) alert("Errore: " + error.message);
             else { closeModal(); if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome); else loadRecent(); }
         });
@@ -169,10 +205,13 @@
             searchInput.value = fullSerieNome; resultsDiv.classList.add('hidden');
             viewTitle.innerText = fullSerieNome;
             viewSubtitle.innerText = `Filtro: ${currentFilter.toUpperCase()}`;
-            const { data: annate } = await window.supabaseClient.from('annata').select('id').eq('serie_id', serieId);
-            const aIds = annate?.map(a => a.id) || [];
-            const aFilter = aIds.length > 0 ? aIds.join(',') : '00000000-0000-0000-0000-000000000000';
-            let query = window.supabaseClient.from('issue').select(FULL_QUERY).or(`annata_id.in.(${aFilter}),serie_id.eq.${serieId}`);
+            
+            // Per compatibilità V1 cerchiamo tramite annate (ora testate) se presenti
+            const { data: testate } = await window.supabaseClient.from('testata').select('id').eq('serie_id', serieId);
+            const tIds = testate?.map(t => t.id) || [];
+            const tFilter = tIds.length > 0 ? tIds.join(',') : '00000000-0000-0000-0000-000000000000';
+            
+            let query = window.supabaseClient.from('issue').select(FULL_QUERY).or(`testata_id.in.(${tFilter}),serie_id.eq.${serieId}`);
             if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
             const { data } = await query.order('numero', { ascending: true });
             renderGrid(data, fullSerieNome);
