@@ -13,7 +13,7 @@
         .comic-image { transition: filter 0.5s ease, transform 0.5s ease, opacity 0.5s ease; }
         .comic-card:hover .grayscale { filter: grayscale(0); opacity: 1; }
         .filter-btn.active { background-color: #eab308; color: #0f172a; border-color: #eab308; }
-        input { color-scheme: dark; }
+        input, select { color-scheme: dark; }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
@@ -45,12 +45,11 @@
     <main class="container mx-auto p-6">
         <div class="mb-8 border-l-4 border-yellow-500 pl-4 flex justify-between items-end">
             <div>
-                <h2 id="view-title" class="text-2xl font-bold uppercase tracking-tight">Caricamento...</h2>
+                <h2 id="view-title" class="text-2xl font-bold uppercase tracking-tight text-white">Caricamento...</h2>
                 <p id="view-subtitle" class="text-slate-400 text-sm italic"></p>
             </div>
             <div id="stats-count" class="text-slate-500 text-xs font-mono uppercase"></div>
         </div>
-
         <div id="comic-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8"></div>
     </main>
 
@@ -62,13 +61,11 @@
             </div>
             <form id="edit-form" class="p-6 space-y-4">
                 <input type="hidden" id="edit-id">
-                <input type="hidden" id="edit-serie_id">
                 
                 <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Serie Collegata</label>
-                    <input type="text" id="edit-serie_nome" readonly
-                           class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-yellow-500 cursor-not-allowed outline-none">
-                    <p class="text-[9px] text-slate-500 mt-2 italic uppercase">Il nome della serie viene recuperato dalla tabella serie tramite l'ID.</p>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sposta in un'altra Serie</label>
+                    <select id="edit-serie_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-yellow-500 outline-none focus:ring-1 focus:ring-yellow-500">
+                        </select>
                 </div>
 
                 <div class="pt-4 flex gap-3">
@@ -97,34 +94,36 @@
             tipo_pubblicazione(nome)`;
 
         function getStarsHTML(valore) {
-            if (valore === null || valore === undefined) {
-                return `<div class="flex gap-0.5 opacity-20">${'<span class="text-slate-500 text-xs">★</span>'.repeat(5)}</div>`;
-            }
+            if (valore === null || valore === undefined) return `<div class="flex gap-0.5 opacity-20">${'<span class="text-slate-500 text-xs">★</span>'.repeat(5)}</div>`;
             const num = parseInt(valore);
             let colorClass = num >= 5 ? 'text-yellow-500' : (num <= 2 ? 'text-red-500' : 'text-white');
             let starsHTML = '';
-            for (let i = 1; i <= 5; i++) {
-                starsHTML += `<span class="${colorClass} ${i <= num ? 'opacity-100' : 'opacity-20'} text-xs">★</span>`;
-            }
+            for (let i = 1; i <= 5; i++) starsHTML += `<span class="${colorClass} ${i <= num ? 'opacity-100' : 'opacity-20'} text-xs">★</span>`;
             return `<div class="flex gap-0.5">${starsHTML}</div>`;
         }
 
         // --- FUNZIONI MODALE ---
-        function openEditModal(comicJson) {
+        async function openEditModal(comicJson) {
             const comic = JSON.parse(decodeURIComponent(comicJson));
-            
             document.getElementById('edit-id').value = comic.id;
-            document.getElementById('edit-serie_id').value = comic.serie_id || '';
             
-            const serieObj = comic.annata?.serie || comic.serie;
-            let nomeVisualizzato = "Serie non definita";
-            if (serieObj) {
-                nomeVisualizzato = serieObj.collana?.nome 
-                    ? `${serieObj.nome} (${serieObj.collana.nome})` 
-                    : serieObj.nome;
+            const select = document.getElementById('edit-serie_id');
+            select.innerHTML = '<option>Caricamento serie...</option>';
+            
+            // Recupero tutte le serie per la tendina
+            const { data: allSeries } = await window.supabaseClient
+                .from('serie')
+                .select('id, nome, collana(nome)')
+                .order('nome');
+
+            if (allSeries) {
+                select.innerHTML = allSeries.map(s => {
+                    const label = s.collana?.nome ? `${s.nome} (${s.collana.nome})` : s.nome;
+                    const selected = s.id === comic.serie_id ? 'selected' : '';
+                    return `<option value="${s.id}" ${selected}>${label}</option>`;
+                }).join('');
             }
-            document.getElementById('edit-serie_nome').value = nomeVisualizzato;
-            
+
             document.getElementById('edit-modal').classList.remove('hidden');
         }
 
@@ -136,7 +135,7 @@
             e.preventDefault();
             const id = document.getElementById('edit-id').value;
             const newSerieId = document.getElementById('edit-serie_id').value;
-            const { error } = await window.supabaseClient.from('issue').update({ serie_id: newSerieId || null }).eq('id', id);
+            const { error } = await window.supabaseClient.from('issue').update({ serie_id: newSerieId }).eq('id', id);
             if (error) alert("Errore: " + error.message);
             else { closeModal(); if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome); else loadRecent(); }
         });
@@ -146,24 +145,17 @@
             currentFilter = filter;
             document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById(`btn-${filter}`).classList.add('active');
-            if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome);
-            else loadRecent();
+            if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome); else loadRecent();
         }
 
         searchInput.addEventListener('input', async (e) => {
             const term = e.target.value.trim();
             if (term.length < 2) { resultsDiv.classList.add('hidden'); return; }
-
-            const { data } = await window.supabaseClient
-                .from('serie')
-                .select('id, nome, collana(nome), immagine_url')
-                .ilike('nome', `%${term}%`).limit(6);
-
+            const { data } = await window.supabaseClient.from('serie').select('id, nome, collana(nome), immagine_url').ilike('nome', `%${term}%`).limit(6);
             if (data?.length > 0) {
                 resultsDiv.innerHTML = data.map(serie => {
                     const fullTitle = serie.collana?.nome ? `${serie.nome} (${serie.collana.nome})` : serie.nome;
-                    return `
-                    <div onclick="selectSerie('${serie.id}', '${fullTitle.replace(/'/g, "\\'")}')" class="flex items-center p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700 last:border-0">
+                    return `<div onclick="selectSerie('${serie.id}', '${fullTitle.replace(/'/g, "\\'")}')" class="flex items-center p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700 last:border-0">
                         <img src="${serie.immagine_url || 'https://via.placeholder.com/40'}" class="w-10 h-10 object-cover rounded mr-3 bg-slate-700">
                         <span class="font-semibold text-sm text-slate-100">${fullTitle}</span>
                     </div>`;
@@ -177,15 +169,12 @@
             searchInput.value = fullSerieNome; resultsDiv.classList.add('hidden');
             viewTitle.innerText = fullSerieNome;
             viewSubtitle.innerText = `Filtro: ${currentFilter.toUpperCase()}`;
-            
             const { data: annate } = await window.supabaseClient.from('annata').select('id').eq('serie_id', serieId);
             const aIds = annate?.map(a => a.id) || [];
             const aFilter = aIds.length > 0 ? aIds.join(',') : '00000000-0000-0000-0000-000000000000';
-            
             let query = window.supabaseClient.from('issue').select(FULL_QUERY).or(`annata_id.in.(${aFilter}),serie_id.eq.${serieId}`);
             if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
-
-            const { data, error } = await query.order('numero', { ascending: true });
+            const { data } = await query.order('numero', { ascending: true });
             renderGrid(data, fullSerieNome);
         }
 
@@ -195,50 +184,31 @@
             viewSubtitle.innerText = `Filtro: ${currentFilter.toUpperCase()}`;
             let query = window.supabaseClient.from('issue').select(FULL_QUERY);
             if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
-            const { data, error } = await query.order('created_at', { ascending: false }).limit(20);
+            const { data } = await query.order('created_at', { ascending: false }).limit(20);
             renderGrid(data);
         }
 
         function renderGrid(items, fallbackSerieFullNome = "") {
             statsCount.innerText = items ? `${items.length} fumetti` : "";
-            if (!items || items.length === 0) {
-                grid.innerHTML = '<div class="col-span-full py-20 text-center text-slate-500 italic">Nessun fumetto trovato.</div>';
-                return;
-            }
-
-            grid.innerHTML = items.map(comic => {
+            grid.innerHTML = (items || []).map(comic => {
                 const isOwned = comic.possesso === 'celo';
                 const serieObj = comic.annata?.serie || comic.serie;
                 let displayTitle = fallbackSerieFullNome;
-
                 if (!displayTitle && serieObj) {
                     const sNome = serieObj.nome || "Serie Ignota";
                     const cNome = serieObj.collana?.nome;
                     displayTitle = cNome ? `${sNome} (${cNome})` : sNome;
                 }
-
                 const comicData = encodeURIComponent(JSON.stringify(comic));
-
-                return `
-                <div class="comic-card group bg-slate-800 rounded-xl overflow-hidden border ${isOwned ? 'border-slate-700 shadow-xl' : 'border-slate-800 opacity-80'} transition-all relative">
-                    <button onclick="openEditModal('${comicData}')" class="absolute top-2 right-2 z-40 bg-yellow-500 text-slate-900 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                        ✏️
-                    </button>
-
+                return `<div class="comic-card group bg-slate-800 rounded-xl overflow-hidden border ${isOwned ? 'border-slate-700 shadow-xl' : 'border-slate-800 opacity-80'} transition-all relative">
+                    <button onclick="openEditModal('${comicData}')" class="absolute top-2 right-2 z-40 bg-yellow-500 text-slate-900 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">✏️</button>
                     <div class="relative h-72 bg-slate-950 overflow-hidden">
-                        <img src="${comic.immagine_url || 'https://via.placeholder.com/300x450?text=No+Image'}" 
-                             class="comic-image w-full h-full object-cover ${isOwned ? '' : 'grayscale opacity-40'}">
-                        
-                        ${parseFloat(comic.valore) > 0 ? `
-                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-900 to-transparent p-4">
-                             <span class="text-yellow-500 font-mono text-sm font-bold">€ ${parseFloat(comic.valore).toFixed(2)}</span>
-                        </div>` : ''}
+                        <img src="${comic.immagine_url || 'https://via.placeholder.com/300x450?text=No+Image'}" class="comic-image w-full h-full object-cover ${isOwned ? '' : 'grayscale opacity-40'}">
+                        ${parseFloat(comic.valore) > 0 ? `<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-900 to-transparent p-4"><span class="text-yellow-500 font-mono text-sm font-bold">€ ${parseFloat(comic.valore).toFixed(2)}</span></div>` : ''}
                     </div>
                     <div class="p-4">
                         <p class="text-[10px] text-yellow-500 font-bold uppercase tracking-widest truncate mb-1">${displayTitle}</p>
-                        <h4 class="font-bold text-lg leading-tight truncate">
-                            ${comic.annata?.nome ? `<span class="text-slate-400 font-medium mr-1">${comic.annata.nome}</span>` : ''}#${comic.numero || '?'} ${comic.nome || ''}
-                        </h4>
+                        <h4 class="font-bold text-lg leading-tight truncate">${comic.annata?.nome ? `<span class="text-slate-400 font-medium mr-1">${comic.annata.nome}</span>` : ''}#${comic.numero || '?'} ${comic.nome || ''}</h4>
                         <div class="mt-4 flex items-center justify-between border-t border-slate-700 pt-3">
                             ${getStarsHTML(comic.condizione)}
                             ${comic.tipo_pubblicazione?.nome ? `<span class="text-[9px] text-slate-500 uppercase font-bold truncate ml-2">${comic.tipo_pubblicazione.nome}</span>` : ''}
@@ -249,10 +219,7 @@
         }
 
         loadRecent();
-
-        document.addEventListener('click', (e) => {
-            if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) resultsDiv.classList.add('hidden');
-        });
+        document.addEventListener('click', (e) => { if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) resultsDiv.classList.add('hidden'); });
     </script>
 </body>
 </html>
