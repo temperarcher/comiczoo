@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comic Archive Pro - V2.1</title>
+    <title>Comic Archive Pro - V2.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
@@ -74,7 +74,7 @@
                 <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="md:col-span-2">
                         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">URL Immagine</label>
-                        <input type="text" id="edit-immagine_url" oninput="document.getElementById('edit-preview').src = this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm text-blue-400 outline-none focus:ring-1 focus:ring-yellow-500">
+                        <input type="text" id="edit-immagine_url" oninput="document.getElementById('edit-preview').src = this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm text-blue-400 outline-none">
                     </div>
 
                     <div class="md:col-span-2">
@@ -118,6 +118,7 @@
                     <div>
                         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Condizione</label>
                         <select id="edit-condizione" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-yellow-500 outline-none">
+                            <option value="">Nessuna</option>
                             <option value="1">1 Stella (Pessimo)</option>
                             <option value="2">2 Stelle (Mediocre)</option>
                             <option value="3">3 Stelle (Buono)</option>
@@ -157,7 +158,7 @@
             <form id="serie-form" class="p-6 space-y-4">
                 <div>
                     <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome Serie</label>
-                    <input type="text" id="new-serie-nome" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500">
+                    <input type="text" id="new-serie-nome" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none">
                 </div>
                 <div>
                     <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Collana</label>
@@ -178,7 +179,6 @@
     </div>
 
     <script>
-        // CONFIG & STATE
         const searchInput = document.getElementById('serie-search');
         const resultsDiv = document.getElementById('serie-results');
         const grid = document.getElementById('comic-grid');
@@ -192,22 +192,19 @@
         const FULL_QUERY = `*, annata(nome, serie(nome, collana(nome))), serie(nome, collana(nome)), tipo_pubblicazione(nome)`;
 
         function getStarsHTML(valore) {
+            if (!valore) return `<span class="text-[10px] text-slate-600 italic">N.D.</span>`;
             const num = parseInt(valore) || 0;
             let starsHTML = '';
             for (let i = 1; i <= 5; i++) starsHTML += `<span class="text-xs ${i <= num ? 'text-yellow-500 opacity-100' : 'text-slate-500 opacity-20'}">★</span>`;
             return `<div class="flex gap-0.5">${starsHTML}</div>`;
         }
 
-        // LOGICA MODALE SERIE (V2.1 CON COLLANA)
         async function openSerieModal() {
             document.getElementById('serie-form').reset();
             document.getElementById('serie-modal').classList.remove('hidden');
-            
-            // Carica collane esistenti
             const { data: collane } = await window.supabaseClient.from('collana').select('id, nome').order('nome');
             const select = document.getElementById('new-serie-collana');
-            select.innerHTML = '<option value="">Nessuna Collana</option>' + 
-                (collane || []).map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+            select.innerHTML = '<option value="">Nessuna Collana</option>' + (collane || []).map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
         }
 
         function closeSerieModal() { document.getElementById('serie-modal').classList.add('hidden'); }
@@ -221,19 +218,13 @@
             };
             const { data, error } = await window.supabaseClient.from('serie').insert([payload]).select();
             if (error) alert(error.message);
-            else {
-                closeSerieModal();
-                if (!document.getElementById('edit-modal').classList.contains('hidden')) {
-                    await populateDropdowns({ serie_id: data[0].id });
-                }
-            }
+            else { closeSerieModal(); if (!document.getElementById('edit-modal').classList.contains('hidden')) await populateDropdowns({ serie_id: data[0].id }); }
         });
 
-        // LOGICA MODALE ALBO
         async function openAddModal() {
             document.getElementById('edit-form').reset();
             document.getElementById('edit-id').value = "";
-            document.getElementById('edit-condizione').value = "3";
+            document.getElementById('edit-condizione').value = "";
             document.getElementById('edit-preview').src = placeholderImg;
             document.getElementById('modal-title').innerText = "Aggiungi Nuovo Albo";
             document.getElementById('edit-modal').classList.remove('hidden');
@@ -247,7 +238,7 @@
             document.getElementById('edit-nome').value = comic.nome || '';
             document.getElementById('edit-numero').value = comic.numero || '';
             document.getElementById('edit-possesso').value = comic.possesso || 'manca';
-            document.getElementById('edit-condizione').value = comic.condizione || '3';
+            document.getElementById('edit-condizione').value = comic.condizione || '';
             document.getElementById('edit-valore').value = comic.valore || 0;
             document.getElementById('edit-immagine_url').value = comic.immagine_url || '';
             document.getElementById('edit-preview').src = comic.immagine_url || placeholderImg;
@@ -256,9 +247,12 @@
         }
 
         async function populateDropdowns(comic) {
-            const { data: allSeries } = await window.supabaseClient.from('serie').select('id, nome').order('nome');
+            const { data: allSeries } = await window.supabaseClient.from('serie').select('id, nome, collana(nome)').order('nome');
             document.getElementById('edit-serie_id').innerHTML = '<option value="">Seleziona Serie...</option>' + 
-                (allSeries || []).map(s => `<option value="${s.id}" ${comic?.serie_id === s.id ? 'selected' : ''}>${s.nome}</option>`).join('');
+                (allSeries || []).map(s => {
+                    const nomeVisualizzato = s.collana?.nome ? `${s.nome} (${s.collana.nome})` : s.nome;
+                    return `<option value="${s.id}" ${comic?.serie_id === s.id ? 'selected' : ''}>${nomeVisualizzato}</option>`;
+                }).join('');
 
             await updateEditoriDropdown(comic?.editore_id);
             await updateSupplementiDropdown(comic?.supplemento_id);
@@ -268,10 +262,7 @@
             }
         }
 
-        async function handleSerieChange(serieId) {
-            await updateTestateDropdown(serieId);
-            await updateAnnateDropdown(serieId);
-        }
+        async function handleSerieChange(serieId) { await updateTestateDropdown(serieId); await updateAnnateDropdown(serieId); }
 
         async function updateEditoriDropdown(selectedId = null) {
             const { data } = await window.supabaseClient.from('editore').select('id, nome').order('nome');
@@ -307,7 +298,7 @@
                 supplemento_id: document.getElementById('edit-supplemento_id').value || null,
                 numero: document.getElementById('edit-numero').value,
                 possesso: document.getElementById('edit-possesso').value,
-                condizione: document.getElementById('edit-condizione').value,
+                condizione: document.getElementById('edit-condizione').value || null,
                 valore: document.getElementById('edit-valore').value || 0,
                 immagine_url: document.getElementById('edit-immagine_url').value
             };
@@ -316,7 +307,6 @@
             else { closeModal(); if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome); else loadRecent(); }
         });
 
-        // VISUALIZZAZIONE E FILTRI
         function setFilter(filter) {
             currentFilter = filter;
             document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
@@ -327,9 +317,12 @@
         searchInput.addEventListener('input', async (e) => {
             const term = e.target.value.trim();
             if (term.length < 2) { resultsDiv.classList.add('hidden'); return; }
-            const { data } = await window.supabaseClient.from('serie').select('id, nome, immagine_url').ilike('nome', `%${term}%`).limit(6);
+            const { data } = await window.supabaseClient.from('serie').select('id, nome, collana(nome)').ilike('nome', `%${term}%`).limit(6);
             if (data?.length > 0) {
-                resultsDiv.innerHTML = data.map(serie => `<div onclick="selectSerie('${serie.id}', '${serie.nome}')" class="flex items-center p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700 last:border-0"><img src="${serie.immagine_url || placeholderImg}" class="w-10 h-10 object-cover rounded mr-3 bg-slate-700"><span>${serie.nome}</span></div>`).join('');
+                resultsDiv.innerHTML = data.map(serie => {
+                    const nomeVisualizzato = serie.collana?.nome ? `${serie.nome} (${serie.collana.nome})` : serie.nome;
+                    return `<div onclick="selectSerie('${serie.id}', '${nomeVisualizzato}')" class="flex items-center p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700 last:border-0"><span class="font-bold">${nomeVisualizzato}</span></div>`;
+                }).join('');
                 resultsDiv.classList.remove('hidden');
             } else resultsDiv.classList.add('hidden');
         });
@@ -358,13 +351,14 @@
             grid.innerHTML = (items || []).map(comic => {
                 const isOwned = comic.possesso === 'celo';
                 const comicData = encodeURIComponent(JSON.stringify(comic));
+                const nomeSerieGrid = fallbackSerie || (comic.serie?.collana?.nome ? `${comic.serie.nome} (${comic.serie.collana.nome})` : comic.serie?.nome);
                 return `<div class="comic-card group bg-slate-800 rounded-xl overflow-hidden border ${isOwned ? 'border-slate-700 shadow-xl' : 'border-slate-800 opacity-80'} transition-all relative">
                     <button onclick="openEditModal('${comicData}')" class="absolute top-2 right-2 z-40 bg-yellow-500 text-slate-900 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">✏️</button>
                     <div class="relative h-72 bg-slate-950 overflow-hidden">
                         <img src="${comic.immagine_url || placeholderImg}" class="comic-image w-full h-full object-cover ${isOwned ? '' : 'grayscale opacity-40'}">
                     </div>
                     <div class="p-4">
-                        <p class="text-[10px] text-yellow-500 font-bold uppercase truncate mb-1">${fallbackSerie || comic.serie?.nome}</p>
+                        <p class="text-[10px] text-yellow-500 font-bold uppercase truncate mb-1">${nomeSerieGrid}</p>
                         <h4 class="font-bold text-lg leading-tight truncate">#${comic.numero || '?'} ${comic.nome || ''}</h4>
                         <div class="mt-4 flex items-center justify-between border-t border-slate-700 pt-3">
                             ${getStarsHTML(comic.condizione)}
