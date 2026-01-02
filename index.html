@@ -48,18 +48,18 @@
     </main>
 
     <div id="edit-modal" class="hidden fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
             <div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800">
                 <h3 class="text-xl font-bold text-yellow-500 uppercase italic">Modifica Albo</h3>
                 <button onclick="closeModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
             </div>
             
-            <form id="edit-form" class="p-6 flex flex-col md:flex-row gap-8">
+            <form id="edit-form" class="p-6 overflow-y-auto custom-scrollbar flex flex-col md:flex-row gap-8">
                 <input type="hidden" id="edit-id">
                 
                 <div class="w-full md:w-48 shrink-0">
                     <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Anteprima</label>
-                    <div class="aspect-[2/3] bg-slate-900 rounded-lg border border-slate-700 overflow-hidden shadow-inner">
+                    <div class="aspect-[2/3] bg-slate-900 rounded-lg border border-slate-700 overflow-hidden shadow-inner mb-4">
                         <img id="edit-preview" src="" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/300x450?text=No+Image'">
                     </div>
                 </div>
@@ -67,12 +67,12 @@
                 <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="md:col-span-2">
                         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">URL Immagine</label>
-                        <input type="text" id="edit-immagine_url" oninput="document.getElementById('edit-preview').src = this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-blue-400 outline-none focus:ring-1 focus:ring-yellow-500">
+                        <input type="text" id="edit-immagine_url" oninput="document.getElementById('edit-preview').src = this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm text-blue-400 outline-none">
                     </div>
 
                     <div class="md:col-span-2">
                         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Titolo Albo</label>
-                        <input type="text" id="edit-nome" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500">
+                        <input type="text" id="edit-nome" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none">
                     </div>
 
                     <div>
@@ -96,6 +96,11 @@
                     </div>
 
                     <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Supplemento a...</label>
+                        <select id="edit-supplemento_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-[11px] font-bold text-orange-400 outline-none"></select>
+                    </div>
+
+                    <div>
                         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Numero</label>
                         <input type="text" id="edit-numero" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none">
                     </div>
@@ -109,23 +114,12 @@
                     </div>
 
                     <div>
-                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Condizione (1-5)</label>
-                        <select id="edit-condizione" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none">
-                            <option value="1">1 Stella</option>
-                            <option value="2">2 Stelle</option>
-                            <option value="3">3 Stelle</option>
-                            <option value="4">4 Stelle</option>
-                            <option value="5">5 Stelle</option>
-                        </select>
-                    </div>
-
-                    <div>
                         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Valore (€)</label>
                         <input type="number" step="0.01" id="edit-valore" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none">
                     </div>
 
                     <div class="md:col-span-2 pt-4 flex gap-3">
-                        <button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all shadow-lg shadow-yellow-500/20">Salva Modifiche</button>
+                        <button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all">Salva</button>
                         <button type="button" onclick="closeModal()" class="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl uppercase tracking-widest hover:bg-slate-600 transition-all">Annulla</button>
                     </div>
                 </div>
@@ -134,7 +128,7 @@
     </div>
 
     <script>
-        // LOGICA V1 RIMASTA INVARIATA
+        // LOGICA CORE (V1)
         const searchInput = document.getElementById('serie-search');
         const resultsDiv = document.getElementById('serie-results');
         const grid = document.getElementById('comic-grid');
@@ -148,14 +142,34 @@
         function getStarsHTML(valore) {
             const num = parseInt(valore) || 0;
             let starsHTML = '';
-            for (let i = 1; i <= 5; i++) starsHTML += `<span class="${num >= 5 ? 'text-yellow-500' : (num <= 2 ? 'text-red-500' : 'text-white')} ${i <= num ? 'opacity-100' : 'opacity-20'} text-xs">★</span>`;
+            for (let i = 1; i <= 5; i++) starsHTML += `<span class="text-xs ${i <= num ? 'text-yellow-500 opacity-100' : 'text-slate-500 opacity-20'}">★</span>`;
             return `<div class="flex gap-0.5">${starsHTML}</div>`;
         }
 
-        // FUNZIONI MODALE CON ANTEPRIMA
+        // FUNZIONI MODALE & SUPPLEMENTO
         async function handleSerieChange(serieId) {
             await updateTestateDropdown(serieId);
             await updateAnnateDropdown(serieId);
+        }
+
+        async function updateSupplementiDropdown(selectedId = null) {
+            const select = document.getElementById('edit-supplemento_id');
+            select.innerHTML = '<option value="">Caricamento albi...</option>';
+            
+            // Recuperiamo tutti gli albi (issue) con i dati della serie per la descrizione
+            const { data } = await window.supabaseClient
+                .from('issue')
+                .select('id, numero, data_pubblicazione, serie(nome)')
+                .order('numero');
+
+            if (data) {
+                select.innerHTML = '<option value="">Nessun Supplemento</option>' + 
+                    data.map(i => {
+                        const dateStr = i.data_pubblicazione ? new Date(i.data_pubblicazione).toLocaleDateString() : 'no data';
+                        const label = `${i.serie?.nome || '???'} #${i.numero || '?'} [${dateStr}]`;
+                        return `<option value="${i.id}" ${i.id === selectedId ? 'selected' : ''}>${label}</option>`;
+                    }).join('');
+            }
         }
 
         async function updateEditoriDropdown(selectedId = null) {
@@ -182,17 +196,18 @@
             document.getElementById('edit-nome').value = comic.nome || '';
             document.getElementById('edit-numero').value = comic.numero || '';
             document.getElementById('edit-possesso').value = comic.possesso || 'manca';
-            document.getElementById('edit-condizione').value = comic.condizione || '3';
             document.getElementById('edit-valore').value = comic.valore || 0;
             document.getElementById('edit-immagine_url').value = comic.immagine_url || '';
             document.getElementById('edit-preview').src = comic.immagine_url || '';
 
-            const { data: allSeries } = await window.supabaseClient.from('serie').select('id, nome, collana(nome)').order('nome');
-            document.getElementById('edit-serie_id').innerHTML = (allSeries || []).map(s => `<option value="${s.id}" ${s.id === comic.serie_id ? 'selected' : ''}>${s.nome} ${s.collana?.nome ? '('+s.collana.nome+')' : ''}</option>`).join('');
+            const { data: allSeries } = await window.supabaseClient.from('serie').select('id, nome').order('nome');
+            document.getElementById('edit-serie_id').innerHTML = (allSeries || []).map(s => `<option value="${s.id}" ${s.id === comic.serie_id ? 'selected' : ''}>${s.nome}</option>`).join('');
 
             await updateEditoriDropdown(comic.editore_id);
             await updateTestateDropdown(comic.serie_id, comic.testata_id);
             await updateAnnateDropdown(comic.serie_id, comic.annata_id);
+            await updateSupplementiDropdown(comic.supplemento_id);
+
             document.getElementById('edit-modal').classList.remove('hidden');
         }
 
@@ -206,9 +221,9 @@
                 editore_id: document.getElementById('edit-editore_id').value || null,
                 testata_id: document.getElementById('edit-testata_id').value || null,
                 annata_id: document.getElementById('edit-annata_id').value || null,
+                supplemento_id: document.getElementById('edit-supplemento_id').value || null,
                 numero: document.getElementById('edit-numero').value,
                 possesso: document.getElementById('edit-possesso').value,
-                condizione: document.getElementById('edit-condizione').value,
                 valore: document.getElementById('edit-valore').value || 0,
                 immagine_url: document.getElementById('edit-immagine_url').value
             };
@@ -228,9 +243,9 @@
         searchInput.addEventListener('input', async (e) => {
             const term = e.target.value.trim();
             if (term.length < 2) { resultsDiv.classList.add('hidden'); return; }
-            const { data } = await window.supabaseClient.from('serie').select('id, nome, collana(nome), immagine_url').ilike('nome', `%${term}%`).limit(6);
+            const { data } = await window.supabaseClient.from('serie').select('id, nome, immagine_url').ilike('nome', `%${term}%`).limit(6);
             if (data?.length > 0) {
-                resultsDiv.innerHTML = data.map(serie => `<div onclick="selectSerie('${serie.id}', '${serie.nome}')" class="flex items-center p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700 last:border-0"><img src="${serie.immagine_url || ''}" class="w-10 h-10 object-cover rounded mr-3"><span class="font-semibold text-sm">${serie.nome}</span></div>`).join('');
+                resultsDiv.innerHTML = data.map(serie => `<div onclick="selectSerie('${serie.id}', '${serie.nome}')" class="flex items-center p-3 hover:bg-slate-700 cursor-pointer"><img src="${serie.immagine_url || ''}" class="w-10 h-10 object-cover rounded mr-3"><span>${serie.nome}</span></div>`).join('');
                 resultsDiv.classList.remove('hidden');
             } else resultsDiv.classList.add('hidden');
         });
@@ -259,15 +274,14 @@
             grid.innerHTML = (items || []).map(comic => {
                 const isOwned = comic.possesso === 'celo';
                 const comicData = encodeURIComponent(JSON.stringify(comic));
-                return `<div class="comic-card group bg-slate-800 rounded-xl overflow-hidden border ${isOwned ? 'border-slate-700 shadow-xl' : 'border-slate-800 opacity-80'} transition-all relative">
-                    <button onclick="openEditModal('${comicData}')" class="absolute top-2 right-2 z-40 bg-yellow-500 text-slate-900 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">✏️</button>
-                    <div class="relative h-72 bg-slate-950 overflow-hidden">
-                        <img src="${comic.immagine_url || ''}" class="comic-image w-full h-full object-cover ${isOwned ? '' : 'grayscale opacity-40'}">
-                        ${parseFloat(comic.valore) > 0 ? `<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-900 to-transparent p-4"><span class="text-yellow-500 font-mono text-sm font-bold">€ ${parseFloat(comic.valore).toFixed(2)}</span></div>` : ''}
+                return `<div class="comic-card group bg-slate-800 rounded-xl overflow-hidden border ${isOwned ? 'border-slate-700' : 'border-slate-800 opacity-80'} relative">
+                    <button onclick="openEditModal('${comicData}')" class="absolute top-2 right-2 z-40 bg-yellow-500 text-slate-900 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">✏️</button>
+                    <div class="h-72 bg-slate-950 overflow-hidden">
+                        <img src="${comic.immagine_url || ''}" class="w-full h-full object-cover ${isOwned ? '' : 'grayscale opacity-40'}">
                     </div>
                     <div class="p-4">
-                        <p class="text-[10px] text-yellow-500 font-bold uppercase truncate mb-1">${fallbackSerie || (comic.serie?.nome || 'Serie')}</p>
-                        <h4 class="font-bold text-lg truncate">${comic.annata?.nome ? comic.annata.nome+' ' : ''}#${comic.numero || '?'} ${comic.nome || ''}</h4>
+                        <p class="text-[10px] text-yellow-500 font-bold truncate">${fallbackSerie || comic.serie?.nome}</p>
+                        <h4 class="font-bold truncate">${comic.annata?.nome || ''} #${comic.numero || '?'}</h4>
                         <div class="mt-4 flex items-center justify-between border-t border-slate-700 pt-3">
                             ${getStarsHTML(comic.condizione)}
                             <span class="text-[9px] text-slate-500 font-bold">${comic.tipo_pubblicazione?.nome || ''}</span>
@@ -278,7 +292,6 @@
         }
 
         loadRecent();
-        document.addEventListener('click', (e) => { if (!searchInput.contains(e.target)) resultsDiv.classList.add('hidden'); });
     </script>
 </body>
 </html>
