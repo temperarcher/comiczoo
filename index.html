@@ -64,20 +64,22 @@
                 
                 <div>
                     <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Serie</label>
-                    <select id="edit-serie_id" onchange="handleSerieChange(this.value)" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-yellow-500 outline-none focus:ring-1 focus:ring-yellow-500">
-                    </select>
+                    <select id="edit-serie_id" onchange="handleSerieChange(this.value)" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-yellow-500 outline-none focus:ring-1 focus:ring-yellow-500"></select>
                 </div>
 
                 <div>
                     <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Testata</label>
-                    <select id="edit-testata_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500">
-                    </select>
+                    <select id="edit-testata_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500"></select>
                 </div>
 
                 <div>
                     <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Annata</label>
-                    <select id="edit-annata_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500">
-                    </select>
+                    <select id="edit-annata_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500"></select>
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Numero</label>
+                    <input type="text" id="edit-numero" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500" placeholder="Esempio: 1, 100, Speciale 1...">
                 </div>
 
                 <div class="pt-4 flex gap-3">
@@ -140,8 +142,8 @@
         async function openEditModal(comicJson) {
             const comic = JSON.parse(decodeURIComponent(comicJson));
             document.getElementById('edit-id').value = comic.id;
+            document.getElementById('edit-numero').value = comic.numero || '';
             
-            // Popola Serie
             const serieSelect = document.getElementById('edit-serie_id');
             serieSelect.innerHTML = '<option>Caricamento...</option>';
             const { data: allSeries } = await window.supabaseClient.from('serie').select('id, nome, collana(nome)').order('nome');
@@ -150,7 +152,6 @@
                 return `<option value="${s.id}" ${s.id === comic.serie_id ? 'selected' : ''}>${label}</option>`;
             }).join('');
 
-            // Popola Testate e Annate in base alla serie dell'albo
             await updateTestateDropdown(comic.serie_id, comic.testata_id);
             await updateAnnateDropdown(comic.serie_id, comic.annata_id);
 
@@ -165,7 +166,8 @@
             const payload = {
                 serie_id: document.getElementById('edit-serie_id').value,
                 testata_id: document.getElementById('edit-testata_id').value || null,
-                annata_id: document.getElementById('edit-annata_id').value || null
+                annata_id: document.getElementById('edit-annata_id').value || null,
+                numero: document.getElementById('edit-numero').value
             };
 
             const { error } = await window.supabaseClient.from('issue').update(payload).eq('id', id);
@@ -202,8 +204,6 @@
             searchInput.value = fullSerieNome; resultsDiv.classList.add('hidden');
             viewTitle.innerText = fullSerieNome;
             viewSubtitle.innerText = `Filtro: ${currentFilter.toUpperCase()}`;
-            
-            // Logica V1 per caricamento record
             let query = window.supabaseClient.from('issue').select(FULL_QUERY).eq('serie_id', serieId);
             if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
             const { data } = await query.order('numero', { ascending: true });
