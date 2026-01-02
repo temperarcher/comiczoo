@@ -73,8 +73,10 @@
                 </div>
 
                 <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Numero</label>
-                    <input type="text" id="edit-numero" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Editore</label>
+                    <select id="edit-editore_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500">
+                        <option value="">Seleziona Serie...</option>
+                    </select>
                 </div>
 
                 <div>
@@ -85,6 +87,11 @@
                 <div>
                     <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Annata</label>
                     <select id="edit-annata_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500"></select>
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Numero</label>
+                    <input type="text" id="edit-numero" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500">
                 </div>
 
                 <div>
@@ -107,11 +114,6 @@
                 </div>
 
                 <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Data Pubblicazione</label>
-                    <input type="date" id="edit-data_pubblicazione" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500">
-                </div>
-
-                <div>
                     <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Valore (€)</label>
                     <input type="number" step="0.01" id="edit-valore" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500">
                 </div>
@@ -125,10 +127,10 @@
     </div>
 
     <script>
+        // --- CONFIG & V1 CORE ---
         const searchInput = document.getElementById('serie-search');
         const resultsDiv = document.getElementById('serie-results');
         const viewTitle = document.getElementById('view-title');
-        const viewSubtitle = document.getElementById('view-subtitle');
         const grid = document.getElementById('comic-grid');
         const statsCount = document.getElementById('stats-count');
 
@@ -150,10 +152,20 @@
             return `<div class="flex gap-0.5">${starsHTML}</div>`;
         }
 
-        // --- FUNZIONI MODALE ---
+        // --- FUNZIONI MODALE (DINAMICITÀ & EDITORE) ---
         async function handleSerieChange(serieId) {
             await updateTestateDropdown(serieId);
             await updateAnnateDropdown(serieId);
+            await updateEditoriDropdown(serieId);
+        }
+
+        async function updateEditoriDropdown(serieId, selectedId = null) {
+            const select = document.getElementById('edit-editore_id');
+            select.innerHTML = '<option value="">Caricamento...</option>';
+            if (!serieId) return;
+            // Recuperiamo gli editori collegati alla serie
+            const { data } = await window.supabaseClient.from('editore').select('id, nome').eq('serie_id', serieId).order('nome');
+            select.innerHTML = '<option value="">Nessun Editore</option>' + (data || []).map(e => `<option value="${e.id}" ${e.id === selectedId ? 'selected' : ''}>${e.nome}</option>`).join('');
         }
 
         async function updateTestateDropdown(serieId, selectedId = null) {
@@ -179,7 +191,6 @@
             document.getElementById('edit-numero').value = comic.numero || '';
             document.getElementById('edit-possesso').value = comic.possesso || 'manca';
             document.getElementById('edit-condizione').value = comic.condizione || '3';
-            document.getElementById('edit-data_pubblicazione').value = comic.data_pubblicazione || '';
             document.getElementById('edit-valore').value = comic.valore || 0;
             
             const serieSelect = document.getElementById('edit-serie_id');
@@ -190,6 +201,7 @@
                 return `<option value="${s.id}" ${s.id === comic.serie_id ? 'selected' : ''}>${label}</option>`;
             }).join('');
 
+            await updateEditoriDropdown(comic.serie_id, comic.editore_id);
             await updateTestateDropdown(comic.serie_id, comic.testata_id);
             await updateAnnateDropdown(comic.serie_id, comic.annata_id);
 
@@ -204,15 +216,14 @@
             const payload = {
                 nome: document.getElementById('edit-nome').value,
                 serie_id: document.getElementById('edit-serie_id').value,
+                editore_id: document.getElementById('edit-editore_id').value || null,
                 testata_id: document.getElementById('edit-testata_id').value || null,
                 annata_id: document.getElementById('edit-annata_id').value || null,
                 numero: document.getElementById('edit-numero').value,
                 possesso: document.getElementById('edit-possesso').value,
                 condizione: document.getElementById('edit-condizione').value,
-                data_pubblicazione: document.getElementById('edit-data_pubblicazione').value || null,
                 valore: document.getElementById('edit-valore').value || 0
             };
-
             const { error } = await window.supabaseClient.from('issue').update(payload).eq('id', id);
             if (error) alert("Errore: " + error.message);
             else { closeModal(); if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome); else loadRecent(); }
@@ -245,8 +256,8 @@
         async function selectSerie(serieId, fullSerieNome) {
             currentSerieId = serieId; currentSerieFullNome = fullSerieNome;
             searchInput.value = fullSerieNome; resultsDiv.classList.add('hidden');
-            viewTitle.innerText = fullSerieNome;
-            viewSubtitle.innerText = `Filtro: ${currentFilter.toUpperCase()}`;
+            document.getElementById('view-title').innerText = fullSerieNome;
+            document.getElementById('view-subtitle').innerText = `Filtro: ${currentFilter.toUpperCase()}`;
             let query = window.supabaseClient.from('issue').select(FULL_QUERY).eq('serie_id', serieId);
             if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
             const { data } = await query.order('numero', { ascending: true });
@@ -255,8 +266,8 @@
 
         async function loadRecent() {
             currentSerieId = null;
-            viewTitle.innerText = "Ultimi Arrivi";
-            viewSubtitle.innerText = `Filtro: ${currentFilter.toUpperCase()}`;
+            document.getElementById('view-title').innerText = "Ultimi Arrivi";
+            document.getElementById('view-subtitle').innerText = `Filtro: ${currentFilter.toUpperCase()}`;
             let query = window.supabaseClient.from('issue').select(FULL_QUERY);
             if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
             const { data } = await query.order('created_at', { ascending: false }).limit(20);
