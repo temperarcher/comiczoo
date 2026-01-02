@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comic Archive Pro - V2.3</title>
+    <title>Comic Archive Pro - V2.4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
@@ -56,7 +56,7 @@
 
     <footer class="bg-slate-800 border-t border-slate-700 p-4 mt-8">
         <div class="container mx-auto text-center text-slate-500 text-[10px] font-bold uppercase tracking-widest">
-            versione 2.3 - aggiunta condizione null
+            versione 2.4 - aggiunta campo data pubblicazione
         </div>
     </footer>
 
@@ -109,6 +109,11 @@
                     <div>
                         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Annata</label>
                         <select id="edit-annata_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Data Pubblicazione</label>
+                        <input type="date" id="edit-data_pubblicazione" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none">
                     </div>
 
                     <div>
@@ -244,6 +249,7 @@
             document.getElementById('edit-form').reset();
             document.getElementById('edit-id').value = "";
             document.getElementById('edit-condizione').value = "";
+            document.getElementById('edit-data_pubblicazione').value = "";
             document.getElementById('edit-preview').src = placeholderImg;
             document.getElementById('modal-title').innerText = "Aggiungi Nuovo Albo";
             document.getElementById('edit-modal').classList.remove('hidden');
@@ -258,6 +264,7 @@
             document.getElementById('edit-numero').value = comic.numero || '';
             document.getElementById('edit-possesso').value = comic.possesso || 'manca';
             document.getElementById('edit-condizione').value = comic.condizione !== null ? comic.condizione : "";
+            document.getElementById('edit-data_pubblicazione').value = comic.data_pubblicazione || '';
             document.getElementById('edit-valore').value = comic.valore || 0;
             document.getElementById('edit-immagine_url').value = comic.immagine_url || '';
             document.getElementById('edit-preview').src = comic.immagine_url || placeholderImg;
@@ -319,6 +326,7 @@
                 numero: document.getElementById('edit-numero').value,
                 possesso: document.getElementById('edit-possesso').value,
                 condizione: condizioneVal === "" ? null : condizioneVal,
+                data_pubblicazione: document.getElementById('edit-data_pubblicazione').value || null,
                 valore: document.getElementById('edit-valore').value || 0,
                 immagine_url: document.getElementById('edit-immagine_url').value
             };
