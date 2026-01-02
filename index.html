@@ -74,7 +74,7 @@
                 <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="md:col-span-2">
                         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">URL Immagine</label>
-                        <input type="text" id="edit-immagine_url" oninput="document.getElementById('edit-preview').src = this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm text-blue-400 outline-none">
+                        <input type="text" id="edit-immagine_url" oninput="document.getElementById('edit-preview').src = this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm text-blue-400 outline-none focus:ring-1 focus:ring-yellow-500">
                     </div>
 
                     <div class="md:col-span-2">
@@ -160,6 +160,12 @@
                     <input type="text" id="new-serie-nome" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500">
                 </div>
                 <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Collana</label>
+                    <select id="new-serie-collana" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none">
+                        <option value="">Caricamento...</option>
+                    </select>
+                </div>
+                <div>
                     <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">URL Immagine</label>
                     <input type="text" id="new-serie-immagine" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm text-blue-400 outline-none">
                 </div>
@@ -172,7 +178,7 @@
     </div>
 
     <script>
-        // CONFIG & STATE (V2)
+        // CONFIG & STATE
         const searchInput = document.getElementById('serie-search');
         const resultsDiv = document.getElementById('serie-results');
         const grid = document.getElementById('comic-grid');
@@ -192,31 +198,38 @@
             return `<div class="flex gap-0.5">${starsHTML}</div>`;
         }
 
-        // LOGICA MODALE SERIE (V2.1)
-        function openSerieModal() {
+        // LOGICA MODALE SERIE (V2.1 CON COLLANA)
+        async function openSerieModal() {
             document.getElementById('serie-form').reset();
             document.getElementById('serie-modal').classList.remove('hidden');
+            
+            // Carica collane esistenti
+            const { data: collane } = await window.supabaseClient.from('collana').select('id, nome').order('nome');
+            const select = document.getElementById('new-serie-collana');
+            select.innerHTML = '<option value="">Nessuna Collana</option>' + 
+                (collane || []).map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
         }
+
         function closeSerieModal() { document.getElementById('serie-modal').classList.add('hidden'); }
 
         document.getElementById('serie-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const payload = {
                 nome: document.getElementById('new-serie-nome').value,
+                collana_id: document.getElementById('new-serie-collana').value || null,
                 immagine_url: document.getElementById('new-serie-immagine').value || null
             };
             const { data, error } = await window.supabaseClient.from('serie').insert([payload]).select();
             if (error) alert(error.message);
             else {
                 closeSerieModal();
-                // Se il modale albo è aperto, aggiorna la lista serie e seleziona la nuova
                 if (!document.getElementById('edit-modal').classList.contains('hidden')) {
                     await populateDropdowns({ serie_id: data[0].id });
                 }
             }
         });
 
-        // LOGICA MODALE ALBO (V2)
+        // LOGICA MODALE ALBO
         async function openAddModal() {
             document.getElementById('edit-form').reset();
             document.getElementById('edit-id').value = "";
@@ -303,7 +316,7 @@
             else { closeModal(); if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome); else loadRecent(); }
         });
 
-        // VISUALIZZAZIONE E FILTRI (V2)
+        // VISUALIZZAZIONE E FILTRI
         function setFilter(filter) {
             currentFilter = filter;
             document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
