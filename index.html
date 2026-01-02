@@ -54,17 +54,27 @@
     </main>
 
     <div id="edit-modal" class="hidden fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden">
             <div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800">
                 <h3 class="text-xl font-bold text-yellow-500 uppercase italic">Modifica Albo</h3>
                 <button onclick="closeModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
             </div>
-            <form id="edit-form" class="p-6 space-y-4">
+            <form id="edit-form" class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input type="hidden" id="edit-id">
                 
+                <div class="md:col-span-2">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Titolo Albo</label>
+                    <input type="text" id="edit-nome" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500">
+                </div>
+
                 <div>
                     <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Serie</label>
                     <select id="edit-serie_id" onchange="handleSerieChange(this.value)" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-yellow-500 outline-none focus:ring-1 focus:ring-yellow-500"></select>
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Numero</label>
+                    <input type="text" id="edit-numero" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500">
                 </div>
 
                 <div>
@@ -78,11 +88,35 @@
                 </div>
 
                 <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Numero</label>
-                    <input type="text" id="edit-numero" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500" placeholder="Esempio: 1, 100, Speciale 1...">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Possesso</label>
+                    <select id="edit-possesso" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500">
+                        <option value="celo">Celo</option>
+                        <option value="manca">Manca</option>
+                    </select>
                 </div>
 
-                <div class="pt-4 flex gap-3">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Condizione (1-5)</label>
+                    <select id="edit-condizione" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500">
+                        <option value="1">1 Stella</option>
+                        <option value="2">2 Stelle</option>
+                        <option value="3">3 Stelle</option>
+                        <option value="4">4 Stelle</option>
+                        <option value="5">5 Stelle</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Data Pubblicazione</label>
+                    <input type="date" id="edit-data_pubblicazione" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500">
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Valore (€)</label>
+                    <input type="number" step="0.01" id="edit-valore" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500">
+                </div>
+
+                <div class="md:col-span-2 pt-4 flex gap-3">
                     <button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all">Salva</button>
                     <button type="button" onclick="closeModal()" class="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl uppercase tracking-widest hover:bg-slate-600 transition-all">Annulla</button>
                 </div>
@@ -117,7 +151,6 @@
         }
 
         // --- FUNZIONI MODALE ---
-
         async function handleSerieChange(serieId) {
             await updateTestateDropdown(serieId);
             await updateAnnateDropdown(serieId);
@@ -142,7 +175,12 @@
         async function openEditModal(comicJson) {
             const comic = JSON.parse(decodeURIComponent(comicJson));
             document.getElementById('edit-id').value = comic.id;
+            document.getElementById('edit-nome').value = comic.nome || '';
             document.getElementById('edit-numero').value = comic.numero || '';
+            document.getElementById('edit-possesso').value = comic.possesso || 'manca';
+            document.getElementById('edit-condizione').value = comic.condizione || '3';
+            document.getElementById('edit-data_pubblicazione').value = comic.data_pubblicazione || '';
+            document.getElementById('edit-valore').value = comic.valore || 0;
             
             const serieSelect = document.getElementById('edit-serie_id');
             serieSelect.innerHTML = '<option>Caricamento...</option>';
@@ -164,10 +202,15 @@
             e.preventDefault();
             const id = document.getElementById('edit-id').value;
             const payload = {
+                nome: document.getElementById('edit-nome').value,
                 serie_id: document.getElementById('edit-serie_id').value,
                 testata_id: document.getElementById('edit-testata_id').value || null,
                 annata_id: document.getElementById('edit-annata_id').value || null,
-                numero: document.getElementById('edit-numero').value
+                numero: document.getElementById('edit-numero').value,
+                possesso: document.getElementById('edit-possesso').value,
+                condizione: document.getElementById('edit-condizione').value,
+                data_pubblicazione: document.getElementById('edit-data_pubblicazione').value || null,
+                valore: document.getElementById('edit-valore').value || 0
             };
 
             const { error } = await window.supabaseClient.from('issue').update(payload).eq('id', id);
