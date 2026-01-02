@@ -16,7 +16,7 @@
         input, select { color-scheme: dark; }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col">
 
     <header class="bg-slate-800 border-b border-slate-700 p-6 sticky top-0 z-50 shadow-2xl">
         <div class="container mx-auto flex flex-col lg:flex-row justify-between items-center gap-6">
@@ -43,7 +43,7 @@
         </div>
     </header>
 
-    <main class="container mx-auto p-6">
+    <main class="container mx-auto p-6 flex-grow">
         <div class="mb-8 border-l-4 border-yellow-500 pl-4 flex justify-between items-end">
             <div>
                 <h2 id="view-title" class="text-2xl font-bold uppercase tracking-tight text-white">Caricamento...</h2>
@@ -53,6 +53,12 @@
         </div>
         <div id="comic-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8"></div>
     </main>
+
+    <footer class="bg-slate-800 border-t border-slate-700 p-4 mt-8">
+        <div class="container mx-auto text-center text-slate-500 text-[10px] font-bold uppercase tracking-widest">
+            versione 2.1 - 
+        </div>
+    </footer>
 
     <div id="edit-modal" class="hidden fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden max-h-[95vh] flex flex-col">
@@ -140,7 +146,7 @@
                     </div>
 
                     <div class="md:col-span-2 pt-4 flex gap-3">
-                        <button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all">Salva Dati</button>
+                        <button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all">Salva Dati D'albo</button>
                         <button type="button" onclick="closeModal()" class="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl uppercase tracking-widest hover:bg-slate-600 transition-all">Chiudi</button>
                     </div>
                 </div>
