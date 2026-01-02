@@ -74,9 +74,7 @@
 
                 <div>
                     <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Editore</label>
-                    <select id="edit-editore_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500">
-                        <option value="">Seleziona Serie...</option>
-                    </select>
+                    <select id="edit-editore_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500"></select>
                 </div>
 
                 <div>
@@ -127,10 +125,8 @@
     </div>
 
     <script>
-        // --- CONFIG & V1 CORE ---
         const searchInput = document.getElementById('serie-search');
         const resultsDiv = document.getElementById('serie-results');
-        const viewTitle = document.getElementById('view-title');
         const grid = document.getElementById('comic-grid');
         const statsCount = document.getElementById('stats-count');
 
@@ -152,19 +148,17 @@
             return `<div class="flex gap-0.5">${starsHTML}</div>`;
         }
 
-        // --- FUNZIONI MODALE (DINAMICITÀ & EDITORE) ---
+        // --- FUNZIONI MODALE ---
+
         async function handleSerieChange(serieId) {
             await updateTestateDropdown(serieId);
             await updateAnnateDropdown(serieId);
-            await updateEditoriDropdown(serieId);
         }
 
-        async function updateEditoriDropdown(serieId, selectedId = null) {
+        async function updateEditoriDropdown(selectedId = null) {
             const select = document.getElementById('edit-editore_id');
             select.innerHTML = '<option value="">Caricamento...</option>';
-            if (!serieId) return;
-            // Recuperiamo gli editori collegati alla serie
-            const { data } = await window.supabaseClient.from('editore').select('id, nome').eq('serie_id', serieId).order('nome');
+            const { data } = await window.supabaseClient.from('editore').select('id, nome').order('nome');
             select.innerHTML = '<option value="">Nessun Editore</option>' + (data || []).map(e => `<option value="${e.id}" ${e.id === selectedId ? 'selected' : ''}>${e.nome}</option>`).join('');
         }
 
@@ -193,15 +187,16 @@
             document.getElementById('edit-condizione').value = comic.condizione || '3';
             document.getElementById('edit-valore').value = comic.valore || 0;
             
-            const serieSelect = document.getElementById('edit-serie_id');
-            serieSelect.innerHTML = '<option>Caricamento...</option>';
+            // Popolamento Serie
             const { data: allSeries } = await window.supabaseClient.from('serie').select('id, nome, collana(nome)').order('nome');
+            const serieSelect = document.getElementById('edit-serie_id');
             serieSelect.innerHTML = (allSeries || []).map(s => {
                 const label = s.collana?.nome ? `${s.nome} (${s.collana.nome})` : s.nome;
                 return `<option value="${s.id}" ${s.id === comic.serie_id ? 'selected' : ''}>${label}</option>`;
             }).join('');
 
-            await updateEditoriDropdown(comic.serie_id, comic.editore_id);
+            // Caricamento Editori (ID da Issue) e dipendenze Serie
+            await updateEditoriDropdown(comic.editore_id);
             await updateTestateDropdown(comic.serie_id, comic.testata_id);
             await updateAnnateDropdown(comic.serie_id, comic.annata_id);
 
