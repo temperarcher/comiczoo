@@ -67,7 +67,7 @@
                 <div class="w-full md:w-48 shrink-0">
                     <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Anteprima</label>
                     <div class="aspect-[2/3] bg-slate-900 rounded-lg border border-slate-700 overflow-hidden shadow-inner mb-4">
-                        <img id="edit-preview" src="" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/300x450?text=No+Image'">
+                        <img id="edit-preview" src="" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/300x450/1e293b/fbbf24?text=No+Cover'">
                     </div>
                 </div>
 
@@ -135,11 +135,12 @@
     </div>
 
     <script>
-        // CORE V1
+        // CORE V1 (CONSOLIDATO)
         const searchInput = document.getElementById('serie-search');
         const resultsDiv = document.getElementById('serie-results');
         const grid = document.getElementById('comic-grid');
         const statsCount = document.getElementById('stats-count');
+        const placeholderImg = 'https://placehold.co/300x450/1e293b/fbbf24?text=No+Cover';
         let currentFilter = 'all'; 
         let currentSerieId = null;
         let currentSerieFullNome = ""; 
@@ -153,15 +154,15 @@
             return `<div class="flex gap-0.5">${starsHTML}</div>`;
         }
 
-        // LOGICA MODALE (UNIFICATA ADD/EDIT)
+        // LOGICA MODALE (OTTIMIZZATA)
         async function openAddModal() {
             document.getElementById('edit-form').reset();
             document.getElementById('edit-id').value = "";
-            document.getElementById('edit-preview').src = "";
+            document.getElementById('edit-preview').src = placeholderImg;
             document.getElementById('modal-title').innerText = "Aggiungi Nuovo Albo";
             
-            await populateDropdowns(null);
             document.getElementById('edit-modal').classList.remove('hidden');
+            await populateDropdowns(null);
         }
 
         async function openEditModal(comicJson) {
@@ -173,19 +174,17 @@
             document.getElementById('edit-possesso').value = comic.possesso || 'manca';
             document.getElementById('edit-valore').value = comic.valore || 0;
             document.getElementById('edit-immagine_url').value = comic.immagine_url || '';
-            document.getElementById('edit-preview').src = comic.immagine_url || '';
+            document.getElementById('edit-preview').src = comic.immagine_url || placeholderImg;
 
-            await populateDropdowns(comic);
             document.getElementById('edit-modal').classList.remove('hidden');
+            await populateDropdowns(comic);
         }
 
         async function populateDropdowns(comic) {
-            // Serie
             const { data: allSeries } = await window.supabaseClient.from('serie').select('id, nome').order('nome');
             document.getElementById('edit-serie_id').innerHTML = '<option value="">Seleziona Serie...</option>' + 
                 (allSeries || []).map(s => `<option value="${s.id}" ${comic?.serie_id === s.id ? 'selected' : ''}>${s.nome}</option>`).join('');
 
-            // Editori, Testate, Annate, Supplementi
             await updateEditoriDropdown(comic?.editore_id);
             await updateSupplementiDropdown(comic?.supplemento_id);
             if (comic?.serie_id) {
@@ -245,7 +244,7 @@
             else { closeModal(); if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome); else loadRecent(); }
         });
 
-        // REPLICA LOGICA V1 VISUALIZZAZIONE
+        // REPLICA LOGICA V1 VISUALIZZAZIONE (CORRETTA PER VELOCITÀ)
         function setFilter(filter) {
             currentFilter = filter;
             document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
@@ -258,7 +257,7 @@
             if (term.length < 2) { resultsDiv.classList.add('hidden'); return; }
             const { data } = await window.supabaseClient.from('serie').select('id, nome, immagine_url').ilike('nome', `%${term}%`).limit(6);
             if (data?.length > 0) {
-                resultsDiv.innerHTML = data.map(serie => `<div onclick="selectSerie('${serie.id}', '${serie.nome}')" class="flex items-center p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700 last:border-0"><img src="${serie.immagine_url || ''}" class="w-10 h-10 object-cover rounded mr-3 bg-slate-700"><span class="font-semibold text-sm text-slate-100">${serie.nome}</span></div>`).join('');
+                resultsDiv.innerHTML = data.map(serie => `<div onclick="selectSerie('${serie.id}', '${serie.nome}')" class="flex items-center p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700 last:border-0"><img src="${serie.immagine_url || placeholderImg}" class="w-10 h-10 object-cover rounded mr-3 bg-slate-700"><span class="font-semibold text-sm text-slate-100">${serie.nome}</span></div>`).join('');
                 resultsDiv.classList.remove('hidden');
             } else resultsDiv.classList.add('hidden');
         });
@@ -287,10 +286,12 @@
             grid.innerHTML = (items || []).map(comic => {
                 const isOwned = comic.possesso === 'celo';
                 const comicData = encodeURIComponent(JSON.stringify(comic));
+                const currentImg = comic.immagine_url || placeholderImg;
+
                 return `<div class="comic-card group bg-slate-800 rounded-xl overflow-hidden border ${isOwned ? 'border-slate-700 shadow-xl' : 'border-slate-800 opacity-80'} transition-all relative">
                     <button onclick="openEditModal('${comicData}')" class="absolute top-2 right-2 z-40 bg-yellow-500 text-slate-900 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">✏️</button>
                     <div class="relative h-72 bg-slate-950 overflow-hidden">
-                        <img src="${comic.immagine_url || ''}" class="comic-image w-full h-full object-cover ${isOwned ? '' : 'grayscale opacity-40'}">
+                        <img src="${currentImg}" class="comic-image w-full h-full object-cover ${isOwned ? '' : 'grayscale opacity-40'}">
                         ${parseFloat(comic.valore) > 0 ? `<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-900 to-transparent p-4"><span class="text-yellow-500 font-mono text-sm font-bold">€ ${parseFloat(comic.valore).toFixed(2)}</span></div>` : ''}
                     </div>
                     <div class="p-4">
