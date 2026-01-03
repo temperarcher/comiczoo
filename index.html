@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comic Archive Pro - V2.6</title>
+    <title>Comic Archive Pro - V2.7</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
@@ -56,7 +56,7 @@
 
     <footer class="bg-slate-800 border-t border-slate-700 p-4 mt-8">
         <div class="container mx-auto text-center text-slate-500 text-[10px] font-bold uppercase tracking-widest">
-            versione 2.6 - anteprima serie orizzontale
+            versione 2.7 - modale con collana
         </div>
     </footer>
 
@@ -94,6 +94,11 @@
                             <button type="button" onclick="openSerieModal()" class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded hover:bg-yellow-500/20 transition-all font-bold">+ NUOVA</button>
                         </div>
                         <select id="edit-serie_id" onchange="handleSerieChange(this.value)" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-yellow-500 outline-none"></select>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Collana</label>
+                        <select id="edit-collana_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none" disabled></select>
                     </div>
 
                     <div>
@@ -279,7 +284,7 @@
         }
 
         async function populateDropdowns(comic) {
-            const { data: allSeries } = await window.supabaseClient.from('serie').select('id, nome').order('nome');
+            const { data: allSeries } = await window.supabaseClient.from('serie').select('id, nome, collana_id').order('nome');
             document.getElementById('edit-serie_id').innerHTML = '<option value="">Seleziona Serie...</option>' + 
                 (allSeries || []).map(s => `<option value="${s.id}" ${comic?.serie_id === s.id ? 'selected' : ''}>${s.nome}</option>`).join('');
 
@@ -288,12 +293,26 @@
             if (comic?.serie_id) {
                 await updateTestateDropdown(comic.serie_id, comic.testata_id);
                 await updateAnnateDropdown(comic.serie_id, comic.annata_id);
+                await updateCollanaView(comic.serie_id);
+            } else {
+                document.getElementById('edit-collana_id').innerHTML = '<option value="">-</option>';
             }
         }
 
         async function handleSerieChange(serieId) {
             await updateTestateDropdown(serieId);
             await updateAnnateDropdown(serieId);
+            await updateCollanaView(serieId);
+        }
+
+        async function updateCollanaView(serieId) {
+            const { data } = await window.supabaseClient.from('serie').select('collana(id, nome)').eq('id', serieId).single();
+            const collanaSelect = document.getElementById('edit-collana_id');
+            if (data?.collana) {
+                collanaSelect.innerHTML = `<option value="${data.collana.id}">${data.collana.nome}</option>`;
+            } else {
+                collanaSelect.innerHTML = '<option value="">Nessuna Collana</option>';
+            }
         }
 
         async function updateEditoriDropdown(selectedId = null) {
