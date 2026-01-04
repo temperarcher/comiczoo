@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comic Archive Pro - V4.5</title>
+    <title>Comic Archive Pro - V4.6</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
@@ -66,7 +66,7 @@
 
     <footer class="bg-slate-800 border-t border-slate-700 p-4 mt-8">
         <div class="container mx-auto text-center text-slate-500 text-[10px] font-bold uppercase tracking-widest">
-            versione 4.5 - edit+nuovo testata
+            versione 4.6 - campo pubblicazione
         </div>
     </footer>
 
@@ -145,6 +145,11 @@
                     <div>
                         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Annata</label>
                         <select id="edit-annata_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Periodicità</label>
+                        <select id="edit-tipo_pubblicazione_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select>
                     </div>
 
                     <div>
@@ -373,7 +378,7 @@
             }
         }
 
-        // --- GESTIONE TESTATA (V4.5) ---
+        // --- GESTIONE TESTATA ---
         async function openTestataModal() {
             document.getElementById('testata-form').reset();
             document.getElementById('testata-id').value = "";
@@ -658,6 +663,8 @@
 
             await updateEditoriDropdown(comic?.editore_id);
             await updateSupplementiDropdown(comic?.supplemento_id);
+            await updateTipoPubblicazioneDropdown(comic?.tipo_pubblicazione_id);
+            
             if (comic?.serie_id) {
                 await updateTestateDropdown(comic.serie_id, comic.testata_id);
                 await updateAnnateDropdown(comic.serie_id, comic.annata_id);
@@ -708,6 +715,12 @@
             document.getElementById('edit-annata_id').innerHTML = '<option value="">Nessuna Annata</option>' + (data || []).map(a => `<option value="${a.id}" ${a.id == selectedId ? 'selected' : ''}>${a.nome}</option>`).join('');
         }
 
+        async function updateTipoPubblicazioneDropdown(selectedId = null) {
+            const { data } = await window.supabaseClient.from('tipo_pubblicazione').select('id, nome').order('nome');
+            const select = document.getElementById('edit-tipo_pubblicazione_id');
+            select.innerHTML = '<option value="">Nessuna</option>' + (data || []).map(tp => `<option value="${tp.id}" ${tp.id == selectedId ? 'selected' : ''}>${tp.nome}</option>`).join('');
+        }
+
         async function updateSupplementiDropdown(selectedId = null) {
             const { data } = await window.supabaseClient.from('issue').select('id, numero, data_pubblicazione, serie(nome)').order('numero').limit(200);
             document.getElementById('edit-supplemento_id').innerHTML = '<option value="">Nessuno</option>' + (data || []).map(i => {
@@ -727,6 +740,7 @@
                 editore_id: document.getElementById('edit-editore_id').value || null,
                 testata_id: document.getElementById('edit-testata_id').value || null,
                 annata_id: document.getElementById('edit-annata_id').value || null,
+                tipo_pubblicazione_id: document.getElementById('edit-tipo_pubblicazione_id').value || null,
                 supplemento_id: document.getElementById('edit-supplemento_id').value || null,
                 numero: document.getElementById('edit-numero').value,
                 possesso: document.getElementById('edit-possesso').value,
