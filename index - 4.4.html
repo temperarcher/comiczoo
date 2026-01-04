@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comic Archive Pro - V4.3</title>
+    <title>Comic Archive Pro - V4.4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
@@ -66,7 +66,7 @@
 
     <footer class="bg-slate-800 border-t border-slate-700 p-4 mt-8">
         <div class="container mx-auto text-center text-slate-500 text-[10px] font-bold uppercase tracking-widest">
-            versione 4.3 - edit+nuovo editore in issue
+            versione 4.4 - edit+nuovo codice editore
         </div>
     </footer>
 
@@ -161,10 +161,10 @@
                         <select id="edit-condizione" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-yellow-500 outline-none">
                             <option value="">Nessuna (Null)</option>
                             <option value="1">1 Stella (Pessimo)</option>
-                            <option value="2">2 Stella (Mediocre)</option>
-                            <option value="3">3 Stella (Buono)</option>
-                            <option value="4">4 Stella (Ottimo)</option>
-                            <option value="5">5 Stella (Edicola)</option>
+                            <option value="2">2 Stelle (Mediocre)</option>
+                            <option value="3">3 Stelle (Buono)</option>
+                            <option value="4">4 Stelle (Ottimo)</option>
+                            <option value="5">5 Stelle (Edicola)</option>
                         </select>
                     </div>
 
@@ -262,12 +262,38 @@
                     <input type="text" id="editore-nome" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500">
                 </div>
                 <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Codice Editore</label>
-                    <input type="text" id="editore-codice" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500">
+                    <div class="flex justify-between items-center">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Codice Editore</label>
+                        <div class="flex gap-2">
+                            <button type="button" id="btn-edit-codice-editore" onclick="openEditCodiceEditore()" disabled class="text-[9px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded hover:bg-blue-500/20 transition-all font-bold">✏️ EDIT</button>
+                            <button type="button" onclick="openAddCodiceEditore()" class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded hover:bg-yellow-500/20 transition-all font-bold">+ NUOVO</button>
+                        </div>
+                    </div>
+                    <select id="editore-codice-id" onchange="document.getElementById('btn-edit-codice-editore').disabled = !this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500"></select>
                 </div>
                 <div class="pt-4 flex gap-3">
                     <button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all">Salva</button>
                     <button type="button" onclick="closeEditoreModal()" class="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl uppercase tracking-widest hover:bg-slate-600 transition-all">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="codice-editore-modal" class="hidden fixed inset-0 z-[130] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+            <div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800">
+                <h3 id="codice-modal-title" class="text-xl font-bold text-yellow-500 uppercase italic">Gestione Codice</h3>
+                <button onclick="closeCodiceEditoreModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            <form id="codice-editore-form" class="p-6 space-y-4">
+                <input type="hidden" id="codice-id">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Codice Editore</label>
+                    <input type="text" id="codice-nome" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500">
+                </div>
+                <div class="pt-4 flex gap-3">
+                    <button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all">Salva</button>
+                    <button type="button" onclick="closeCodiceEditoreModal()" class="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl uppercase tracking-widest hover:bg-slate-600 transition-all">Annulla</button>
                 </div>
             </form>
         </div>
@@ -315,6 +341,50 @@
                     </div>`;
                 }).join('');
             }
+        }
+
+        // --- GESTIONE CODICE EDITORE (V4.4) ---
+        async function openAddCodiceEditore() {
+            document.getElementById('codice-editore-form').reset();
+            document.getElementById('codice-id').value = "";
+            document.getElementById('codice-modal-title').innerText = "Nuovo Codice";
+            document.getElementById('codice-editore-modal').classList.remove('hidden');
+        }
+
+        async function openEditCodiceEditore() {
+            const id = document.getElementById('editore-codice-id').value;
+            if (!id) return;
+            const { data } = await window.supabaseClient.from('codice_editore').select('id, nome').eq('id', id).single();
+            if (data) {
+                document.getElementById('codice-id').value = data.id;
+                document.getElementById('codice-nome').value = data.nome;
+                document.getElementById('codice-modal-title').innerText = "Modifica Codice";
+                document.getElementById('codice-editore-modal').classList.remove('hidden');
+            }
+        }
+
+        function closeCodiceEditoreModal() { document.getElementById('codice-editore-modal').classList.add('hidden'); }
+
+        document.getElementById('codice-editore-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('codice-id').value;
+            const payload = { nome: document.getElementById('codice-nome').value };
+            const { data, error } = id 
+                ? await window.supabaseClient.from('codice_editore').update(payload).eq('id', id).select()
+                : await window.supabaseClient.from('codice_editore').insert([payload]).select();
+
+            if (error) alert(error.message);
+            else {
+                closeCodiceEditoreModal();
+                await populateCodiciEditoreDropdown(data[0].id);
+            }
+        });
+
+        async function populateCodiciEditoreDropdown(selectedId = null) {
+            const { data } = await window.supabaseClient.from('codice_editore').select('id, nome').order('nome');
+            const select = document.getElementById('editore-codice-id');
+            select.innerHTML = '<option value="">Nessun Codice</option>' + (data || []).map(c => `<option value="${c.id}" ${c.id == selectedId ? 'selected' : ''}>${c.nome}</option>`).join('');
+            document.getElementById('btn-edit-codice-editore').disabled = !select.value;
         }
 
         // --- GESTIONE COLLANA ---
@@ -365,24 +435,25 @@
             }
         });
 
-        // --- GESTIONE EDITORE (V4.3) ---
+        // --- GESTIONE EDITORE ---
         async function openEditoreModal() {
             document.getElementById('editore-form').reset();
             document.getElementById('editore-id').value = "";
             document.getElementById('editore-modal-title').innerText = "Nuovo Editore";
             document.getElementById('editore-modal').classList.remove('hidden');
+            await populateCodiciEditoreDropdown();
         }
 
         async function openEditEditoreFromIssue() {
             const id = document.getElementById('edit-editore_id').value;
             if (!id) return;
-            const { data } = await window.supabaseClient.from('editore').select('id, nome, codice').eq('id', id).single();
+            const { data } = await window.supabaseClient.from('editore').select('id, nome, codice_editore_id').eq('id', id).single();
             if (data) {
                 document.getElementById('editore-id').value = data.id;
                 document.getElementById('editore-nome').value = data.nome;
-                document.getElementById('editore-codice').value = data.codice || "";
                 document.getElementById('editore-modal-title').innerText = "Modifica Editore";
                 document.getElementById('editore-modal').classList.remove('hidden');
+                await populateCodiciEditoreDropdown(data.codice_editore_id);
             }
         }
 
@@ -393,7 +464,7 @@
             const id = document.getElementById('editore-id').value;
             const payload = { 
                 nome: document.getElementById('editore-nome').value,
-                codice: document.getElementById('editore-codice').value || null
+                codice_editore_id: document.getElementById('editore-codice-id').value || null
             };
             const { data, error } = id 
                 ? await window.supabaseClient.from('editore').update(payload).eq('id', id).select()
