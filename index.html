@@ -24,7 +24,7 @@
 
     <header class="bg-slate-800 border-b border-slate-700 p-6 sticky top-0 z-50 shadow-2xl">
         <div class="container mx-auto flex flex-col lg:flex-row justify-between items-center gap-6">
-            <h1 class="text-3xl font-black text-yellow-500 tracking-tighter uppercase italic cursor-pointer select-none shrink-0" onclick="loadRecent()">Comic Archive</h1>
+            <h1 class="text-3xl font-black text-yellow-500 tracking-tighter uppercase italic cursor-pointer select-none shrink-0" onclick="location.reload()">Comic Archive</h1>
             
             <div class="flex flex-col md:flex-row w-full gap-4 items-center">
                 <div class="relative w-full">
@@ -56,19 +56,13 @@
     <main class="container mx-auto p-6 flex-grow">
         <div class="mb-8 border-l-4 border-yellow-500 pl-4 flex justify-between items-end">
             <div>
-                <h2 id="view-title" class="text-2xl font-bold uppercase tracking-tight text-white">Caricamento...</h2>
-                <p id="view-subtitle" class="text-slate-400 text-sm italic"></p>
+                <h2 id="view-title" class="text-2xl font-bold uppercase tracking-tight text-white italic">Ultimi Arrivi</h2>
+                <p id="view-subtitle" class="text-slate-400 text-sm italic">Esplora la tua collezione</p>
             </div>
-            <div id="stats-count" class="text-slate-500 text-xs font-mono uppercase"></div>
+            <div id="stats-count" class="text-slate-500 text-xs font-mono uppercase">0 fumetti</div>
         </div>
         <div id="comic-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8"></div>
     </main>
-
-    <footer class="bg-slate-800 border-t border-slate-700 p-4 mt-8">
-        <div class="container mx-auto text-center text-slate-500 text-[10px] font-bold uppercase tracking-widest">
-            versione 4.9 - immagine codice
-        </div>
-    </footer>
 
     <div id="edit-modal" class="hidden fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden max-h-[95vh] flex flex-col">
@@ -83,7 +77,7 @@
                 <div class="w-full md:w-56 shrink-0">
                     <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Anteprima Copertina</label>
                     <div class="aspect-[2/3] bg-slate-900 rounded-lg border border-slate-700 overflow-hidden shadow-inner mb-4">
-                        <img id="edit-preview" src="" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/300x450/1e293b/fbbf24?text=No+Cover'">
+                        <img id="edit-preview" src="" class="w-full h-full object-cover">
                     </div>
                 </div>
 
@@ -128,7 +122,7 @@
                                 <button type="button" onclick="openEditoreModal()" class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded hover:bg-yellow-500/20 transition-all font-bold">+ NUOVO</button>
                             </div>
                         </div>
-                        <select id="edit-editore_id" onchange="document.getElementById('btn-edit-editore-issue').disabled = !this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select>
+                        <select id="edit-editore_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select>
                     </div>
 
                     <div>
@@ -139,7 +133,7 @@
                                 <button type="button" onclick="openTestataModal()" class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded hover:bg-yellow-500/20 transition-all font-bold">+ NUOVA</button>
                             </div>
                         </div>
-                        <select id="edit-testata_id" onchange="document.getElementById('btn-edit-testata-issue').disabled = !this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select>
+                        <select id="edit-testata_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select>
                     </div>
 
                     <div>
@@ -150,7 +144,7 @@
                                 <button type="button" onclick="openAnnataModal()" class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded hover:bg-yellow-500/20 transition-all font-bold">+ NUOVA</button>
                             </div>
                         </div>
-                        <select id="edit-annata_id" onchange="document.getElementById('btn-edit-annata-issue').disabled = !this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select>
+                        <select id="edit-annata_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select>
                     </div>
 
                     <div>
@@ -207,215 +201,176 @@
         </div>
     </div>
 
-    <div id="serie-modal" class="hidden fixed inset-0 z-[110] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
-            <div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800">
-                <h3 id="serie-modal-title" class="text-xl font-bold text-yellow-500 uppercase italic">Gestione Serie</h3>
-                <button onclick="closeSerieModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+    <div id="collana-modal" class="hidden fixed inset-0 z-[110] bg-slate-950/80 flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md shadow-2xl">
+            <div class="p-4 border-b border-slate-700 flex justify-between items-center">
+                <h3 id="collana-modal-title" class="font-bold text-yellow-500 uppercase italic">Nuova Collana</h3>
+                <button onclick="closeCollanaModal()" class="text-slate-400 text-xl">&times;</button>
             </div>
-            
-            <div class="w-full h-32 bg-slate-900 border-b border-slate-700 overflow-hidden shadow-inner">
-                <img id="new-serie-preview" src="" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/600x200/1e293b/fbbf24?text=Anteprima+Serie'">
-            </div>
-
-            <form id="serie-form" class="p-6 space-y-4">
-                <input type="hidden" id="new-serie-id">
-                <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome Serie</label>
-                    <input type="text" id="new-serie-nome" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500">
-                </div>
-                <div>
-                    <div class="flex justify-between items-center">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Collana</label>
-                        <div class="flex gap-2">
-                            <button type="button" id="btn-edit-collana-serie" onclick="openEditCollanaFromSerie()" disabled class="text-[9px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded hover:bg-blue-500/20 transition-all font-bold">✏️ EDIT</button>
-                            <button type="button" onclick="openCollanaModal()" class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded hover:bg-yellow-500/20 transition-all font-bold">+ NUOVA</button>
-                        </div>
-                    </div>
-                    <select id="new-serie-collana" onchange="document.getElementById('btn-edit-collana-serie').disabled = !this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select>
-                </div>
-                <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">URL Immagine</label>
-                    <input type="text" id="new-serie-immagine" oninput="document.getElementById('new-serie-preview').src = this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm text-blue-400 outline-none">
-                </div>
-                <div class="pt-4 flex gap-3">
-                    <button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all">Salva</button>
-                    <button type="button" onclick="closeSerieModal()" class="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl uppercase tracking-widest hover:bg-slate-600 transition-all">Annulla</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div id="annata-modal" class="hidden fixed inset-0 z-[120] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
-            <div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800">
-                <h3 id="annata-modal-title" class="text-xl font-bold text-yellow-500 uppercase italic">Gestione Annata</h3>
-                <button onclick="closeAnnataModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
-            </div>
-            <form id="annata-form" class="p-6 space-y-4">
-                <input type="hidden" id="annata-id">
-                <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome Annata (Esempio: 1994)</label>
-                    <input type="text" id="annata-nome" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500">
-                </div>
-                <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Serie Associata</label>
-                    <select id="annata-serie-id" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500"></select>
-                </div>
-                <div class="pt-4 flex gap-3">
-                    <button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all">Salva</button>
-                    <button type="button" onclick="closeAnnataModal()" class="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl uppercase tracking-widest hover:bg-slate-600 transition-all">Annulla</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div id="testata-modal" class="hidden fixed inset-0 z-[120] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
-            <div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800">
-                <h3 id="testata-modal-title" class="text-xl font-bold text-yellow-500 uppercase italic">Gestione Testata</h3>
-                <button onclick="closeTestataModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
-            </div>
-            <form id="testata-form" class="p-6 space-y-4">
-                <input type="hidden" id="testata-id">
-                <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome Testata</label>
-                    <input type="text" id="testata-nome" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500">
-                </div>
-                <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Serie Associata</label>
-                    <select id="testata-serie-id" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500"></select>
-                </div>
-                <div class="pt-4 flex gap-3">
-                    <button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all">Salva</button>
-                    <button type="button" onclick="closeTestataModal()" class="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl uppercase tracking-widest hover:bg-slate-600 transition-all">Annulla</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div id="collana-modal" class="hidden fixed inset-0 z-[120] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
-            <div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800">
-                <h3 id="collana-modal-title" class="text-xl font-bold text-yellow-500 uppercase italic">Gestione Collana</h3>
-                <button onclick="closeCollanaModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
-            </div>
-            <form id="collana-form" class="p-6 space-y-4">
+            <form id="collana-form" class="p-4 space-y-4">
                 <input type="hidden" id="collana-id">
                 <div>
                     <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome Collana</label>
-                    <input type="text" id="collana-nome" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500">
+                    <input type="text" id="collana-nome" required class="w-full bg-slate-900 border border-slate-700 p-2 rounded mt-1 text-white outline-none">
                 </div>
-                <div class="pt-4 flex gap-3">
-                    <button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all">Salva</button>
-                    <button type="button" onclick="closeCollanaModal()" class="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl uppercase tracking-widest hover:bg-slate-600 transition-all">Annulla</button>
-                </div>
+                <button type="submit" class="w-full bg-yellow-500 text-slate-900 font-black py-2 rounded uppercase text-xs tracking-widest">Salva Collana</button>
             </form>
         </div>
     </div>
 
-    <div id="editore-modal" class="hidden fixed inset-0 z-[120] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
-            <div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800">
-                <h3 id="editore-modal-title" class="text-xl font-bold text-yellow-500 uppercase italic">Gestione Editore</h3>
-                <button onclick="closeEditoreModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+    <div id="codice-editore-modal" class="hidden fixed inset-0 z-[110] bg-slate-950/80 flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md shadow-2xl">
+            <div class="p-4 border-b border-slate-700 flex justify-between items-center">
+                <h3 id="codice-modal-title" class="font-bold text-yellow-500 uppercase italic">Codice Editore</h3>
+                <button onclick="closeCodiceEditoreModal()" class="text-slate-400 text-xl">&times;</button>
             </div>
-            <form id="editore-form" class="p-6 space-y-4">
+            <form id="codice-editore-form" class="p-4 space-y-4">
+                <input type="hidden" id="codice-id">
+                <div class="flex justify-center mb-4">
+                    <img id="codice-preview" src="" class="h-16 object-contain bg-slate-900 p-2 rounded border border-slate-700">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome Codice (es. Corno)</label>
+                    <input type="text" id="codice-nome" required class="w-full bg-slate-900 border border-slate-700 p-2 rounded mt-1 text-white outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">URL Logo</label>
+                    <input type="text" id="codice-immagine" oninput="document.getElementById('codice-preview').src = this.value" class="w-full bg-slate-900 border border-slate-700 p-2 rounded mt-1 text-white outline-none">
+                </div>
+                <button type="submit" class="w-full bg-yellow-500 text-slate-900 font-black py-2 rounded uppercase text-xs tracking-widest">Salva Codice</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="annata-modal" class="hidden fixed inset-0 z-[110] bg-slate-950/80 flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md shadow-2xl">
+            <div class="p-4 border-b border-slate-700 flex justify-between items-center">
+                <h3 id="annata-modal-title" class="font-bold text-yellow-500 uppercase italic">Gestione Annata</h3>
+                <button onclick="closeAnnataModal()" class="text-slate-400 text-xl">&times;</button>
+            </div>
+            <form id="annata-form" class="p-4 space-y-4">
+                <input type="hidden" id="annata-id">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome Annata (es. 1970)</label>
+                    <input type="text" id="annata-nome" required class="w-full bg-slate-900 border border-slate-700 p-2 rounded mt-1 text-white outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Associa a Serie</label>
+                    <select id="annata-serie-id" required class="w-full bg-slate-900 border border-slate-700 p-2 rounded mt-1 text-white outline-none"></select>
+                </div>
+                <button type="submit" class="w-full bg-yellow-500 text-slate-900 font-black py-2 rounded uppercase text-xs tracking-widest">Salva Annata</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="testata-modal" class="hidden fixed inset-0 z-[110] bg-slate-950/80 flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md shadow-2xl">
+            <div class="p-4 border-b border-slate-700 flex justify-between items-center">
+                <h3 id="testata-modal-title" class="font-bold text-yellow-500 uppercase italic">Gestione Testata</h3>
+                <button onclick="closeTestataModal()" class="text-slate-400 text-xl">&times;</button>
+            </div>
+            <form id="testata-form" class="p-4 space-y-4">
+                <input type="hidden" id="testata-id">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome Testata</label>
+                    <input type="text" id="testata-nome" required class="w-full bg-slate-900 border border-slate-700 p-2 rounded mt-1 text-white outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Associa a Serie</label>
+                    <select id="testata-serie-id" required class="w-full bg-slate-900 border border-slate-700 p-2 rounded mt-1 text-white outline-none"></select>
+                </div>
+                <button type="submit" class="w-full bg-yellow-500 text-slate-900 font-black py-2 rounded uppercase text-xs tracking-widest">Salva Testata</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="editore-modal" class="hidden fixed inset-0 z-[110] bg-slate-950/80 flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md shadow-2xl">
+            <div class="p-4 border-b border-slate-700 flex justify-between items-center">
+                <h3 id="editore-modal-title" class="font-bold text-yellow-500 uppercase italic">Gestione Editore</h3>
+                <button onclick="closeEditoreModal()" class="text-slate-400 text-xl">&times;</button>
+            </div>
+            <form id="editore-form" class="p-4 space-y-4">
                 <input type="hidden" id="editore-id">
                 <div>
                     <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome Editore</label>
-                    <input type="text" id="editore-nome" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500">
+                    <input type="text" id="editore-nome" required class="w-full bg-slate-900 border border-slate-700 p-2 rounded mt-1 text-white outline-none">
                 </div>
                 <div>
                     <div class="flex justify-between items-center">
                         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Codice Editore</label>
                         <div class="flex gap-2">
-                            <button type="button" id="btn-edit-codice-editore" onclick="openEditCodiceEditore()" disabled class="text-[9px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded hover:bg-blue-500/20 transition-all font-bold">✏️ EDIT</button>
-                            <button type="button" onclick="openAddCodiceEditore()" class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded hover:bg-yellow-500/20 transition-all font-bold">+ NUOVO</button>
+                            <button type="button" id="btn-edit-codice-editore" onclick="openEditCodiceEditore()" disabled class="text-[9px] text-blue-400 font-bold">✏️ EDIT</button>
+                            <button type="button" onclick="openAddCodiceEditore()" class="text-[9px] text-yellow-500 font-bold">+ NUOVO</button>
                         </div>
                     </div>
-                    <select id="editore-codice-id" onchange="document.getElementById('btn-edit-codice-editore').disabled = !this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500"></select>
+                    <select id="editore-codice-id" class="w-full bg-slate-900 border border-slate-700 p-2 rounded mt-1 text-white outline-none"></select>
                 </div>
-                <div class="pt-4 flex gap-3">
-                    <button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all">Salva</button>
-                    <button type="button" onclick="closeEditoreModal()" class="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl uppercase tracking-widest hover:bg-slate-600 transition-all">Annulla</button>
-                </div>
+                <button type="submit" class="w-full bg-yellow-500 text-slate-900 font-black py-2 rounded uppercase text-xs tracking-widest">Salva Editore</button>
             </form>
         </div>
     </div>
 
-    <div id="codice-editore-modal" class="hidden fixed inset-0 z-[130] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
-            <div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800">
-                <h3 id="codice-modal-title" class="text-xl font-bold text-yellow-500 uppercase italic">Gestione Codice</h3>
-                <button onclick="closeCodiceEditoreModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+    <div id="serie-modal" class="hidden fixed inset-0 z-[110] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden">
+            <div class="p-6 border-b border-slate-700 flex justify-between items-center">
+                <h3 id="serie-modal-title" class="text-xl font-bold text-yellow-500 uppercase italic">Gestione Serie</h3>
+                <button onclick="closeSerieModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
             </div>
             
-            <div class="w-full h-24 bg-slate-900 border-b border-slate-700 overflow-hidden shadow-inner flex items-center justify-center">
-                <img id="codice-preview" src="" class="h-full w-auto object-contain" onerror="this.src='https://placehold.co/200x100/1e293b/fbbf24?text=Logo+Codice'">
-            </div>
+            <form id="serie-form" class="p-6 space-y-4">
+                <input type="hidden" id="new-serie-id">
+                
+                <div class="h-40 bg-slate-900 rounded-lg overflow-hidden border border-slate-700 mb-4 flex items-center justify-center">
+                    <img id="new-serie-preview" src="" class="h-full w-auto object-contain">
+                </div>
 
-            <form id="codice-editore-form" class="p-6 space-y-4">
-                <input type="hidden" id="codice-id">
                 <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Codice Editore</label>
-                    <input type="text" id="codice-nome" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Titolo Serie</label>
+                    <input type="text" id="new-serie-nome" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-white outline-none focus:ring-1 focus:ring-yellow-500">
                 </div>
+
                 <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">URL Immagine (Logo)</label>
-                    <input type="text" id="codice-immagine" oninput="document.getElementById('codice-preview').src = this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm text-blue-400 outline-none">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">URL Banner/Immagine</label>
+                    <input type="text" id="new-serie-immagine" oninput="document.getElementById('new-serie-preview').src = this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm text-blue-400 outline-none">
                 </div>
-                <div class="pt-4 flex gap-3">
-                    <button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all">Salva</button>
-                    <button type="button" onclick="closeCodiceEditoreModal()" class="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl uppercase tracking-widest hover:bg-slate-600 transition-all">Annulla</button>
+
+                <div>
+                    <div class="flex justify-between items-center">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Collana Principale</label>
+                        <button type="button" id="btn-edit-collana-serie" onclick="openEditCollanaFromSerie()" disabled class="text-[9px] text-blue-400 font-bold uppercase tracking-widest">✏️ MODIFICA</button>
+                    </div>
+                    <select id="new-serie-collana" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-white outline-none"></select>
                 </div>
+
+                <button type="submit" class="w-full bg-yellow-500 text-slate-900 font-black py-4 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all shadow-lg shadow-yellow-500/20">
+                    Salva Serie
+                </button>
             </form>
         </div>
     </div>
 
+    <footer class="bg-slate-800 border-t border-slate-700 p-4 mt-8">
+        <div class="container mx-auto text-center text-slate-500 text-[10px] font-bold uppercase tracking-widest">
+            versione 4.9 - immagine codice
+        </div>
+    </footer>
+
     <script>
+        const FULL_QUERY = `id, numero, nome, immagine_url, valore, condizione, possesso, data_pubblicazione, 
+                            serie(id, nome, immagine_url, collana(id, nome)), 
+                            editore(id, nome), testata(id, nome), annata(id, nome), 
+                            tipo_pubblicazione(id, nome), supplemento_id`;
+
         const searchInput = document.getElementById('serie-search');
         const resultsDiv = document.getElementById('serie-results');
         const grid = document.getElementById('comic-grid');
         const statsCount = document.getElementById('stats-count');
-        const showcase = document.getElementById('serie-showcase');
         const placeholderImg = 'https://placehold.co/300x450/1e293b/fbbf24?text=No+Cover';
         
-        let currentFilter = 'all'; 
+        let currentFilter = 'all';
         let currentSerieId = null;
-        let currentSerieFullNome = ""; 
-
-        const FULL_QUERY = `*, annata(id, nome, serie(nome, collana(nome))), serie(id, nome, immagine_url, collana_id, collana(nome)), tipo_pubblicazione(nome)`;
-
-        function getStarsHTML(valore) {
-            const num = parseInt(valore);
-            if (isNaN(num)) return '<span class="text-[10px] text-slate-600 italic">N.D.</span>';
-            let starsHTML = '';
-            for (let i = 1; i <= 5; i++) starsHTML += `<span class="text-xs ${i <= num ? 'text-yellow-500 opacity-100' : 'text-slate-500 opacity-20'}">★</span>`;
-            return `<div class="flex gap-0.5">${starsHTML}</div>`;
-        }
-
-        function getSerieDisplayName(serie) {
-            if (!serie) return "";
-            const nomeCollana = serie.collana?.nome;
-            return nomeCollana ? `${serie.nome} (${nomeCollana})` : serie.nome;
-        }
-
-        async function loadSerieShowcase() {
-            const { data: series } = await window.supabaseClient.from('serie').select('id, nome, immagine_url, collana_id, collana(nome)').order('nome');
-            if (series) {
-                showcase.innerHTML = series.map(serie => {
-                    const display = getSerieDisplayName(serie);
-                    const serieData = encodeURIComponent(JSON.stringify(serie));
-                    return `<div class="serie-showcase-item shrink-0 h-16 bg-slate-800 border border-slate-700 rounded-lg overflow-hidden cursor-pointer shadow-lg relative group">
-                        <div onclick="selectSerie('${serie.id}', '${display}')" class="h-full">
-                             <img src="${serie.immagine_url || placeholderImg}" alt="${display}" title="${display}" class="h-full w-auto object-contain">
-                        </div>
-                        <button onclick="event.stopPropagation(); openEditSerieModal('${serieData}')" class="edit-serie-btn absolute top-1 right-1 bg-yellow-500 text-slate-900 text-[10px] p-1 rounded opacity-0 transition-opacity z-10">✏️</button>
-                    </div>`;
-                }).join('');
-            }
-        }
+        let currentSerieFullNome = "";
 
         // --- GESTIONE ANNATA ---
         async function openAnnataModal() {
@@ -447,25 +402,6 @@
 
         function closeAnnataModal() { document.getElementById('annata-modal').classList.add('hidden'); }
 
-        document.getElementById('annata-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('annata-id').value;
-            const payload = { 
-                nome: document.getElementById('annata-nome').value,
-                serie_id: document.getElementById('annata-serie-id').value
-            };
-            const { data, error } = id 
-                ? await window.supabaseClient.from('annata').update(payload).eq('id', id).select()
-                : await window.supabaseClient.from('annata').insert([payload]).select();
-
-            if (error) alert(error.message);
-            else {
-                closeAnnataModal();
-                const currentIssueSerieId = document.getElementById('edit-serie_id').value;
-                if (currentIssueSerieId == data[0].serie_id) await updateAnnateDropdown(currentIssueSerieId, data[0].id);
-            }
-        });
-
         // --- GESTIONE TESTATA ---
         async function openTestataModal() {
             document.getElementById('testata-form').reset();
@@ -496,26 +432,7 @@
 
         function closeTestataModal() { document.getElementById('testata-modal').classList.add('hidden'); }
 
-        document.getElementById('testata-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('testata-id').value;
-            const payload = { 
-                nome: document.getElementById('testata-nome').value,
-                serie_id: document.getElementById('testata-serie-id').value
-            };
-            const { data, error } = id 
-                ? await window.supabaseClient.from('testata').update(payload).eq('id', id).select()
-                : await window.supabaseClient.from('testata').insert([payload]).select();
-
-            if (error) alert(error.message);
-            else {
-                closeTestataModal();
-                const currentIssueSerieId = document.getElementById('edit-serie_id').value;
-                if (currentIssueSerieId == data[0].serie_id) await updateTestateDropdown(currentIssueSerieId, data[0].id);
-            }
-        });
-
-        // --- CODICE EDITORE (AGGIORNATO V4.9) ---
+        // --- CODICE EDITORE ---
         async function openAddCodiceEditore() {
             document.getElementById('codice-editore-form').reset();
             document.getElementById('codice-id').value = "";
@@ -540,24 +457,6 @@
 
         function closeCodiceEditoreModal() { document.getElementById('codice-editore-modal').classList.add('hidden'); }
 
-        document.getElementById('codice-editore-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('codice-id').value;
-            const payload = { 
-                nome: document.getElementById('codice-nome').value,
-                immagine_url: document.getElementById('codice-immagine').value || null
-            };
-            const { data, error } = id 
-                ? await window.supabaseClient.from('codice_editore').update(payload).eq('id', id).select()
-                : await window.supabaseClient.from('codice_editore').insert([payload]).select();
-
-            if (error) alert(error.message);
-            else {
-                closeCodiceEditoreModal();
-                await populateCodiciEditoreDropdown(data[0].id);
-            }
-        });
-
         async function populateCodiciEditoreDropdown(selectedId = null) {
             const { data } = await window.supabaseClient.from('codice_editore').select('id, nome').order('nome');
             const select = document.getElementById('editore-codice-id');
@@ -571,11 +470,6 @@
             document.getElementById('collana-id').value = "";
             document.getElementById('collana-modal-title').innerText = "Nuova Collana";
             document.getElementById('collana-modal').classList.remove('hidden');
-        }
-
-        async function openEditCollanaFromSerie() {
-            const collanaId = document.getElementById('new-serie-collana').value;
-            if (collanaId) loadCollanaForEdit(collanaId);
         }
 
         async function openEditCollanaFromIssue() {
@@ -594,24 +488,6 @@
         }
 
         function closeCollanaModal() { document.getElementById('collana-modal').classList.add('hidden'); }
-
-        document.getElementById('collana-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('collana-id').value;
-            const payload = { nome: document.getElementById('collana-nome').value };
-            const { data, error } = id 
-                ? await window.supabaseClient.from('collana').update(payload).eq('id', id).select()
-                : await window.supabaseClient.from('collana').insert([payload]).select();
-
-            if (error) alert(error.message);
-            else {
-                closeCollanaModal();
-                await populateCollaneDropdown(data[0].id);
-                const issueSerieId = document.getElementById('edit-serie_id').value;
-                if (issueSerieId) await updateCollanaView(issueSerieId);
-                loadSerieShowcase();
-            }
-        });
 
         // --- EDITORE ---
         async function openEditoreModal() {
@@ -637,24 +513,6 @@
 
         function closeEditoreModal() { document.getElementById('editore-modal').classList.add('hidden'); }
 
-        document.getElementById('editore-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('editore-id').value;
-            const payload = { 
-                nome: document.getElementById('editore-nome').value,
-                codice_editore_id: document.getElementById('editore-codice-id').value || null
-            };
-            const { data, error } = id 
-                ? await window.supabaseClient.from('editore').update(payload).eq('id', id).select()
-                : await window.supabaseClient.from('editore').insert([payload]).select();
-
-            if (error) alert(error.message);
-            else {
-                closeEditoreModal();
-                await updateEditoriDropdown(data[0].id);
-            }
-        });
-
         // --- SERIE ---
         async function openSerieModal() {
             document.getElementById('serie-form').reset();
@@ -665,60 +523,30 @@
             await populateCollaneDropdown();
         }
 
-        async function openEditSerieModal(serieJson) {
-            const serie = JSON.parse(decodeURIComponent(serieJson));
-            document.getElementById('serie-modal-title').innerText = "Modifica Serie";
-            document.getElementById('new-serie-id').value = serie.id;
-            document.getElementById('new-serie-nome').value = serie.nome;
-            document.getElementById('new-serie-immagine').value = serie.immagine_url || "";
-            document.getElementById('new-serie-preview').src = serie.immagine_url || 'https://placehold.co/600x200/1e293b/fbbf24?text=Anteprima+Serie';
-            document.getElementById('serie-modal').classList.remove('hidden');
-            await populateCollaneDropdown(serie.collana_id);
-        }
-
         async function openEditSerieFromContext() {
             const serieId = document.getElementById('edit-serie_id').value;
             if (serieId) {
                 const { data } = await window.supabaseClient.from('serie').select('id, nome, immagine_url, collana_id').eq('id', serieId).single();
-                if (data) openEditSerieModal(encodeURIComponent(JSON.stringify(data)));
+                if (data) {
+                    document.getElementById('serie-modal-title').innerText = "Modifica Serie";
+                    document.getElementById('new-serie-id').value = data.id;
+                    document.getElementById('new-serie-nome').value = data.nome;
+                    document.getElementById('new-serie-immagine').value = data.immagine_url || "";
+                    document.getElementById('new-serie-preview').src = data.immagine_url || 'https://placehold.co/600x200/1e293b/fbbf24?text=Anteprima+Serie';
+                    document.getElementById('serie-modal').classList.remove('hidden');
+                    await populateCollaneDropdown(data.collana_id);
+                }
             }
         }
 
         async function populateCollaneDropdown(selectedId = null) {
             const { data: collane } = await window.supabaseClient.from('collana').select('id, nome').order('nome');
             const select = document.getElementById('new-serie-collana');
-            select.innerHTML = '<option value="">Nessuna Collana</option>' + 
-                (collane || []).map(c => `<option value="${c.id}" ${c.id == selectedId ? 'selected' : ''}>${c.nome}</option>`).join('');
+            select.innerHTML = '<option value="">Nessuna Collana</option>' + (collane || []).map(c => `<option value="${c.id}" ${c.id == selectedId ? 'selected' : ''}>${c.nome}</option>`).join('');
             document.getElementById('btn-edit-collana-serie').disabled = !select.value;
         }
 
         function closeSerieModal() { document.getElementById('serie-modal').classList.add('hidden'); }
-
-        document.getElementById('serie-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('new-serie-id').value;
-            const payload = {
-                nome: document.getElementById('new-serie-nome').value,
-                collana_id: document.getElementById('new-serie-collana').value || null,
-                immagine_url: document.getElementById('new-serie-immagine').value || null
-            };
-            const { data, error } = id 
-                ? await window.supabaseClient.from('serie').update(payload).eq('id', id).select()
-                : await window.supabaseClient.from('serie').insert([payload]).select();
-
-            if (error) alert(error.message);
-            else {
-                closeSerieModal();
-                loadSerieShowcase();
-                if (!document.getElementById('edit-modal').classList.contains('hidden')) await populateDropdowns({ serie_id: data[0].id });
-                if (currentSerieId === data[0].id) {
-                   const { data: updatedSerie } = await window.supabaseClient.from('serie').select('id, nome, collana(nome)').eq('id', data[0].id).single();
-                   const newDisplay = getSerieDisplayName(updatedSerie);
-                   document.getElementById('view-title').innerText = newDisplay;
-                   currentSerieFullNome = newDisplay;
-                }
-            }
-        });
 
         // --- GESTIONE ALBO (ISSUE) ---
         async function openAddModal() {
@@ -749,14 +577,11 @@
         async function populateDropdowns(comic) {
             const { data: allSeries } = await window.supabaseClient.from('serie').select('id, nome').order('nome');
             const serieSelect = document.getElementById('edit-serie_id');
-            serieSelect.innerHTML = '<option value="">Seleziona Serie...</option>' + 
-                (allSeries || []).map(s => `<option value="${s.id}" ${comic?.serie_id == s.id ? 'selected' : ''}>${s.nome}</option>`).join('');
+            serieSelect.innerHTML = '<option value="">Seleziona Serie...</option>' + (allSeries || []).map(s => `<option value="${s.id}" ${comic?.serie_id == s.id ? 'selected' : ''}>${s.nome}</option>`).join('');
             document.getElementById('btn-edit-serie-context').disabled = !serieSelect.value;
-
             await updateEditoriDropdown(comic?.editore_id);
             await updateSupplementiDropdown(comic?.supplemento_id);
             await updateTipoPubblicazioneDropdown(comic?.tipo_pubblicazione_id);
-            
             if (comic?.serie_id) {
                 await updateTestateDropdown(comic.serie_id, comic.testata_id);
                 await updateAnnateDropdown(comic.serie_id, comic.annata_id);
@@ -888,6 +713,31 @@
             if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
             const { data } = await query.order('created_at', { ascending: false }).limit(20);
             renderGrid(data);
+        }
+
+        function getSerieDisplayName(serie) {
+            if (!serie) return "";
+            return serie.collana?.nome ? `${serie.nome} (${serie.collana.nome})` : serie.nome;
+        }
+
+        function getStarsHTML(val) {
+            let stars = "";
+            for (let i = 1; i <= 5; i++) {
+                stars += `<span class="${i <= (val || 0) ? 'text-yellow-500' : 'text-slate-600'}">★</span>`;
+            }
+            return `<div class="flex gap-0.5">${stars}</div>`;
+        }
+
+        async function loadSerieShowcase() {
+            const { data } = await window.supabaseClient.from('serie').select('id, nome, immagine_url').order('nome').limit(15);
+            const showcase = document.getElementById('serie-showcase');
+            if (data) {
+                showcase.innerHTML = data.map(s => `
+                    <div onclick="selectSerie('${s.id}', '${s.nome}')" class="serie-showcase-item shrink-0 h-24 w-40 bg-slate-800 rounded-xl border border-slate-700 overflow-hidden cursor-pointer shadow-lg">
+                        <img src="${s.immagine_url || placeholderImg}" class="w-full h-full object-cover opacity-60 hover:opacity-100 transition-opacity">
+                    </div>
+                `).join('');
+            }
         }
 
         function renderGrid(items, fallbackSerie = "") {
