@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comic Archive Pro - V5.4</title>
+    <title>Comic Archive Pro - V5.3</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
@@ -77,9 +77,136 @@
 
     <footer class="bg-slate-800 border-t border-slate-700 p-4 mt-8">
         <div class="container mx-auto text-center text-slate-500 text-[10px] font-bold uppercase tracking-widest">
-            versione 5.4 - migliorie cards
+            versione 5.3 - ripristino toggle
         </div>
     </footer>
+
+    <div id="edit-modal" class="hidden fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden max-h-[95vh] flex flex-col">
+            <div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800">
+                <h3 id="modal-title" class="text-xl font-bold text-yellow-500 uppercase italic">Gestione Albo</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            <form id="edit-form" class="p-6 overflow-y-auto custom-scrollbar flex flex-col md:flex-row gap-8">
+                <input type="hidden" id="edit-id">
+                <div class="w-full md:w-56 shrink-0">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Anteprima Copertina</label>
+                    <div class="aspect-[2/3] bg-slate-900 rounded-lg border border-slate-700 overflow-hidden shadow-inner mb-4">
+                        <img id="edit-preview" src="" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/300x450/1e293b/fbbf24?text=No+Cover'">
+                    </div>
+                </div>
+                <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="md:col-span-2">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">URL Immagine</label>
+                        <input type="text" id="edit-immagine_url" oninput="document.getElementById('edit-preview').src = this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm text-blue-400 outline-none focus:ring-1 focus:ring-yellow-500">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Titolo Albo</label>
+                        <input type="text" id="edit-nome" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Serie</label>
+                            <div class="flex gap-2">
+                                <button type="button" id="btn-edit-serie-context" onclick="openEditSerieFromContext()" disabled class="text-[9px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded hover:bg-blue-500/20 transition-all font-bold">✏️ EDIT</button>
+                                <button type="button" onclick="openSerieModal()" class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded hover:bg-yellow-500/20 transition-all font-bold">+ NUOVA</button>
+                            </div>
+                        </div>
+                        <select id="edit-serie_id" onchange="handleSerieChange(this.value)" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-yellow-500 outline-none"></select>
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Collana</label>
+                            <div class="flex gap-2">
+                                <button type="button" id="btn-edit-collana-issue" onclick="openEditCollanaFromIssue()" disabled class="text-[9px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded hover:bg-blue-500/20 transition-all font-bold">✏️ EDIT</button>
+                                <button type="button" onclick="openCollanaModal()" class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded hover:bg-yellow-500/20 transition-all font-bold">+ NUOVA</button>
+                            </div>
+                        </div>
+                        <select id="edit-collana_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none" disabled></select>
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Editore</label>
+                            <div class="flex gap-2">
+                                <button type="button" id="btn-edit-editore-issue" onclick="openEditEditoreFromIssue()" disabled class="text-[9px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded hover:bg-blue-500/20 transition-all font-bold">✏️ EDIT</button>
+                                <button type="button" onclick="openEditoreModal()" class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded hover:bg-yellow-500/20 transition-all font-bold">+ NUOVO</button>
+                            </div>
+                        </div>
+                        <select id="edit-editore_id" onchange="document.getElementById('btn-edit-editore-issue').disabled = !this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select>
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Testata</label>
+                            <div class="flex gap-2">
+                                <button type="button" id="btn-edit-testata-issue" onclick="openEditTestataFromIssue()" disabled class="text-[9px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded hover:bg-blue-500/20 transition-all font-bold">✏️ EDIT</button>
+                                <button type="button" onclick="openTestataModal()" class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded hover:bg-yellow-500/20 transition-all font-bold">+ NUOVA</button>
+                            </div>
+                        </div>
+                        <select id="edit-testata_id" onchange="document.getElementById('btn-edit-testata-issue').disabled = !this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select>
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Annata</label>
+                            <div class="flex gap-2">
+                                <button type="button" id="btn-edit-annata-issue" onclick="openEditAnnataFromIssue()" disabled class="text-[9px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded hover:bg-blue-500/20 transition-all font-bold">✏️ EDIT</button>
+                                <button type="button" onclick="openAnnataModal()" class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded hover:bg-yellow-500/20 transition-all font-bold">+ NUOVA</button>
+                            </div>
+                        </div>
+                        <select id="edit-annata_id" onchange="document.getElementById('btn-edit-annata-issue').disabled = !this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Periodicità</label>
+                        <select id="edit-tipo_pubblicazione_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Data Pubblicazione</label>
+                        <input type="date" id="edit-data_pubblicazione" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Supplemento a...</label>
+                        <select id="edit-supplemento_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-[11px] font-bold text-orange-400 outline-none"></select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Numero</label>
+                        <input type="text" id="edit-numero" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Condizione</label>
+                        <select id="edit-condizione" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-yellow-500 outline-none">
+                            <option value="">Nessuna (Null)</option>
+                            <option value="1">1 Stella (Pessimo)</option>
+                            <option value="2">2 Stella (Mediocre)</option>
+                            <option value="3">3 Stella (Buono)</option>
+                            <option value="4">4 Stella (Ottimo)</option>
+                            <option value="5">5 Stella (Edicola)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Valore (€)</label>
+                        <input type="number" step="0.01" id="edit-valore" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-emerald-400 outline-none focus:ring-1 focus:ring-emerald-500" placeholder="0.00">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Possesso</label>
+                        <select id="edit-possesso" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none">
+                            <option value="celo">Celo</option>
+                            <option value="manca">Manca</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-2 pt-4 flex gap-3">
+                        <button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all">Salva Dati D'albo</button>
+                        <button type="button" onclick="closeModal()" class="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl uppercase tracking-widest hover:bg-slate-600 transition-all">Chiudi</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="serie-modal" class="hidden fixed inset-0 z-[110] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4"><div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden"><div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800"><h3 id="serie-modal-title" class="text-xl font-bold text-yellow-500 uppercase italic">Gestione Serie</h3><button onclick="closeSerieModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button></div><div class="w-full h-32 bg-slate-900 border-b border-slate-700 overflow-hidden shadow-inner"><img id="new-serie-preview" src="" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/600x200/1e293b/fbbf24?text=Anteprima+Serie'"></div><form id="serie-form" class="p-6 space-y-4"><input type="hidden" id="new-serie-id"><div><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome Serie</label><input type="text" id="new-serie-nome" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500"></div><div><div class="flex justify-between items-center"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Collana</label><div class="flex gap-2"><button type="button" id="btn-edit-collana-serie" onclick="openEditCollanaFromSerie()" disabled class="text-[9px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded hover:bg-blue-500/20 transition-all font-bold">✏️ EDIT</button><button type="button" onclick="openCollanaModal()" class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded hover:bg-yellow-500/20 transition-all font-bold">+ NUOVA</button></div></div><select id="new-serie-collana" onchange="document.getElementById('btn-edit-collana-serie').disabled = !this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select></div><div><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">URL Immagine</label><input type="text" id="new-serie-immagine" oninput="document.getElementById('new-serie-preview').src = this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm text-blue-400 outline-none"></div><div class="pt-4 flex gap-3"><button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all">Salva</button><button type="button" onclick="closeSerieModal()" class="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl uppercase tracking-widest hover:bg-slate-600 transition-all">Annulla</button></div></form></div></div>
+    <div id="annata-modal" class="hidden fixed inset-0 z-[120] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4"><div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden"><div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800"><h3 id="annata-modal-title" class="text-xl font-bold text-yellow-500 uppercase italic">Gestione Annata</h3><button onclick="closeAnnataModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button></div><form id="annata-form" class="p-6 space-y-4"><input type="hidden" id="annata-id"><div><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome Annata (Esempio: 1994)</label><input type="text" id="annata-nome" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500"></div><div><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Serie Associata</label><select id="annata-serie-id" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500"></select></div><div class="pt-4 flex gap-3"><button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all">Salva</button><button type="button" onclick="closeAnnataModal()" class="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl uppercase tracking-widest hover:bg-slate-600 transition-all">Annulla</button></div></form></div></div>
+    <div id="testata-modal" class="hidden fixed inset-0 z-[120] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4"><div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden"><div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800"><h3 id="testata-modal-title" class="text-xl font-bold text-yellow-500 uppercase italic">Gestione Testata</h3><button onclick="closeTestataModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button></div><form id="testata-form" class="p-6 space-y-4"><input type="hidden" id="testata-id"><div><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome Testata</label><input type="text" id="testata-nome" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500"></div><div><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Serie Associata</label><select id="testata-serie-id" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500"></select></div><div class="pt-4 flex gap-3"><button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all">Salva</button><button type="button" onclick="closeTestataModal()" class="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl uppercase tracking-widest hover:bg-slate-600 transition-all">Annulla</button></div></form></div></div>
+    <div id="collana-modal" class="hidden fixed inset-0 z-[120] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4"><div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden"><div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800"><h3 id="collana-modal-title" class="text-xl font-bold text-yellow-500 uppercase italic">Gestione Collana</h3><button onclick="closeCollanaModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button></div><form id="collana-form" class="p-6 space-y-4"><input type="hidden" id="collana-id"><div><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome Collana</label><input type="text" id="collana-nome" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500"></div><div class="pt-4 flex gap-3"><button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all">Salva</button><button type="button" onclick="closeCollanaModal()" class="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl uppercase tracking-widest hover:bg-slate-600 transition-all">Annulla</button></div></form></div></div>
+    <div id="editore-modal" class="hidden fixed inset-0 z-[120] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4"><div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden"><div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800"><h3 id="editore-modal-title" class="text-xl font-bold text-yellow-500 uppercase italic">Gestione Editore</h3><button onclick="closeEditoreModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button></div><form id="editore-form" class="p-6 space-y-4"><input type="hidden" id="editore-id"><div><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome Editore</label><input type="text" id="editore-nome" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500"></div><div><div class="flex justify-between items-center"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Codice Editore</label><div class="flex gap-2"><button type="button" id="btn-edit-codice-editore" onclick="openEditCodiceEditore()" disabled class="text-[9px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded hover:bg-blue-500/20 transition-all font-bold">✏️ EDIT</button><button type="button" onclick="openAddCodiceEditore()" class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded hover:bg-yellow-500/20 transition-all font-bold">+ NUOVO</button></div></div><select id="editore-codice-id" onchange="document.getElementById('btn-edit-codice-editore').disabled = !this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500"></select></div><div class="pt-4 flex gap-3"><button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all">Salva</button><button type="button" onclick="closeEditoreModal()" class="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl uppercase tracking-widest hover:bg-slate-600 transition-all">Annulla</button></div></form></div></div>
+    <div id="codice-editore-modal" class="hidden fixed inset-0 z-[130] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4"><div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden"><div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800"><h3 id="codice-modal-title" class="text-xl font-bold text-yellow-500 uppercase italic">Gestione Codice</h3><button onclick="closeCodiceEditoreModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button></div><div class="w-full h-24 bg-slate-900 border-b border-slate-700 overflow-hidden shadow-inner flex items-center justify-center"><img id="codice-preview" src="" class="h-full w-auto object-contain" onerror="this.src='https://placehold.co/200x100/1e293b/fbbf24?text=Logo+Codice'"></div><form id="codice-editore-form" class="p-6 space-y-4"><input type="hidden" id="codice-id"><div><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Codice Editore</label><input type="text" id="codice-nome" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-yellow-500"></div><div><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">URL Immagine (Logo)</label><input type="text" id="codice-immagine" oninput="document.getElementById('codice-preview').src = this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm text-blue-400 outline-none"></div><div class="pt-4 flex gap-3"><button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all">Salva</button><button type="button" onclick="closeCodiceEditoreModal()" class="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl uppercase tracking-widest hover:bg-slate-600 transition-all">Annulla</button></div></form></div></div>
 
     <script>
         const searchInput = document.getElementById('serie-search');
@@ -96,29 +223,39 @@
         let currentSerieFullNome = ""; 
         let currentCodiceId = null;
 
-        const FULL_QUERY = `*, annata(id, nome), serie(id, nome, immagine_url, collana_id, collana(nome)), tipo_pubblicazione(nome)`;
+        const FULL_QUERY = `*, annata(id, nome, serie(nome, collana(nome))), serie(id, nome, immagine_url, collana_id, collana(nome)), tipo_pubblicazione(nome)`;
 
-        // --- FUNZIONI CORE V5.4 ---
+        // --- FUNZIONI DI RIPRISTINO TOGGLE V5.3 ---
 
         function setFilter(filter) {
             currentFilter = filter;
             document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById(`btn-${filter}`).classList.add('active');
-            if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome);
-            else loadRecent();
+            
+            // Applica il filtro alla vista corrente
+            if (currentSerieId) {
+                selectSerie(currentSerieId, currentSerieFullNome);
+            } else {
+                loadRecent();
+            }
         }
 
         async function resetAllFilters() {
-            currentCodiceId = null; currentSerieId = null; searchInput.value = "";
-            await loadCodiciBar(); await loadSerieShowcase(); await loadRecent();
+            currentCodiceId = null;
+            currentSerieId = null;
+            searchInput.value = "";
+            await loadCodiciBar();
+            await loadSerieShowcase();
+            await loadRecent();
         }
 
         async function loadCodiciBar() {
             const { data: codici } = await window.supabaseClient.from('codice_editore').select('id, nome, immagine_url').order('nome');
             let html = `<button id="codice-tutti" onclick="resetAllFilters()" class="codice-item ${!currentCodiceId ? 'active' : ''} shrink-0 h-12 px-6 bg-slate-800 border border-slate-700 rounded-lg flex items-center justify-center text-[11px] font-black uppercase tracking-widest text-yellow-500">TUTTI</button>`;
+            
             if (codici) {
                 html += codici.map(cod => `
-                    <div id="codice-${cod.id}" onclick="selectCodice('${cod.id}')" class="codice-item codice-item-square ${currentCodiceId === cod.id ? 'active' : ''} bg-slate-800 border border-slate-700 rounded-lg overflow-hidden flex items-center justify-center p-0">
+                    <div id="codice-${cod.id}" onclick="selectCodice('${cod.id}')" class="codice-item codice-item-square ${currentCodiceId === cod.id ? 'active' : ''} bg-slate-800 border border-slate-700 rounded-lg overflow-hidden shadow-md flex items-center justify-center p-0">
                          <img src="${cod.immagine_url || placeholderLogo}" alt="${cod.nome}" title="${cod.nome}" class="w-full h-full object-cover grayscale hover:grayscale-0 transition-all">
                     </div>
                 `).join('');
@@ -130,39 +267,46 @@
             currentCodiceId = codiceId;
             document.querySelectorAll('.codice-item').forEach(el => el.classList.remove('active'));
             document.getElementById(`codice-${codiceId}`).classList.add('active');
+
             const { data: editori } = await window.supabaseClient.from('editore').select('id').eq('codice_editore_id', codiceId);
             const editoriIds = editori.map(e => e.id);
-            if (editoriIds.length === 0) { showcase.innerHTML = `<p class="text-slate-500 text-xs uppercase px-4">Nessuna serie</p>`; return; }
+
+            if (editoriIds.length === 0) {
+                showcase.innerHTML = `<p class="text-slate-500 text-xs uppercase px-4">Nessuna serie</p>`;
+                return;
+            }
+
             const { data: issues } = await window.supabaseClient.from('issue').select('serie_id').in('editore_id', editoriIds);
             const serieIds = [...new Set(issues.map(i => i.serie_id))];
             await loadSerieShowcase(serieIds);
         }
 
         async function loadSerieShowcase(filterSerieIds = null) {
-            let query = window.supabaseClient.from('serie').select('id, nome, immagine_url, collana(nome)').order('nome');
+            let query = window.supabaseClient.from('serie').select('id, nome, immagine_url, collana_id, collana(nome)').order('nome');
             if (filterSerieIds) query = query.in('id', filterSerieIds);
             const { data: series } = await query;
-            if (series) {
+            
+            if (series && series.length > 0) {
                 showcase.innerHTML = series.map(serie => {
                     const display = getSerieDisplayName(serie);
+                    const serieData = encodeURIComponent(JSON.stringify(serie));
                     return `<div class="serie-showcase-item shrink-0 h-16 bg-slate-800 border border-slate-700 rounded-lg overflow-hidden cursor-pointer shadow-lg relative group">
                         <div onclick="selectSerie('${serie.id}', '${display}')" class="h-full">
                              <img src="${serie.immagine_url || placeholderImg}" alt="${display}" title="${display}" class="h-full w-auto object-contain">
                         </div>
+                        <button onclick="event.stopPropagation(); openEditSerieModal('${serieData}')" class="edit-serie-btn absolute top-1 right-1 bg-yellow-500 text-slate-900 text-[10px] p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10">✏️</button>
                     </div>`;
                 }).join('');
+            } else {
+                showcase.innerHTML = `<p class="text-slate-500 text-xs uppercase px-4 italic">Nessuna serie trovata</p>`;
             }
         }
 
-        // MODIFICATA: Colore rosso per 1-2 stelle
         function getStarsHTML(valore) {
             const num = parseInt(valore);
             if (isNaN(num)) return '<span class="text-[10px] text-slate-600 italic">N.D.</span>';
-            const starColor = num <= 2 ? 'text-red-500' : 'text-yellow-500';
             let starsHTML = '';
-            for (let i = 1; i <= 5; i++) {
-                starsHTML += `<span class="text-xs ${i <= num ? starColor + ' opacity-100' : 'text-slate-500 opacity-20'}">★</span>`;
-            }
+            for (let i = 1; i <= 5; i++) starsHTML += `<span class="text-xs ${i <= num ? 'text-yellow-500 opacity-100' : 'text-slate-500 opacity-20'}">★</span>`;
             return `<div class="flex gap-0.5">${starsHTML}</div>`;
         }
 
@@ -176,8 +320,11 @@
             currentSerieId = serieId; currentSerieFullNome = fullSerieNome;
             searchInput.value = fullSerieNome; resultsDiv.classList.add('hidden');
             document.getElementById('view-title').innerText = fullSerieNome;
+            
             let query = window.supabaseClient.from('issue').select(FULL_QUERY).eq('serie_id', serieId);
+            // APPLICAZIONE TOGGLE CELO/MANCA
             if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
+            
             const { data } = await query.order('numero', { ascending: true });
             renderGrid(data, fullSerieNome);
         }
@@ -185,37 +332,95 @@
         async function loadRecent() {
             currentSerieId = null;
             document.getElementById('view-title').innerText = "Ultimi Arrivi";
+            
             let query = window.supabaseClient.from('issue').select(FULL_QUERY);
+            // APPLICAZIONE TOGGLE CELO/MANCA
             if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
+            
             const { data } = await query.order('created_at', { ascending: false }).limit(20);
             renderGrid(data);
         }
 
-        // MODIFICATA: Annata, Valore e Logica Stelle
         function renderGrid(items, fallbackSerie = "") {
             statsCount.innerText = `${items?.length || 0} fumetti`;
             grid.innerHTML = (items || []).map(comic => {
                 const isOwned = comic.possesso === 'celo';
                 const comicData = encodeURIComponent(JSON.stringify(comic));
-                const annataNome = comic.annata?.nome ? `<span class="text-slate-400 font-normal mr-1">${comic.annata.nome}</span>` : "";
-                const valoreBadge = comic.valore ? `<div class="absolute top-2 left-2 z-40 bg-emerald-500 text-slate-900 text-[9px] font-black px-2 py-1 rounded shadow-lg">€${comic.valore.toFixed(2)}</div>` : "";
-
                 return `<div class="comic-card group bg-slate-800 rounded-xl overflow-hidden border ${isOwned ? 'border-slate-700 shadow-xl' : 'border-slate-800 opacity-80'} transition-all relative">
-                    ${valoreBadge}
                     <button onclick="openEditModal('${comicData}')" class="absolute top-2 right-2 z-40 bg-yellow-500 text-slate-900 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">✏️</button>
                     <div class="relative h-72 bg-slate-950 overflow-hidden"><img src="${comic.immagine_url || placeholderImg}" class="comic-image w-full h-full object-cover ${isOwned ? '' : 'grayscale opacity-40'}"></div>
                     <div class="p-4">
                         <p class="text-[10px] text-yellow-500 font-bold uppercase truncate mb-1">${fallbackSerie || getSerieDisplayName(comic.serie)}</p>
-                        <h4 class="font-bold text-lg leading-tight truncate">${annataNome}#${comic.numero || '?'} ${comic.nome || ''}</h4>
+                        <h4 class="font-bold text-lg leading-tight truncate">#${comic.numero || '?'} ${comic.nome || ''}</h4>
                         <div class="mt-4 flex items-center justify-between border-t border-slate-700 pt-3">${getStarsHTML(comic.condizione)}<span class="text-[9px] text-slate-500 font-bold uppercase">${comic.tipo_pubblicazione?.nome || ''}</span></div>
                     </div>
                 </div>`;
             }).join('');
         }
 
-        // [Rimanente codice JS per gestione ricerca e modali omesso per brevità ma operativo come nella 5.3]
-        
-        loadCodiciBar(); loadSerieShowcase(); loadRecent();
+        // --- GESTIONE SEARCH ---
+        searchInput.addEventListener('input', async (e) => {
+            const term = e.target.value.trim();
+            if (term.length < 2) { resultsDiv.classList.add('hidden'); return; }
+            const { data } = await window.supabaseClient.from('serie').select('id, nome, immagine_url, collana(nome)').ilike('nome', `%${term}%`).limit(6);
+            if (data?.length > 0) {
+                resultsDiv.innerHTML = data.map(serie => { const display = getSerieDisplayName(serie); return `<div onclick="selectSerie('${serie.id}', '${display}')" class="flex items-center p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700 last:border-0"><div class="h-10 flex items-center justify-center mr-3 bg-slate-700/50 rounded overflow-hidden"><img src="${serie.immagine_url || placeholderImg}" class="h-full w-auto object-contain"></div><span>${display}</span></div>`; }).join('');
+                resultsDiv.classList.remove('hidden');
+            } else resultsDiv.classList.add('hidden');
+        });
+
+        // --- GESTIONE MODALI E ALTRE FUNZIONI JS (ESTRATTE DA V5.1/5.2) ---
+        // (Omesse qui per brevità nel testo ma devono essere presenti nel file completo)
+        async function openAnnataModal() { document.getElementById('annata-form').reset(); document.getElementById('annata-id').value = ""; document.getElementById('annata-modal-title').innerText = "Nuova Annata"; await populateAnnataSerieDropdown(document.getElementById('edit-serie_id').value); document.getElementById('annata-modal').classList.remove('hidden'); }
+        async function openEditAnnataFromIssue() { const id = document.getElementById('edit-annata_id').value; if (!id) return; const { data } = await window.supabaseClient.from('annata').select('id, nome, serie_id').eq('id', id).single(); if (data) { document.getElementById('annata-id').value = data.id; document.getElementById('annata-nome').value = data.nome; document.getElementById('annata-modal-title').innerText = "Modifica Annata"; await populateAnnataSerieDropdown(data.serie_id); document.getElementById('annata-modal').classList.remove('hidden'); } }
+        async function populateAnnataSerieDropdown(selectedId = null) { const { data } = await window.supabaseClient.from('serie').select('id, nome').order('nome'); const select = document.getElementById('annata-serie-id'); select.innerHTML = '<option value="">Seleziona Serie...</option>' + (data || []).map(s => `<option value="${s.id}" ${s.id == selectedId ? 'selected' : ''}>${s.nome}</option>`).join(''); }
+        function closeAnnataModal() { document.getElementById('annata-modal').classList.add('hidden'); }
+        document.getElementById('annata-form').addEventListener('submit', async (e) => { e.preventDefault(); const id = document.getElementById('annata-id').value; const payload = { nome: document.getElementById('annata-nome').value, serie_id: document.getElementById('annata-serie-id').value }; const { data, error } = id ? await window.supabaseClient.from('annata').update(payload).eq('id', id).select() : await window.supabaseClient.from('annata').insert([payload]).select(); if (error) alert(error.message); else { closeAnnataModal(); const currentIssueSerieId = document.getElementById('edit-serie_id').value; if (currentIssueSerieId == data[0].serie_id) await updateAnnateDropdown(currentIssueSerieId, data[0].id); } });
+        async function openTestataModal() { document.getElementById('testata-form').reset(); document.getElementById('testata-id').value = ""; document.getElementById('testata-modal-title').innerText = "Nuova Testata"; await populateGenericSerieDropdown('testata-serie-id', document.getElementById('edit-serie_id').value); document.getElementById('testata-modal').classList.remove('hidden'); }
+        async function openEditTestataFromIssue() { const id = document.getElementById('edit-testata_id').value; if (!id) return; const { data } = await window.supabaseClient.from('testata').select('id, nome, serie_id').eq('id', id).single(); if (data) { document.getElementById('testata-id').value = data.id; document.getElementById('testata-nome').value = data.nome; document.getElementById('testata-modal-title').innerText = "Modifica Testata"; await populateGenericSerieDropdown('testata-serie-id', data.serie_id); document.getElementById('testata-modal').classList.remove('hidden'); } }
+        async function populateGenericSerieDropdown(elementId, selectedId = null) { const { data } = await window.supabaseClient.from('serie').select('id, nome').order('nome'); const select = document.getElementById(elementId); select.innerHTML = '<option value="">Seleziona Serie...</option>' + (data || []).map(s => `<option value="${s.id}" ${s.id == selectedId ? 'selected' : ''}>${s.nome}</option>`).join(''); }
+        function closeTestataModal() { document.getElementById('testata-modal').classList.add('hidden'); }
+        document.getElementById('testata-form').addEventListener('submit', async (e) => { e.preventDefault(); const id = document.getElementById('testata-id').value; const payload = { nome: document.getElementById('testata-nome').value, serie_id: document.getElementById('testata-serie-id').value }; const { data, error } = id ? await window.supabaseClient.from('testata').update(payload).eq('id', id).select() : await window.supabaseClient.from('testata').insert([payload]).select(); if (error) alert(error.message); else { closeTestataModal(); const currentIssueSerieId = document.getElementById('edit-serie_id').value; if (currentIssueSerieId == data[0].serie_id) await updateTestateDropdown(currentIssueSerieId, data[0].id); } });
+        async function openAddCodiceEditore() { document.getElementById('codice-editore-form').reset(); document.getElementById('codice-id').value = ""; document.getElementById('codice-modal-title').innerText = "Nuovo Codice"; document.getElementById('codice-preview').src = 'https://placehold.co/200x200/1e293b/fbbf24?text=Logo+Codice'; document.getElementById('codice-editore-modal').classList.remove('hidden'); }
+        async function openEditCodiceEditore() { const id = document.getElementById('editore-codice-id').value; if (!id) return; const { data } = await window.supabaseClient.from('codice_editore').select('id, nome, immagine_url').eq('id', id).single(); if (data) { document.getElementById('codice-id').value = data.id; document.getElementById('codice-nome').value = data.nome; document.getElementById('codice-immagine').value = data.immagine_url || ""; document.getElementById('codice-preview').src = data.immagine_url || 'https://placehold.co/200x200/1e293b/fbbf24?text=Logo+Codice'; document.getElementById('codice-modal-title').innerText = "Modifica Codice"; document.getElementById('codice-editore-modal').classList.remove('hidden'); } }
+        function closeCodiceEditoreModal() { document.getElementById('codice-editore-modal').classList.add('hidden'); }
+        document.getElementById('codice-editore-form').addEventListener('submit', async (e) => { e.preventDefault(); const id = document.getElementById('codice-id').value; const payload = { nome: document.getElementById('codice-nome').value, immagine_url: document.getElementById('codice-immagine').value || null }; const { data, error } = id ? await window.supabaseClient.from('codice_editore').update(payload).eq('id', id).select() : await window.supabaseClient.from('codice_editore').insert([payload]).select(); if (error) alert(error.message); else { closeCodiceEditoreModal(); await populateCodiciEditoreDropdown(data[0].id); loadCodiciBar(); } });
+        async function populateCodiciEditoreDropdown(selectedId = null) { const { data } = await window.supabaseClient.from('codice_editore').select('id, nome').order('nome'); const select = document.getElementById('editore-codice-id'); select.innerHTML = '<option value="">Nessun Codice</option>' + (data || []).map(c => `<option value="${c.id}" ${c.id == selectedId ? 'selected' : ''}>${c.nome}</option>`).join(''); document.getElementById('btn-edit-codice-editore').disabled = !select.value; }
+        async function openCollanaModal() { document.getElementById('collana-form').reset(); document.getElementById('collana-id').value = ""; document.getElementById('collana-modal-title').innerText = "Nuova Collana"; document.getElementById('collana-modal').classList.remove('hidden'); }
+        async function openEditCollanaFromSerie() { const collanaId = document.getElementById('new-serie-collana').value; if (collanaId) loadCollanaForEdit(collanaId); }
+        async function openEditCollanaFromIssue() { const collanaId = document.getElementById('edit-collana_id').value; if (collanaId) loadCollanaForEdit(collanaId); }
+        async function loadCollanaForEdit(id) { const { data } = await window.supabaseClient.from('collana').select('id, nome').eq('id', id).single(); if (data) { document.getElementById('collana-id').value = data.id; document.getElementById('collana-nome').value = data.nome; document.getElementById('collana-modal-title').innerText = "Modifica Collana"; document.getElementById('collana-modal').classList.remove('hidden'); } }
+        function closeCollanaModal() { document.getElementById('collana-modal').classList.add('hidden'); }
+        document.getElementById('collana-form').addEventListener('submit', async (e) => { e.preventDefault(); const id = document.getElementById('collana-id').value; const payload = { nome: document.getElementById('collana-nome').value }; const { data, error } = id ? await window.supabaseClient.from('collana').update(payload).eq('id', id).select() : await window.supabaseClient.from('collana').insert([payload]).select(); if (error) alert(error.message); else { closeCollanaModal(); await populateCollaneDropdown(data[0].id); const issueSerieId = document.getElementById('edit-serie_id').value; if (issueSerieId) await updateCollanaView(issueSerieId); loadSerieShowcase(); } });
+        async function openEditoreModal() { document.getElementById('editore-form').reset(); document.getElementById('editore-id').value = ""; document.getElementById('editore-modal-title').innerText = "Nuovo Editore"; document.getElementById('editore-modal').classList.remove('hidden'); await populateCodiciEditoreDropdown(); }
+        async function openEditEditoreFromIssue() { const id = document.getElementById('edit-editore_id').value; if (!id) return; const { data } = await window.supabaseClient.from('editore').select('id, nome, codice_editore_id').eq('id', id).single(); if (data) { document.getElementById('editore-id').value = data.id; document.getElementById('editore-nome').value = data.nome; document.getElementById('editore-modal-title').innerText = "Modifica Editore"; document.getElementById('editore-modal').classList.remove('hidden'); await populateCodiciEditoreDropdown(data.codice_editore_id); } }
+        function closeEditoreModal() { document.getElementById('editore-modal').classList.add('hidden'); }
+        document.getElementById('editore-form').addEventListener('submit', async (e) => { e.preventDefault(); const id = document.getElementById('editore-id').value; const payload = { nome: document.getElementById('editore-nome').value, codice_editore_id: document.getElementById('editore-codice-id').value || null }; const { data, error } = id ? await window.supabaseClient.from('editore').update(payload).eq('id', id).select() : await window.supabaseClient.from('editore').insert([payload]).select(); if (error) alert(error.message); else { closeEditoreModal(); await updateEditoriDropdown(data[0].id); } });
+        async function openSerieModal() { document.getElementById('serie-form').reset(); document.getElementById('new-serie-id').value = ""; document.getElementById('serie-modal-title').innerText = "Nuova Serie"; document.getElementById('new-serie-preview').src = 'https://placehold.co/600x200/1e293b/fbbf24?text=Anteprima+Serie'; document.getElementById('serie-modal').classList.remove('hidden'); await populateCollaneDropdown(); }
+        async function openEditSerieModal(serieJson) { const serie = JSON.parse(decodeURIComponent(serieJson)); document.getElementById('serie-modal-title').innerText = "Modifica Serie"; document.getElementById('new-serie-id').value = serie.id; document.getElementById('new-serie-nome').value = serie.nome; document.getElementById('new-serie-immagine').value = serie.immagine_url || ""; document.getElementById('new-serie-preview').src = serie.immagine_url || 'https://placehold.co/600x200/1e293b/fbbf24?text=Anteprima+Serie'; document.getElementById('serie-modal').classList.remove('hidden'); await populateCollaneDropdown(serie.collana_id); }
+        async function openEditSerieFromContext() { const serieId = document.getElementById('edit-serie_id').value; if (serieId) { const { data } = await window.supabaseClient.from('serie').select('id, nome, immagine_url, collana_id').eq('id', serieId).single(); if (data) openEditSerieModal(encodeURIComponent(JSON.stringify(data))); } }
+        async function populateCollaneDropdown(selectedId = null) { const { data: collane } = await window.supabaseClient.from('collana').select('id, nome').order('nome'); const select = document.getElementById('new-serie-collana'); select.innerHTML = '<option value="">Nessuna Collana</option>' + (collane || []).map(c => `<option value="${c.id}" ${c.id == selectedId ? 'selected' : ''}>${c.nome}</option>`).join(''); document.getElementById('btn-edit-collana-serie').disabled = !select.value; }
+        function closeSerieModal() { document.getElementById('serie-modal').classList.add('hidden'); }
+        document.getElementById('serie-form').addEventListener('submit', async (e) => { e.preventDefault(); const id = document.getElementById('new-serie-id').value; const payload = { nome: document.getElementById('new-serie-nome').value, collana_id: document.getElementById('new-serie-collana').value || null, immagine_url: document.getElementById('new-serie-immagine').value || null }; const { data, error } = id ? await window.supabaseClient.from('serie').update(payload).eq('id', id).select() : await window.supabaseClient.from('serie').insert([payload]).select(); if (error) alert(error.message); else { closeSerieModal(); loadSerieShowcase(); if (!document.getElementById('edit-modal').classList.contains('hidden')) await populateDropdowns({ serie_id: data[0].id }); if (currentSerieId === data[0].id) { const { data: updatedSerie } = await window.supabaseClient.from('serie').select('id, nome, collana(nome)').eq('id', data[0].id).single(); const newDisplay = getSerieDisplayName(updatedSerie); document.getElementById('view-title').innerText = newDisplay; currentSerieFullNome = newDisplay; } } });
+        async function openAddModal() { document.getElementById('edit-form').reset(); document.getElementById('edit-id').value = ""; document.getElementById('edit-preview').src = placeholderImg; document.getElementById('modal-title').innerText = "Aggiungi Nuovo Albo"; document.getElementById('edit-modal').classList.remove('hidden'); await populateDropdowns(null); }
+        async function openEditModal(comicJson) { const comic = JSON.parse(decodeURIComponent(comicJson)); document.getElementById('modal-title').innerText = "Modifica Albo"; document.getElementById('edit-id').value = comic.id; document.getElementById('edit-nome').value = comic.nome || ''; document.getElementById('edit-numero').value = comic.numero || ''; document.getElementById('edit-possesso').value = comic.possesso || 'manca'; document.getElementById('edit-condizione').value = comic.condizione !== null ? comic.condizione : ""; document.getElementById('edit-valore').value = comic.valore || ""; document.getElementById('edit-data_pubblicazione').value = comic.data_pubblicazione || ''; document.getElementById('edit-immagine_url').value = comic.immagine_url || ''; document.getElementById('edit-preview').src = comic.immagine_url || placeholderImg; document.getElementById('edit-modal').classList.remove('hidden'); await populateDropdowns(comic); }
+        async function populateDropdowns(comic) { const { data: allSeries } = await window.supabaseClient.from('serie').select('id, nome').order('nome'); const serieSelect = document.getElementById('edit-serie_id'); serieSelect.innerHTML = '<option value="">Seleziona Serie...</option>' + (allSeries || []).map(s => `<option value="${s.id}" ${comic?.serie_id == s.id ? 'selected' : ''}>${s.nome}</option>`).join(''); document.getElementById('btn-edit-serie-context').disabled = !serieSelect.value; await updateEditoriDropdown(comic?.editore_id); await updateSupplementiDropdown(comic?.supplemento_id); await updateTipoPubblicazioneDropdown(comic?.tipo_pubblicazione_id); if (comic?.serie_id) { await updateTestateDropdown(comic.serie_id, comic.testata_id); await updateAnnateDropdown(comic.serie_id, comic.annata_id); await updateCollanaView(comic.serie_id); } else { document.getElementById('edit-collana_id').innerHTML = '<option value="">-</option>'; document.getElementById('btn-edit-collana-issue').disabled = true; document.getElementById('edit-testata_id').innerHTML = '<option value="">-</option>'; document.getElementById('edit-annata_id').innerHTML = '<option value="">-</option>'; } }
+        async function handleSerieChange(serieId) { document.getElementById('btn-edit-serie-context').disabled = !serieId; await updateTestateDropdown(serieId); await updateAnnateDropdown(serieId); await updateCollanaView(serieId); }
+        async function updateCollanaView(serieId) { const { data } = await window.supabaseClient.from('serie').select('collana(id, nome)').eq('id', serieId).single(); const collanaSelect = document.getElementById('edit-collana_id'); const editBtn = document.getElementById('btn-edit-collana-issue'); if (data?.collana) { collanaSelect.innerHTML = `<option value="${data.collana.id}">${data.collana.nome}</option>`; editBtn.disabled = false; } else { collanaSelect.innerHTML = '<option value="">Nessuna Collana</option>'; editBtn.disabled = true; } }
+        async function updateEditoriDropdown(selectedId = null) { const { data } = await window.supabaseClient.from('editore').select('id, nome').order('nome'); const select = document.getElementById('edit-editore_id'); select.innerHTML = '<option value="">Nessun Editore</option>' + (data || []).map(e => `<option value="${e.id}" ${e.id == selectedId ? 'selected' : ''}>${e.nome}</option>`).join(''); document.getElementById('btn-edit-editore-issue').disabled = !select.value; }
+        async function updateTestateDropdown(serieId, selectedId = null) { const { data } = await window.supabaseClient.from('testata').select('id, nome').eq('serie_id', serieId).order('nome'); const select = document.getElementById('edit-testata_id'); select.innerHTML = '<option value="">Nessuna Testata</option>' + (data || []).map(t => `<option value="${t.id}" ${t.id == selectedId ? 'selected' : ''}>${t.nome}</option>`).join(''); document.getElementById('btn-edit-testata-issue').disabled = !select.value; }
+        async function updateAnnateDropdown(serieId, selectedId = null) { const { data } = await window.supabaseClient.from('annata').select('id, nome').eq('serie_id', serieId).order('nome'); const select = document.getElementById('edit-annata_id'); select.innerHTML = '<option value="">Nessuna Annata</option>' + (data || []).map(a => `<option value="${a.id}" ${a.id == selectedId ? 'selected' : ''}>${a.nome}</option>`).join(''); document.getElementById('btn-edit-annata-issue').disabled = !select.value; }
+        async function updateTipoPubblicazioneDropdown(selectedId = null) { const { data } = await window.supabaseClient.from('tipo_pubblicazione').select('id, nome').order('nome'); const select = document.getElementById('edit-tipo_pubblicazione_id'); select.innerHTML = '<option value="">Nessuna</option>' + (data || []).map(tp => `<option value="${tp.id}" ${tp.id == selectedId ? 'selected' : ''}>${tp.nome}</option>`).join(''); }
+        async function updateSupplementiDropdown(selectedId = null) { const { data } = await window.supabaseClient.from('issue').select('id, numero, data_pubblicazione, serie(nome)').order('numero').limit(200); document.getElementById('edit-supplemento_id').innerHTML = '<option value="">Nessuno</option>' + (data || []).map(i => { const dateStr = i.data_pubblicazione ? new Date(i.data_pubblicazione).toLocaleDateString('it-IT') : 'Data N.D.'; return `<option value="${i.id}" ${i.id == selectedId ? 'selected' : ''}>${i.serie?.nome} #${i.numero} (${dateStr})</option>`; }).join(''); }
+        function closeModal() { document.getElementById('edit-modal').classList.add('hidden'); }
+        document.getElementById('edit-form').addEventListener('submit', async (e) => { e.preventDefault(); const id = document.getElementById('edit-id').value; const payload = { nome: document.getElementById('edit-nome').value, serie_id: document.getElementById('edit-serie_id').value, editore_id: document.getElementById('edit-editore_id').value || null, testata_id: document.getElementById('edit-testata_id').value || null, annata_id: document.getElementById('edit-annata_id').value || null, tipo_pubblicazione_id: document.getElementById('edit-tipo_pubblicazione_id').value || null, supplemento_id: document.getElementById('edit-supplemento_id').value || null, numero: document.getElementById('edit-numero').value, possesso: document.getElementById('edit-possesso').value, condizione: document.getElementById('edit-condizione').value === "" ? null : document.getElementById('edit-condizione').value, valore: document.getElementById('edit-valore').value === "" ? null : parseFloat(document.getElementById('edit-valore').value), data_pubblicazione: document.getElementById('edit-data_pubblicazione').value || null, immagine_url: document.getElementById('edit-immagine_url').value }; const { error } = id ? await window.supabaseClient.from('issue').update(payload).eq('id', id) : await window.supabaseClient.from('issue').insert([payload]); if (error) alert(error.message); else { closeModal(); if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome); else loadRecent(); } });
+
+        // Inizializzazione
+        loadCodiciBar();
+        loadSerieShowcase();
+        loadRecent();
+
+        document.addEventListener('click', (e) => { if (!searchInput.contains(e.target)) resultsDiv.classList.add('hidden'); });
     </script>
 </body>
 </html>
