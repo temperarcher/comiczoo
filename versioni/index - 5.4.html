@@ -272,8 +272,6 @@
 
         const FULL_QUERY = `*, annata(id, nome), serie(id, nome, immagine_url, collana_id, collana(nome)), tipo_pubblicazione(nome)`;
 
-        // --- FILTRI ---
-
         function setFilter(filter) {
             currentFilter = filter;
             document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
@@ -368,22 +366,21 @@
             grid.innerHTML = (items || []).map(comic => {
                 const isOwned = comic.possesso === 'celo';
                 const comicData = encodeURIComponent(JSON.stringify(comic));
-                // MODIFICA VERSIONE 5.4: Aggiunta nome annata prima del numero
-                const annataNome = comic.annata?.nome ? `<span class="text-slate-400 font-normal mr-1">${comic.annata.nome}</span>` : "";
+                
+                // MODIFICA VERSIONE 5.4: Aggiunta dell'annata se valorizzata
+                const annataVisualizzata = comic.annata?.nome ? `<span class="text-slate-400 font-normal mr-1">${comic.annata.nome}</span>` : "";
 
                 return `<div class="comic-card group bg-slate-800 rounded-xl overflow-hidden border ${isOwned ? 'border-slate-700 shadow-xl' : 'border-slate-800 opacity-80'} transition-all relative">
                     <button onclick="openEditModal('${comicData}')" class="absolute top-2 right-2 z-40 bg-yellow-500 text-slate-900 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">✏️</button>
                     <div class="relative h-72 bg-slate-950 overflow-hidden"><img src="${comic.immagine_url || placeholderImg}" class="comic-image w-full h-full object-cover ${isOwned ? '' : 'grayscale opacity-40'}"></div>
                     <div class="p-4">
                         <p class="text-[10px] text-yellow-500 font-bold uppercase truncate mb-1">${fallbackSerie || getSerieDisplayName(comic.serie)}</p>
-                        <h4 class="font-bold text-lg leading-tight truncate">${annataNome}#${comic.numero || '?'} ${comic.nome || ''}</h4>
+                        <h4 class="font-bold text-lg leading-tight truncate">${annataVisualizzata}#${comic.numero || '?'} ${comic.nome || ''}</h4>
                         <div class="mt-4 flex items-center justify-between border-t border-slate-700 pt-3">${getStarsHTML(comic.condizione)}<span class="text-[9px] text-slate-500 font-bold uppercase">${comic.tipo_pubblicazione?.nome || ''}</span></div>
                     </div>
                 </div>`;
             }).join('');
         }
-
-        // --- RICERCA ---
 
         searchInput.addEventListener('input', async (e) => {
             const queryText = e.target.value.trim();
@@ -397,8 +394,6 @@
                 resultsDiv.classList.remove('hidden');
             } else { resultsDiv.classList.add('hidden'); }
         });
-
-        // --- MODALI: HELPERS E DATA LOAD ---
 
         async function loadSelectOptions(table, elementId, selectedId = null, orderBy = 'nome') {
             const { data } = await window.supabaseClient.from(table).select('*').order(orderBy);
@@ -447,8 +442,6 @@
                 btnCollana.disabled = true;
             }
         }
-
-        // --- APERTURA MODALI ---
 
         async function openAddModal() {
             document.getElementById('modal-title').innerText = "Nuovo Albo";
@@ -501,8 +494,6 @@
 
         function closeModal() { document.getElementById('edit-modal').classList.add('hidden'); }
 
-        // --- GESTIONE SERIE (MODALE SEPARATO) ---
-
         async function openSerieModal(serieId = null) {
             document.getElementById('serie-modal-title').innerText = serieId ? "Modifica Serie" : "Nuova Serie";
             document.getElementById('serie-form').reset();
@@ -546,10 +537,7 @@
             }
         });
 
-        // Shortcut per editare serie dai contesti
         function openEditSerieFromContext() { openSerieModal(document.getElementById('edit-serie_id').value); }
-
-        // --- MODALI SEMPLICI (COLLANA, EDITORE, TESTATA, ANNATA, CODICE) ---
 
         function openSimpleModal(config) {
             document.getElementById('simple-modal-title').innerText = config.title;
@@ -584,7 +572,6 @@
 
         function closeSimpleModal() { document.getElementById('simple-modal').classList.add('hidden'); }
 
-        // Callbacks per caricamento dinamico dopo salvataggio
         function openCollanaModal() { openSimpleModal({ title: "Nuova Collana", table: 'collana', callback: () => { loadSelectOptions('collana', 'new-serie-collana'); loadSelectOptions('collana', 'edit-collana_id'); } }); }
         function openEditCollanaFromIssue() { 
             const id = document.getElementById('edit-collana_id').value;
@@ -618,8 +605,6 @@
             openSimpleModal({ title: "Modifica Annata", table: 'annata', id, nome, callback: () => loadSelectOptions('annata', 'edit-annata_id', id) });
         }
 
-        // --- SALVATAGGIO FINALE ALBO ---
-
         document.getElementById('edit-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = document.getElementById('edit-id').value;
@@ -649,7 +634,6 @@
             }
         });
 
-        // Inizializzazione
         loadCodiciBar();
         loadSerieShowcase();
         loadRecent();
