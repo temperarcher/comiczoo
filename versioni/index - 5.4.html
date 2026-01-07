@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comic Archive Pro - V5.4</title>
+    <title>Comic Archive Pro - V5.3</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
@@ -77,7 +77,7 @@
 
     <footer class="bg-slate-800 border-t border-slate-700 p-4 mt-8">
         <div class="container mx-auto text-center text-slate-500 text-[10px] font-bold uppercase tracking-widest">
-            versione 5.4 - annata nella card
+            versione 5.4 - concatena annata
         </div>
     </footer>
 
@@ -183,7 +183,7 @@
                     </div>
                     <div>
                         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Valore (€)</label>
-                        <input type="number" step="0.01" id="edit-valore" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-emerald-400 outline-none" placeholder="0.00">
+                        <input type="number" step="0.01" id="edit-valore" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-emerald-400 outline-none focus:ring-1 focus:ring-emerald-500" placeholder="0.00">
                     </div>
                     <div>
                         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Possesso</label>
@@ -232,7 +232,7 @@
                 </div>
                 <div class="pt-4 flex gap-3">
                     <button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all">Salva</button>
-                    <button type="button" onclick="closeSerieModal()" class="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl uppercase tracking-widest hover:bg-slate-600 transition-all">Chiudi</button>
+                    <button type="button" onclick="closeSerieModal()" class="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl uppercase tracking-widest hover:bg-slate-600 transition-all">Annulla</button>
                 </div>
             </form>
         </div>
@@ -272,6 +272,7 @@
 
         const FULL_QUERY = `*, annata(id, nome), serie(id, nome, immagine_url, collana_id, collana(nome)), tipo_pubblicazione(nome)`;
 
+        // Filtri e Reset
         function setFilter(filter) {
             currentFilter = filter;
             document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
@@ -281,10 +282,15 @@
         }
 
         async function resetAllFilters() {
-            currentCodiceId = null; currentSerieId = null; searchInput.value = "";
-            await loadCodiciBar(); await loadSerieShowcase(); await loadRecent();
+            currentCodiceId = null;
+            currentSerieId = null;
+            searchInput.value = "";
+            await loadCodiciBar();
+            await loadSerieShowcase();
+            await loadRecent();
         }
 
+        // Caricamento Barre Superiori
         async function loadCodiciBar() {
             const { data: codici } = await window.supabaseClient.from('codice_editore').select('id, nome, immagine_url').order('nome');
             let html = `<button id="codice-tutti" onclick="resetAllFilters()" class="codice-item ${!currentCodiceId ? 'active' : ''} shrink-0 h-12 px-6 bg-slate-800 border border-slate-700 rounded-lg flex items-center justify-center text-[11px] font-black uppercase tracking-widest text-yellow-500">TUTTI</button>`;
@@ -302,9 +308,14 @@
             currentCodiceId = codiceId;
             document.querySelectorAll('.codice-item').forEach(el => el.classList.remove('active'));
             document.getElementById(`codice-${codiceId}`).classList.add('active');
+
             const { data: editori } = await window.supabaseClient.from('editore').select('id').eq('codice_editore_id', codiceId);
             const editoriIds = editori.map(e => e.id);
-            if (editoriIds.length === 0) { showcase.innerHTML = `<p class="text-slate-500 text-xs uppercase px-4">Nessuna serie</p>`; return; }
+            if (editoriIds.length === 0) {
+                showcase.innerHTML = `<p class="text-slate-500 text-xs uppercase px-4">Nessuna serie</p>`;
+                return;
+            }
+
             const { data: issues } = await window.supabaseClient.from('issue').select('serie_id').in('editore_id', editoriIds);
             const serieIds = [...new Set(issues.map(i => i.serie_id))];
             await loadSerieShowcase(serieIds);
@@ -313,19 +324,23 @@
         async function loadSerieShowcase(filterSerieIds = null) {
             let query = window.supabaseClient.from('serie').select('id, nome, immagine_url, collana(nome)').order('nome');
             if (filterSerieIds) query = query.in('id', filterSerieIds);
+            
             const { data: series } = await query;
             if (series) {
                 showcase.innerHTML = series.map(serie => {
                     const display = getSerieDisplayName(serie);
-                    return `<div class="serie-showcase-item shrink-0 h-16 bg-slate-800 border border-slate-700 rounded-lg overflow-hidden cursor-pointer shadow-lg relative group">
+                    return `
+                    <div class="serie-showcase-item shrink-0 h-16 bg-slate-800 border border-slate-700 rounded-lg overflow-hidden cursor-pointer shadow-lg relative group">
                         <div onclick="selectSerie('${serie.id}', '${display}')" class="h-full">
                              <img src="${serie.immagine_url || placeholderImg}" alt="${display}" title="${display}" class="h-full w-auto object-contain">
                         </div>
+                        <button onclick="openSerieModal('${serie.id}')" class="absolute top-1 right-1 bg-yellow-500 text-slate-900 p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity text-[10px] edit-serie-btn z-10">✏️</button>
                     </div>`;
                 }).join('');
             }
         }
 
+        // Helper Visualizzazione
         function getStarsHTML(valore) {
             const num = parseInt(valore);
             if (isNaN(num)) return '<span class="text-[10px] text-slate-600 italic">N.D.</span>';
@@ -342,12 +357,18 @@
             return nomeCollana ? `${serie.nome} (${nomeCollana})` : serie.nome;
         }
 
+        // Caricamento Griglia Fumetti
         async function selectSerie(serieId, fullSerieNome) {
-            currentSerieId = serieId; currentSerieFullNome = fullSerieNome;
-            searchInput.value = fullSerieNome; resultsDiv.classList.add('hidden');
+            currentSerieId = serieId;
+            currentSerieFullNome = fullSerieNome;
+            searchInput.value = fullSerieNome;
+            resultsDiv.classList.add('hidden');
+            
             document.getElementById('view-title').innerText = fullSerieNome;
+            
             let query = window.supabaseClient.from('issue').select(FULL_QUERY).eq('serie_id', serieId);
             if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
+            
             const { data } = await query.order('numero', { ascending: true });
             renderGrid(data, fullSerieNome);
         }
@@ -355,8 +376,10 @@
         async function loadRecent() {
             currentSerieId = null;
             document.getElementById('view-title').innerText = "Ultimi Arrivi";
+            
             let query = window.supabaseClient.from('issue').select(FULL_QUERY);
             if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
+            
             const { data } = await query.order('created_at', { ascending: false }).limit(20);
             renderGrid(data);
         }
@@ -367,24 +390,32 @@
                 const isOwned = comic.possesso === 'celo';
                 const comicData = encodeURIComponent(JSON.stringify(comic));
                 
-                // MODIFICA VERSIONE 5.4: Aggiunta dell'annata se valorizzata
-                const annataVisualizzata = comic.annata?.nome ? `<span class="text-slate-400 font-normal mr-1">${comic.annata.nome}</span>` : "";
+                // MODIFICA VERSIONE 5.4: Concatena annata se presente
+                const annataLabel = comic.annata?.nome ? `<span class="text-slate-400 font-normal mr-1">${comic.annata.nome}</span>` : "";
 
-                return `<div class="comic-card group bg-slate-800 rounded-xl overflow-hidden border ${isOwned ? 'border-slate-700 shadow-xl' : 'border-slate-800 opacity-80'} transition-all relative">
+                return `
+                <div class="comic-card group bg-slate-800 rounded-xl overflow-hidden border ${isOwned ? 'border-slate-700 shadow-xl' : 'border-slate-800 opacity-80'} transition-all relative">
                     <button onclick="openEditModal('${comicData}')" class="absolute top-2 right-2 z-40 bg-yellow-500 text-slate-900 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">✏️</button>
-                    <div class="relative h-72 bg-slate-950 overflow-hidden"><img src="${comic.immagine_url || placeholderImg}" class="comic-image w-full h-full object-cover ${isOwned ? '' : 'grayscale opacity-40'}"></div>
+                    <div class="relative h-72 bg-slate-950 overflow-hidden">
+                        <img src="${comic.immagine_url || placeholderImg}" class="comic-image w-full h-full object-cover ${isOwned ? '' : 'grayscale opacity-40'}">
+                    </div>
                     <div class="p-4">
                         <p class="text-[10px] text-yellow-500 font-bold uppercase truncate mb-1">${fallbackSerie || getSerieDisplayName(comic.serie)}</p>
-                        <h4 class="font-bold text-lg leading-tight truncate">${annataVisualizzata}#${comic.numero || '?'} ${comic.nome || ''}</h4>
-                        <div class="mt-4 flex items-center justify-between border-t border-slate-700 pt-3">${getStarsHTML(comic.condizione)}<span class="text-[9px] text-slate-500 font-bold uppercase">${comic.tipo_pubblicazione?.nome || ''}</span></div>
+                        <h4 class="font-bold text-lg leading-tight truncate">${annataLabel}#${comic.numero || '?'} ${comic.nome || ''}</h4>
+                        <div class="mt-4 flex items-center justify-between border-t border-slate-700 pt-3">
+                            ${getStarsHTML(comic.condizione)}
+                            <span class="text-[9px] text-slate-500 font-bold uppercase">${comic.tipo_pubblicazione?.nome || ''}</span>
+                        </div>
                     </div>
                 </div>`;
             }).join('');
         }
 
+        // Search Autocomplete
         searchInput.addEventListener('input', async (e) => {
             const queryText = e.target.value.trim();
             if (queryText.length < 2) { resultsDiv.classList.add('hidden'); return; }
+
             const { data } = await window.supabaseClient.from('serie').select('id, nome, collana(nome)').ilike('nome', `%${queryText}%`).limit(10);
             if (data && data.length > 0) {
                 resultsDiv.innerHTML = data.map(s => {
@@ -395,6 +426,7 @@
             } else { resultsDiv.classList.add('hidden'); }
         });
 
+        // Helper Dropdown e Modali
         async function loadSelectOptions(table, elementId, selectedId = null, orderBy = 'nome') {
             const { data } = await window.supabaseClient.from(table).select('*').order(orderBy);
             const select = document.getElementById(elementId);
@@ -443,6 +475,7 @@
             }
         }
 
+        // Gestione Albo
         async function openAddModal() {
             document.getElementById('modal-title').innerText = "Nuovo Albo";
             document.getElementById('edit-form').reset();
@@ -494,6 +527,7 @@
 
         function closeModal() { document.getElementById('edit-modal').classList.add('hidden'); }
 
+        // Gestione Serie
         async function openSerieModal(serieId = null) {
             document.getElementById('serie-modal-title').innerText = serieId ? "Modifica Serie" : "Nuova Serie";
             document.getElementById('serie-form').reset();
@@ -539,6 +573,7 @@
 
         function openEditSerieFromContext() { openSerieModal(document.getElementById('edit-serie_id').value); }
 
+        // Gestione Semplice (Collana, Editore, ecc)
         function openSimpleModal(config) {
             document.getElementById('simple-modal-title').innerText = config.title;
             document.getElementById('simple-id').value = config.id || "";
@@ -605,6 +640,7 @@
             openSimpleModal({ title: "Modifica Annata", table: 'annata', id, nome, callback: () => loadSelectOptions('annata', 'edit-annata_id', id) });
         }
 
+        // Submit Finale Albo
         document.getElementById('edit-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = document.getElementById('edit-id').value;
@@ -634,6 +670,7 @@
             }
         });
 
+        // Inizializzazione
         loadCodiciBar();
         loadSerieShowcase();
         loadRecent();
