@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comic Archive Pro - V6.0</title>
+    <title>Comic Archive Pro - V6.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
@@ -24,7 +24,7 @@
         
         button:disabled { opacity: 0.3; cursor: not-allowed; filter: grayscale(1); }
 
-        /* Stili per la Vista Lista (V6.0) */
+        /* Stili per la Vista Lista (V6.0/6.1) */
         .list-view-container { grid-template-columns: 1fr !important; gap: 1rem !important; }
         .list-view-item { display: flex !important; flex-direction: row !important; height: 120px !important; }
         .list-view-item .relative { width: 100px !important; height: 100% !important; flex-shrink: 0 !important; }
@@ -92,7 +92,7 @@
 
     <footer class="bg-slate-800 border-t border-slate-700 p-4 mt-8">
         <div class="container mx-auto text-center text-slate-500 text-[10px] font-bold uppercase tracking-widest">
-            versione 6.0 - vista alternativa (griglia/lista)
+            versione 6.1 - ripristino gestione codice editore
         </div>
     </footer>
 
@@ -284,12 +284,12 @@
         let currentSerieId = null;
         let currentSerieFullNome = ""; 
         let currentCodiceId = null;
-        let currentView = 'grid'; // Nuova variabile V6.0
-        let currentData = []; // Cache dati per switch rapido vista
+        let currentView = 'grid'; 
+        let currentData = [];
 
         const FULL_QUERY = `*, annata(id, nome), serie(id, nome, immagine_url, collana_id, collana(nome)), tipo_pubblicazione(nome)`;
 
-        // Gestione Vista (V6.0)
+        // Gestione Vista
         function setView(view) {
             currentView = view;
             document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
@@ -297,7 +297,7 @@
             renderGrid(currentData, currentSerieFullNome);
         }
 
-        // Filtri e Reset (Invariati 5.4)
+        // Filtri e Reset
         function setFilter(filter) {
             currentFilter = filter;
             document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
@@ -315,7 +315,7 @@
             await loadRecent();
         }
 
-        // Caricamento Barre Superiori (Invariato 5.4)
+        // Caricamento Barre Superiori
         async function loadCodiciBar() {
             const { data: codici } = await window.supabaseClient.from('codice_editore').select('id, nome, immagine_url').order('nome');
             let html = `<button id="codice-tutti" onclick="resetAllFilters()" class="codice-item ${!currentCodiceId ? 'active' : ''} shrink-0 h-12 px-6 bg-slate-800 border border-slate-700 rounded-lg flex items-center justify-center text-[11px] font-black uppercase tracking-widest text-yellow-500">TUTTI</button>`;
@@ -365,7 +365,7 @@
             }
         }
 
-        // Helper Visualizzazione (Invariato 5.4)
+        // Helper Visualizzazione
         function getStarsHTML(valore) {
             const num = parseInt(valore);
             if (isNaN(num)) return '<span class="text-[10px] text-slate-600 italic">N.D.</span>';
@@ -382,7 +382,7 @@
             return nomeCollana ? `${serie.nome} (${nomeCollana})` : serie.nome;
         }
 
-        // Caricamento Griglia Fumetti (Invariato 5.4 + Cache dati V6.0)
+        // Caricamento Dati
         async function selectSerie(serieId, fullSerieNome) {
             currentSerieId = serieId;
             currentSerieFullNome = fullSerieNome;
@@ -395,7 +395,7 @@
             if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
             
             const { data } = await query.order('numero', { ascending: true });
-            currentData = data || []; // Aggiorna cache
+            currentData = data || [];
             renderGrid(currentData, fullSerieNome);
         }
 
@@ -407,15 +407,14 @@
             if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
             
             const { data } = await query.order('created_at', { ascending: false }).limit(20);
-            currentData = data || []; // Aggiorna cache
+            currentData = data || [];
             renderGrid(currentData);
         }
 
-        // Funzione Render (Aggiornata V6.0 con Switch Griglia/Lista)
+        // Funzione Render
         function renderGrid(items, fallbackSerie = "") {
             statsCount.innerText = `${items?.length || 0} fumetti`;
             
-            // Applica o rimuovi la classe lista al container
             if (currentView === 'list') grid.classList.add('list-view-container');
             else grid.classList.remove('list-view-container');
 
@@ -442,7 +441,7 @@
             }).join('');
         }
 
-        // LOGICA RESTANTE (Invariata 5.4: Search, Modali, Dropdown, Submit)
+        // Logica Ricerca
         searchInput.addEventListener('input', async (e) => {
             const queryText = e.target.value.trim();
             if (queryText.length < 2) { resultsDiv.classList.add('hidden'); return; }
@@ -456,10 +455,13 @@
             } else { resultsDiv.classList.add('hidden'); }
         });
 
+        // Logica Modali e Caricamento Select
         async function loadSelectOptions(table, elementId, selectedId = null, orderBy = 'nome') {
             const { data } = await window.supabaseClient.from(table).select('*').order(orderBy);
             const select = document.getElementById(elementId);
-            select.innerHTML = `<option value="">-- Seleziona --</option>` + (data || []).map(item => `<option value="${item.id}" ${item.id == selectedId ? 'selected' : ''}>${item.nome}</option>`).join('');
+            if (select) {
+                select.innerHTML = `<option value="">-- Seleziona --</option>` + (data || []).map(item => `<option value="${item.id}" ${item.id == selectedId ? 'selected' : ''}>${item.nome}</option>`).join('');
+            }
             return data;
         }
 
@@ -492,6 +494,7 @@
             } else { collanaSelect.value = ""; collanaSelect.disabled = true; btnCollana.disabled = true; }
         }
 
+        // CRUD Albo
         async function openAddModal() {
             document.getElementById('modal-title').innerText = "Nuovo Albo";
             document.getElementById('edit-form').reset();
@@ -534,6 +537,7 @@
 
         function closeModal() { document.getElementById('edit-modal').classList.add('hidden'); }
 
+        // CRUD Serie
         async function openSerieModal(serieId = null) {
             document.getElementById('serie-modal-title').innerText = serieId ? "Modifica Serie" : "Nuova Serie";
             document.getElementById('serie-form').reset();
@@ -564,15 +568,30 @@
             else { closeSerieModal(); const currentSerie = document.getElementById('edit-serie_id').value; await loadSerieSelect(currentSerie || null); if (id && currentSerie == id) await handleSerieChange(id); await loadSerieShowcase(); }
         });
 
-        function openEditSerieFromContext() { openSerieModal(document.getElementById('edit-serie_id').value); }
-
+        // CRUD Tabelle Semplici
         function openSimpleModal(config) {
             document.getElementById('simple-modal-title').innerText = config.title;
             document.getElementById('simple-id').value = config.id || "";
             let html = `<div><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome</label>
                         <input type="text" id="simple-nome" required value="${config.nome || ''}" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></div>`;
-            if (config.table === 'codice_editore' || config.table === 'editore') { html += `<div class="mt-4"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">URL Immagine / Logo</label><input type="text" id="simple-img" value="${config.img || ''}" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm text-blue-400 outline-none"></div>`; }
-            if (config.table === 'editore') { html += `<div class="mt-4"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Codice Editore</label><select id="simple-rel" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select></div>`; }
+            
+            if (config.table === 'codice_editore' || config.table === 'editore') { 
+                html += `<div class="mt-4"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">URL Immagine / Logo</label><input type="text" id="simple-img" value="${config.img || ''}" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm text-blue-400 outline-none"></div>`; 
+            }
+            
+            if (config.table === 'editore') { 
+                html += `<div class="mt-4">
+                    <div class="flex justify-between items-center">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Codice Editore</label>
+                        <div class="flex gap-2">
+                            <button type="button" id="btn-edit-codice-editore" onclick="openEditCodiceFromEditore()" disabled class="text-[9px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded hover:bg-blue-500/20 transition-all font-bold">✏️ EDIT</button>
+                            <button type="button" onclick="openCodiceModal()" class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded hover:bg-yellow-500/20 transition-all font-bold">+ NUOVO</button>
+                        </div>
+                    </div>
+                    <select id="simple-rel" onchange="document.getElementById('btn-edit-codice-editore').disabled = !this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select>
+                </div>`; 
+            }
+
             document.getElementById('simple-form-fields').innerHTML = html;
             document.getElementById('simple-form').onsubmit = async (e) => {
                 e.preventDefault();
@@ -582,21 +601,60 @@
                 const { error } = config.id ? await window.supabaseClient.from(config.table).update(payload).eq('id', config.id) : await window.supabaseClient.from(config.table).insert([payload]);
                 if (error) alert(error.message); else { closeSimpleModal(); if (config.callback) config.callback(); }
             };
-            if (config.table === 'editore') loadSelectOptions('codice_editore', 'simple-rel', config.relId);
+
+            if (config.table === 'editore') {
+                loadSelectOptions('codice_editore', 'simple-rel', config.relId).then(() => {
+                    if(config.relId) document.getElementById('btn-edit-codice-editore').disabled = false;
+                });
+            }
             document.getElementById('simple-modal').classList.remove('hidden');
         }
 
         function closeSimpleModal() { document.getElementById('simple-modal').classList.add('hidden'); }
+        
+        // Helper per modali specifici
+        function openCodiceModal() { 
+            openSimpleModal({ title: "Nuovo Codice Editore", table: 'codice_editore', callback: () => { 
+                loadCodiciBar(); 
+                if(document.getElementById('simple-rel')) loadSelectOptions('codice_editore', 'simple-rel');
+            }}); 
+        }
+
+        function openEditCodiceFromEditore() {
+            const select = document.getElementById('simple-rel');
+            const id = select.value;
+            const nome = select.options[select.selectedIndex].text;
+            // Cerchiamo l'immagine se possibile o lasciamo vuoto per input manuale
+            openSimpleModal({ title: "Modifica Codice Editore", table: 'codice_editore', id, nome, callback: () => {
+                loadCodiciBar();
+                loadSelectOptions('codice_editore', 'simple-rel', id);
+            }});
+        }
+
+        function openEditSerieFromContext() { openSerieModal(document.getElementById('edit-serie_id').value); }
         function openCollanaModal() { openSimpleModal({ title: "Nuova Collana", table: 'collana', callback: () => { loadSelectOptions('collana', 'new-serie-collana'); loadSelectOptions('collana', 'edit-collana_id'); } }); }
         function openEditCollanaFromIssue() { const id = document.getElementById('edit-collana_id').value; const nome = document.getElementById('edit-collana_id').options[document.getElementById('edit-collana_id').selectedIndex].text; openSimpleModal({ title: "Modifica Collana", table: 'collana', id, nome, callback: () => { loadSelectOptions('collana', 'edit-collana_id', id); } }); }
         function openEditCollanaFromSerie() { const id = document.getElementById('new-serie-collana').value; const nome = document.getElementById('new-serie-collana').options[document.getElementById('new-serie-collana').selectedIndex].text; openSimpleModal({ title: "Modifica Collana", table: 'collana', id, nome, callback: () => { loadSelectOptions('collana', 'new-serie-collana', id); } }); }
+        
         function openEditoreModal() { openSimpleModal({ title: "Nuovo Editore", table: 'editore', callback: () => loadSelectOptions('editore', 'edit-editore_id') }); }
-        function openEditEditoreFromIssue() { const select = document.getElementById('edit-editore_id'); const id = select.value; const nome = select.options[select.selectedIndex].text; openSimpleModal({ title: "Modifica Editore", table: 'editore', id, nome, callback: () => loadSelectOptions('editore', 'edit-editore_id', id) }); }
+        async function openEditEditoreFromIssue() { 
+            const select = document.getElementById('edit-editore_id'); 
+            const id = select.value; 
+            const nome = select.options[select.selectedIndex].text;
+            const { data } = await window.supabaseClient.from('editore').select('*').eq('id', id).single();
+            openSimpleModal({ 
+                title: "Modifica Editore", table: 'editore', id, nome, 
+                img: data?.immagine_url || "", relId: data?.codice_editore_id || null,
+                callback: () => loadSelectOptions('editore', 'edit-editore_id', id) 
+            }); 
+        }
+
         function openTestataModal() { openSimpleModal({ title: "Nuova Testata", table: 'testata', callback: () => loadSelectOptions('testata', 'edit-testata_id') }); }
         function openEditTestataFromIssue() { const select = document.getElementById('edit-testata_id'); const id = select.value; const nome = select.options[select.selectedIndex].text; openSimpleModal({ title: "Modifica Testata", table: 'testata', id, nome, callback: () => loadSelectOptions('testata', 'edit-testata_id', id) }); }
         function openAnnataModal() { openSimpleModal({ title: "Nuova Annata", table: 'annata', callback: () => loadSelectOptions('annata', 'edit-annata_id') }); }
         function openEditAnnataFromIssue() { const select = document.getElementById('edit-annata_id'); const id = select.value; const nome = select.options[select.selectedIndex].text; openSimpleModal({ title: "Modifica Annata", table: 'annata', id, nome, callback: () => loadSelectOptions('annata', 'edit-annata_id', id) }); }
 
+        // Salvataggio Finale Albo
         document.getElementById('edit-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = document.getElementById('edit-id').value;
@@ -608,6 +666,7 @@
             else { closeModal(); if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome); else loadRecent(); }
         });
 
+        // Init
         loadCodiciBar(); loadSerieShowcase(); loadRecent();
         document.addEventListener('click', (e) => { if (!searchInput.contains(e.target)) resultsDiv.classList.add('hidden'); });
     </script>
