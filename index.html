@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comic Archive Pro - V6.2</title>
+    <title>Comic Archive Pro - V7.0 - Storie</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
@@ -92,7 +92,7 @@
 
     <footer class="bg-slate-800 border-t border-slate-700 p-4 mt-8">
         <div class="container mx-auto text-center text-slate-500 text-[10px] font-bold uppercase tracking-widest">
-            versione 6.2 - ripristino immagine modale codice
+            versione 7.0 - gestione storie incluse
         </div>
     </footer>
 
@@ -109,7 +109,15 @@
                     <div class="aspect-[2/3] bg-slate-900 rounded-lg border border-slate-700 overflow-hidden shadow-inner mb-4">
                         <img id="edit-preview" src="" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/300x450/1e293b/fbbf24?text=No+Cover'">
                     </div>
+                    
+                    <div class="mt-4">
+                        <label class="text-[10px] font-bold text-yellow-500 uppercase tracking-widest block mb-2">Storie Incluse</label>
+                        <div id="issue-stories-list" class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-2">
+                            <p class="text-[10px] text-slate-500 italic uppercase">Nessuna storia associata</p>
+                        </div>
+                    </div>
                 </div>
+                
                 <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="md:col-span-2">
                         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">URL Immagine</label>
@@ -491,6 +499,7 @@
             document.getElementById('edit-form').reset();
             document.getElementById('edit-id').value = "";
             document.getElementById('edit-preview').src = "";
+            document.getElementById('issue-stories-list').innerHTML = `<p class="text-[10px] text-slate-500 italic uppercase">Nuovo Albo (Nessuna Storia)</p>`;
             ['serie-context', 'collana-issue', 'editore-issue', 'testata-issue', 'annata-issue'].forEach(id => document.getElementById(`btn-edit-${id}`).disabled = true);
             await loadSerieSelect();
             await loadSelectOptions('editore', 'edit-editore_id');
@@ -499,6 +508,30 @@
             await loadSelectOptions('tipo_pubblicazione', 'edit-tipo_pubblicazione_id');
             await loadSupplementoSelect();
             document.getElementById('edit-modal').classList.remove('hidden');
+        }
+
+        // FUNZIONE RECUPERO STORIE (V7.0)
+        async function loadIssueStories(issueId) {
+            const list = document.getElementById('issue-stories-list');
+            list.innerHTML = `<p class="text-[10px] text-slate-500 italic uppercase">Caricamento storie...</p>`;
+            
+            const { data: stories, error } = await window.supabaseClient
+                .from('storie_in_issue')
+                .select('posizione, storia(nome)')
+                .eq('issue_id', issueId)
+                .order('posizione', { ascending: true });
+
+            if (error || !stories || stories.length === 0) {
+                list.innerHTML = `<p class="text-[10px] text-slate-500 italic uppercase">Nessuna storia associata</p>`;
+                return;
+            }
+
+            list.innerHTML = stories.map(s => `
+                <div class="flex items-center gap-2 bg-slate-900/50 p-2 rounded border border-slate-700/50 group hover:border-yellow-500/50 transition-all">
+                    <span class="text-[10px] font-black text-yellow-500 bg-slate-800 w-5 h-5 flex items-center justify-center rounded shrink-0">${s.posizione || '?'}</span>
+                    <span class="text-[11px] font-bold text-slate-200 truncate uppercase tracking-tight">${s.storia?.nome || 'Titolo non trovato'}</span>
+                </div>
+            `).join('');
         }
 
         async function openEditModal(comicData) {
@@ -513,6 +546,10 @@
             document.getElementById('edit-data_pubblicazione').value = comic.data_pubblicazione || "";
             document.getElementById('edit-immagine_url').value = comic.immagine_url || "";
             document.getElementById('edit-preview').src = comic.immagine_url || placeholderImg;
+            
+            // Carica Storie (V7.0)
+            loadIssueStories(comic.id);
+
             await loadSerieSelect(comic.serie_id);
             await loadSelectOptions('editore', 'edit-editore_id', comic.editore_id);
             await loadSelectOptions('testata', 'edit-testata_id', comic.testata_id);
@@ -558,30 +595,21 @@
             else { closeSerieModal(); const currentSerie = document.getElementById('edit-serie_id').value; await loadSerieSelect(currentSerie || null); if (id && currentSerie == id) await handleSerieChange(id); await loadSerieShowcase(); }
         });
 
-        // GESTIONE MODALE SEMPLICE (V6.2)
         function openSimpleModal(config) {
             document.getElementById('simple-modal-title').innerText = config.title;
             document.getElementById('simple-id').value = config.id || "";
-            
             const previewContainer = document.getElementById('simple-preview-container');
             const previewImg = document.getElementById('simple-preview-img');
-            
-            // Logica Anteprima
             if (config.table === 'codice_editore' || config.table === 'editore') {
                 previewContainer.classList.remove('hidden');
                 previewImg.src = config.img || "";
-            } else {
-                previewContainer.classList.add('hidden');
-            }
-
+            } else { previewContainer.classList.add('hidden'); }
             let html = `<div><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome</label>
                         <input type="text" id="simple-nome" required value="${config.nome || ''}" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></div>`;
-            
             if (config.table === 'codice_editore' || config.table === 'editore') { 
                 html += `<div class="mt-4"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">URL Immagine / Logo</label>
                          <input type="text" id="simple-img" value="${config.img || ''}" oninput="document.getElementById('simple-preview-img').src = this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm text-blue-400 outline-none"></div>`; 
             }
-            
             if (config.table === 'editore') { 
                 html += `<div class="mt-4">
                     <div class="flex justify-between items-center">
@@ -594,7 +622,6 @@
                     <select id="simple-rel" onchange="document.getElementById('btn-edit-codice-editore').disabled = !this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select>
                 </div>`; 
             }
-
             document.getElementById('simple-form-fields').innerHTML = html;
             document.getElementById('simple-form').onsubmit = async (e) => {
                 e.preventDefault();
@@ -604,60 +631,33 @@
                 const { error } = config.id ? await window.supabaseClient.from(config.table).update(payload).eq('id', config.id) : await window.supabaseClient.from(config.table).insert([payload]);
                 if (error) alert(error.message); else { closeSimpleModal(); if (config.callback) config.callback(); }
             };
-
             if (config.table === 'editore') {
-                loadSelectOptions('codice_editore', 'simple-rel', config.relId).then(() => {
-                    if(config.relId) document.getElementById('btn-edit-codice-editore').disabled = false;
-                });
+                loadSelectOptions('codice_editore', 'simple-rel', config.relId).then(() => { if(config.relId) document.getElementById('btn-edit-codice-editore').disabled = false; });
             }
             document.getElementById('simple-modal').classList.remove('hidden');
         }
 
         function closeSimpleModal() { document.getElementById('simple-modal').classList.add('hidden'); }
-        
-        function openCodiceModal() { 
-            openSimpleModal({ title: "Nuovo Codice Editore", table: 'codice_editore', callback: () => { 
-                loadCodiciBar(); 
-                if(document.getElementById('simple-rel')) loadSelectOptions('codice_editore', 'simple-rel');
-            }}); 
-        }
-
-        // Recupero Dati per Codice Editore (V6.2)
+        function openCodiceModal() { openSimpleModal({ title: "Nuovo Codice Editore", table: 'codice_editore', callback: () => { loadCodiciBar(); if(document.getElementById('simple-rel')) loadSelectOptions('codice_editore', 'simple-rel'); }}); }
         async function openEditCodiceFromEditore() {
             const select = document.getElementById('simple-rel');
             const id = select.value;
             if(!id) return;
-            // Fetch per intercettare l'immagine mancante (V6.2 Fix)
             const { data } = await window.supabaseClient.from('codice_editore').select('*').eq('id', id).single();
-            openSimpleModal({ 
-                title: "Modifica Codice Editore", table: 'codice_editore', 
-                id, nome: data?.nome || "", img: data?.immagine_url || "",
-                callback: () => {
-                    loadCodiciBar();
-                    loadSelectOptions('codice_editore', 'simple-rel', id);
-                }
-            });
+            openSimpleModal({ title: "Modifica Codice Editore", table: 'codice_editore', id, nome: data?.nome || "", img: data?.immagine_url || "", callback: () => { loadCodiciBar(); loadSelectOptions('codice_editore', 'simple-rel', id); } });
         }
-
         function openEditSerieFromContext() { openSerieModal(document.getElementById('edit-serie_id').value); }
         function openCollanaModal() { openSimpleModal({ title: "Nuova Collana", table: 'collana', callback: () => { loadSelectOptions('collana', 'new-serie-collana'); loadSelectOptions('collana', 'edit-collana_id'); } }); }
         function openEditCollanaFromIssue() { const id = document.getElementById('edit-collana_id').value; const nome = document.getElementById('edit-collana_id').options[document.getElementById('edit-collana_id').selectedIndex].text; openSimpleModal({ title: "Modifica Collana", table: 'collana', id, nome, callback: () => { loadSelectOptions('collana', 'edit-collana_id', id); } }); }
         function openEditCollanaFromSerie() { const id = document.getElementById('new-serie-collana').value; const nome = document.getElementById('new-serie-collana').options[document.getElementById('new-serie-collana').selectedIndex].text; openSimpleModal({ title: "Modifica Collana", table: 'collana', id, nome, callback: () => { loadSelectOptions('collana', 'new-serie-collana', id); } }); }
-        
         function openEditoreModal() { openSimpleModal({ title: "Nuovo Editore", table: 'editore', callback: () => loadSelectOptions('editore', 'edit-editore_id') }); }
-        
         async function openEditEditoreFromIssue() { 
             const select = document.getElementById('edit-editore_id'); 
             const id = select.value; 
             if(!id) return;
             const { data } = await window.supabaseClient.from('editore').select('*').eq('id', id).single();
-            openSimpleModal({ 
-                title: "Modifica Editore", table: 'editore', id, nome: data?.nome || "", 
-                img: data?.immagine_url || "", relId: data?.codice_editore_id || null,
-                callback: () => loadSelectOptions('editore', 'edit-editore_id', id) 
-            }); 
+            openSimpleModal({ title: "Modifica Editore", table: 'editore', id, nome: data?.nome || "", img: data?.immagine_url || "", relId: data?.codice_editore_id || null, callback: () => loadSelectOptions('editore', 'edit-editore_id', id) }); 
         }
-
         function openTestataModal() { openSimpleModal({ title: "Nuova Testata", table: 'testata', callback: () => loadSelectOptions('testata', 'edit-testata_id') }); }
         function openEditTestataFromIssue() { const select = document.getElementById('edit-testata_id'); const id = select.value; const nome = select.options[select.selectedIndex].text; openSimpleModal({ title: "Modifica Testata", table: 'testata', id, nome, callback: () => loadSelectOptions('testata', 'edit-testata_id', id) }); }
         function openAnnataModal() { openSimpleModal({ title: "Nuova Annata", table: 'annata', callback: () => loadSelectOptions('annata', 'edit-annata_id') }); }
