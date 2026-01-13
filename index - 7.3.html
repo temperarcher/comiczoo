@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comic Archive Pro - V7.2 - Modale Storie Avanzato</title>
+    <title>Comic Archive Pro - V7.3 - Modale Storie Personaggi</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
@@ -91,7 +91,7 @@
 
     <footer class="bg-slate-800 border-t border-slate-700 p-4 mt-8">
         <div class="container mx-auto text-center text-slate-500 text-[10px] font-bold uppercase tracking-widest">
-            versione 7.2 - gestione molti-a-molti storie (No ID)
+            versione 7.3 - modale storie con personaggi
         </div>
     </footer>
 
@@ -227,32 +227,43 @@
     </div>
 
     <div id="storie-modal" class="hidden fixed inset-0 z-[130] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
             <div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800">
                 <h3 id="storie-modal-title" class="text-xl font-bold text-yellow-500 uppercase italic">Gestione Storia</h3>
                 <button onclick="closeStorieModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
             </div>
-            <form id="storie-form" class="p-6 space-y-4">
-                <input type="hidden" id="storie-id">
-                <input type="hidden" id="old-storia-id">
-                <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Titolo Storia</label>
-                    <input list="storie-esistenti" id="storie-nome" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none" placeholder="Cerca o scrivi un titolo...">
-                    <datalist id="storie-esistenti"></datalist>
+            <div class="p-6 overflow-y-auto custom-scrollbar">
+                <form id="storie-form" class="space-y-4 mb-6">
+                    <input type="hidden" id="storie-id">
+                    <input type="hidden" id="old-storia-id">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="md:col-span-2">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Titolo Storia</label>
+                            <input list="storie-esistenti" id="storie-nome" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none" placeholder="Cerca o scrivi un titolo...">
+                            <datalist id="storie-esistenti"></datalist>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Associa all'Albo</label>
+                            <select id="storie-issue-id" onchange="togglePosizioneField(this.value)" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-[11px] font-bold text-yellow-500 outline-none"></select>
+                        </div>
+                        <div id="storie-posizione-container" class="hidden">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Posizione (Indice)</label>
+                            <input type="number" id="storie-posizione" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none" placeholder="1, 2, 3...">
+                        </div>
+                    </div>
+                    <div class="pt-4 flex gap-3">
+                        <button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-2 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all text-xs">Salva Storia</button>
+                    </div>
+                </form>
+
+                <div id="sezione-personaggi" class="hidden pt-6 border-t border-slate-700">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-xs font-black text-yellow-500 uppercase tracking-widest">Personaggi Protagonisti</h4>
+                    </div>
+                    <div id="lista-personaggi-storia" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        </div>
                 </div>
-                <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Associa all'Albo</label>
-                    <select id="storie-issue-id" onchange="togglePosizioneField(this.value)" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-[11px] font-bold text-yellow-500 outline-none"></select>
-                </div>
-                <div id="storie-posizione-container" class="hidden">
-                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Posizione (Indice)</label>
-                    <input type="number" id="storie-posizione" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none" placeholder="1, 2, 3...">
-                </div>
-                <div class="pt-4 flex gap-3">
-                    <button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all">Salva</button>
-                    <button type="button" onclick="closeStorieModal()" class="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl uppercase tracking-widest hover:bg-slate-600 transition-all">Annulla</button>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
 
@@ -314,7 +325,6 @@
     </div>
 
     <script>
-        // ... (Script identici a 7.1 per la gestione griglia, filtri, caricamento)
         const searchInput = document.getElementById('serie-search');
         const resultsDiv = document.getElementById('serie-results');
         const grid = document.getElementById('comic-grid');
@@ -323,6 +333,7 @@
         const codiciBar = document.getElementById('codici-bar');
         const placeholderImg = 'https://placehold.co/300x450/1e293b/fbbf24?text=No+Cover';
         const placeholderLogo = 'https://placehold.co/200x200/1e293b/fbbf24?text=Codice';
+        const placeholderAvatar = 'https://placehold.co/100x100/1e293b/fbbf24?text=?';
         
         let currentFilter = 'all'; 
         let currentSerieId = null;
@@ -349,12 +360,8 @@
         }
 
         async function resetAllFilters() {
-            currentCodiceId = null;
-            currentSerieId = null;
-            searchInput.value = "";
-            await loadCodiciBar();
-            await loadSerieShowcase();
-            await loadRecent();
+            currentCodiceId = null; currentSerieId = null; searchInput.value = "";
+            await loadCodiciBar(); await loadSerieShowcase(); await loadRecent();
         }
 
         async function loadCodiciBar() {
@@ -439,22 +446,40 @@
             }).join('');
         }
 
-        searchInput.addEventListener('input', async (e) => {
-            const queryText = e.target.value.trim(); if (queryText.length < 2) { resultsDiv.classList.add('hidden'); return; }
-            const { data } = await window.supabaseClient.from('serie').select('id, nome, collana(nome)').ilike('nome', `%${queryText}%`).limit(10);
-            if (data && data.length > 0) {
-                resultsDiv.innerHTML = data.map(s => { const full = getSerieDisplayName(s); return `<div onclick="selectSerie('${s.id}', '${full}')" class="p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700 last:border-0 text-sm font-bold">${full}</div>`; }).join('');
-                resultsDiv.classList.remove('hidden');
-            } else { resultsDiv.classList.add('hidden'); }
-        });
-
-        // LOGICA STORIE V7.2 - MOLTI-A-MOLTI
+        // LOGICA STORIE E PERSONAGGI V7.3
         async function loadStorieEsistenti() {
             const { data } = await window.supabaseClient.from('storie').select('id, nome').order('nome');
             const datalist = document.getElementById('storie-esistenti');
-            if (data) {
-                datalist.innerHTML = data.map(s => `<option value="${s.nome}" data-id="${s.id}"></option>`).join('');
+            if (data) datalist.innerHTML = data.map(s => `<option value="${s.nome}" data-id="${s.id}"></option>`).join('');
+        }
+
+        async function loadPersonaggiStoria(storiaId) {
+            const container = document.getElementById('sezione-personaggi');
+            const lista = document.getElementById('lista-personaggi-storia');
+            if (!storiaId) { container.classList.add('hidden'); return; }
+            
+            container.classList.remove('hidden');
+            lista.innerHTML = `<p class="text-[10px] text-slate-500 italic uppercase col-span-2">Ricerca personaggi...</p>`;
+            
+            // Query relazionale: da personaggi_storie recuperiamo i dettagli da personaggio
+            const { data, error } = await window.supabaseClient
+                .from('personaggi_storie')
+                .select(`personaggio ( id, nome, immagine_url )`)
+                .eq('storia_id', storiaId);
+
+            if (error || !data || data.length === 0) {
+                lista.innerHTML = `<p class="text-[10px] text-slate-400 italic uppercase col-span-2">Nessun personaggio associato a questa storia</p>`;
+                return;
             }
+
+            lista.innerHTML = data.map(p => `
+                <div class="flex items-center gap-3 bg-slate-900/40 p-2 rounded-lg border border-slate-700/50">
+                    <div class="w-10 h-10 rounded-full overflow-hidden border border-yellow-500/30 shrink-0 shadow-lg">
+                        <img src="${p.personaggio?.immagine_url || placeholderAvatar}" class="w-full h-full object-cover" onerror="this.src='${placeholderAvatar}'">
+                    </div>
+                    <span class="text-[11px] font-black text-slate-200 uppercase truncate tracking-tight">${p.personaggio?.nome || 'Ignoto'}</span>
+                </div>
+            `).join('');
         }
 
         async function loadIssueStories(issueId) {
@@ -466,7 +491,7 @@
                 const storyPayload = encodeURIComponent(JSON.stringify({ id: s.storie?.id, nome: s.storie?.nome, issue_id: issueId, posizione: s.posizione }));
                 return `<div class="bg-slate-900/50 p-2 rounded border border-slate-700/50 group">
                     <div class="flex items-center justify-between mb-1"><span class="text-[9px] font-black text-yellow-500/50 uppercase">Pos. ${s.posizione || '?'}</span>
-                    <button type="button" onclick="openStorieModal('${storyPayload}')" class="text-[9px] text-blue-400 font-bold hover:underline opacity-0 group-hover:opacity-100 transition-opacity uppercase">Edit</button></div>
+                    <button type="button" onclick="openStorieModal('${storyPayload}')" class="text-[9px] text-blue-400 font-bold hover:underline opacity-0 group-hover:opacity-100 transition-opacity uppercase">Edit / Personaggi</button></div>
                     <span class="text-[11px] font-bold text-slate-200 truncate uppercase tracking-tight block">${s.storie?.nome || 'Titolo non trovato'}</span></div>`;
             }).join('');
         }
@@ -476,8 +501,7 @@
             const issueSelect = document.getElementById('storie-issue-id');
             const posContainer = document.getElementById('storie-posizione-container');
             
-            await loadStorieEsistenti(); // Carica tendina titoli esistenti
-
+            await loadStorieEsistenti();
             const { data: issues } = await window.supabaseClient.from('issue').select('id, numero, nome, annata(nome), serie(nome)').order('created_at', {ascending: false}).limit(100);
             issueSelect.innerHTML = `<option value="">-- Seleziona Albo --</option>` + (issues || []).map(i => `<option value="${i.id}">${i.serie?.nome || ''} ${i.annata?.nome ? '['+i.annata.nome+']' : ''} #${i.numero || ''} ${i.nome || ''}</option>`).join('');
 
@@ -490,12 +514,14 @@
                 document.getElementById('storie-issue-id').value = story.issue_id;
                 document.getElementById('storie-posizione').value = story.posizione || "";
                 posContainer.classList.remove('hidden');
+                loadPersonaggiStoria(story.id); // Carica i personaggi della storia selezionata
             } else {
                 document.getElementById('storie-modal-title').innerText = "Nuova Storia";
                 document.getElementById('storie-id').value = ""; document.getElementById('old-storia-id').value = "";
                 const currentId = document.getElementById('edit-id').value;
                 if (currentId) { document.getElementById('storie-issue-id').value = currentId; posContainer.classList.remove('hidden'); }
                 else { posContainer.classList.add('hidden'); }
+                document.getElementById('sezione-personaggi').classList.add('hidden');
             }
             document.getElementById('storie-modal').classList.remove('hidden');
         }
@@ -511,39 +537,28 @@
             const oldStoryId = document.getElementById('old-storia-id').value;
 
             try {
-                // 1. Trova se il titolo esiste già per recuperare l'ID (Molti-a-Molti)
                 const { data: storyExist } = await window.supabaseClient.from('storie').select('id').eq('nome', nomeInviato).maybeSingle();
-                
                 let targetStoryId;
-                if (storyExist) {
-                    targetStoryId = storyExist.id;
-                } else {
-                    // Crea nuova storia se non esiste
+                if (storyExist) { targetStoryId = storyExist.id; } 
+                else {
                     const { data: newStory } = await window.supabaseClient.from('storie').insert([{ nome: nomeInviato }]).select().single();
                     targetStoryId = newStory.id;
                 }
 
-                // 2. Gestisci il legame in storie_in_issue
                 if (issueId) {
                     if (oldStoryId) {
-                        // Aggiorna la relazione esistente
-                        await window.supabaseClient.from('storie_in_issue')
-                            .update({ storia_id: targetStoryId, posizione: posizione || null })
-                            .match({ issue_id: issueId, storia_id: oldStoryId });
+                        await window.supabaseClient.from('storie_in_issue').update({ storia_id: targetStoryId, posizione: posizione || null }).match({ issue_id: issueId, storia_id: oldStoryId });
                     } else {
-                        // Crea nuova relazione
-                        await window.supabaseClient.from('storie_in_issue')
-                            .insert([{ issue_id: issueId, storia_id: targetStoryId, posizione: posizione || null }]);
+                        await window.supabaseClient.from('storie_in_issue').insert([{ issue_id: issueId, storia_id: targetStoryId, posizione: posizione || null }]);
                     }
                 }
-
                 closeStorieModal();
                 const currentIssueId = document.getElementById('edit-id').value;
                 if (currentIssueId) loadIssueStories(currentIssueId);
             } catch (err) { alert("Errore: " + err.message); }
         });
 
-        // Funzioni di supporto Select / Modali secondari (come in 7.1)
+        // Helper Select / Modali (Invariati da 7.2)
         async function loadSelectOptions(table, elementId, selectedId = null, orderBy = 'nome') {
             const { data } = await window.supabaseClient.from(table).select('*').order(orderBy);
             const select = document.getElementById(elementId);
@@ -576,7 +591,6 @@
             } else { collanaSelect.value = ""; collanaSelect.disabled = true; btnCollana.disabled = true; }
         }
 
-        // Funzioni Modale Albo / Serie / Simple (Identiche a 7.1)
         async function openAddModal() {
             document.getElementById('modal-title').innerText = "Nuovo Albo"; document.getElementById('edit-form').reset();
             document.getElementById('edit-id').value = ""; document.getElementById('edit-preview').src = "";
@@ -604,7 +618,6 @@
         }
 
         function closeModal() { document.getElementById('edit-modal').classList.add('hidden'); }
-        // ... (SerieModal, SimpleModal e altre helper rimangono come nel 7.1)
         async function openSerieModal(serieId = null) {
             document.getElementById('serie-modal-title').innerText = serieId ? "Modifica Serie" : "Nuova Serie";
             document.getElementById('serie-form').reset(); document.getElementById('new-serie-id').value = serieId || "";
@@ -661,6 +674,15 @@
             const payload = { nome: document.getElementById('edit-nome').value, serie_id: document.getElementById('edit-serie_id').value, editore_id: document.getElementById('edit-editore_id').value || null, testata_id: document.getElementById('edit-testata_id').value || null, annata_id: document.getElementById('edit-annata_id').value || null, tipo_pubblicazione_id: document.getElementById('edit-tipo_pubblicazione_id').value || null, supplemento_id: document.getElementById('edit-supplemento_id').value || null, numero: document.getElementById('edit-numero').value, possesso: document.getElementById('edit-possesso').value, condizione: document.getElementById('edit-condizione').value === "" ? null : document.getElementById('edit-condizione').value, valore: document.getElementById('edit-valore').value === "" ? null : parseFloat(document.getElementById('edit-valore').value), data_pubblicazione: document.getElementById('edit-data_pubblicazione').value || null, immagine_url: document.getElementById('edit-immagine_url').value };
             const { error } = id ? await window.supabaseClient.from('issue').update(payload).eq('id', id) : await window.supabaseClient.from('issue').insert([payload]);
             if (error) alert(error.message); else { closeModal(); if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome); else loadRecent(); }
+        });
+
+        searchInput.addEventListener('input', async (e) => {
+            const queryText = e.target.value.trim(); if (queryText.length < 2) { resultsDiv.classList.add('hidden'); return; }
+            const { data } = await window.supabaseClient.from('serie').select('id, nome, collana(nome)').ilike('nome', `%${queryText}%`).limit(10);
+            if (data && data.length > 0) {
+                resultsDiv.innerHTML = data.map(s => { const full = getSerieDisplayName(s); return `<div onclick="selectSerie('${s.id}', '${full}')" class="p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700 last:border-0 text-sm font-bold">${full}</div>`; }).join('');
+                resultsDiv.classList.remove('hidden');
+            } else { resultsDiv.classList.add('hidden'); }
         });
 
         loadCodiciBar(); loadSerieShowcase(); loadRecent();
