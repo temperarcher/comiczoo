@@ -173,7 +173,8 @@
                         <div class="flex justify-between items-center">
                             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Annata</label>
                             <div class="flex gap-2">
-                                <button type="button" id="btn-edit-annata-issue" onclick="openEditAnnataFromIssue()" disabled class="text-[9px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded hover:bg-blue-500/20 transition-all font-bold">✏️ EDIT</button> <button type="button" onclick="openAnnataModal()" class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded hover:bg-yellow-500/20 transition-all font-bold">+ NUOVA</button>
+                                <button type="button" id="btn-edit-annata-issue" onclick="openEditAnnataFromIssue()" disabled class="text-[9px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded hover:bg-blue-500/20 transition-all font-bold">✏️ EDIT</button>
+                                <button type="button" onclick="openAnnataModal()" class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded hover:bg-yellow-500/20 transition-all font-bold">+ NUOVA</button>
                             </div>
                         </div>
                         <select id="edit-annata_id" onchange="document.getElementById('btn-edit-annata-issue').disabled = !this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select>
@@ -258,10 +259,10 @@
                 <div id="sezione-personaggi" class="pt-6 border-t border-slate-700">
                     <div class="flex justify-between items-center mb-4">
                         <h4 class="text-xs font-black text-yellow-500 uppercase tracking-widest">Personaggi Protagonisti</h4>
-                        <button type="button" onclick="openAggiungiPersonaggioModal()" id="btn-add-char-to-story" disabled class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-1 rounded hover:bg-yellow-500/20 transition-all font-bold tracking-widest uppercase">+ AGGIUNGI</button>
+                        <button type="button" onclick="openCharPicker()" id="btn-add-char" class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-1 rounded hover:bg-yellow-500/20 transition-all font-bold tracking-widest uppercase">+ AGGIUNGI</button>
                     </div>
                     <div id="lista-personaggi-storia" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <p class="text-[10px] text-slate-500 italic uppercase">Nessun personaggio associato.</p>
+                        <p class="text-[10px] text-slate-500 italic uppercase">Caricamento...</p>
                     </div>
                 </div>
             </div>
@@ -271,11 +272,11 @@
     <div id="char-selection-modal" class="hidden fixed inset-0 z-[150] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
             <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-800">
-                <h3 class="text-sm font-bold text-yellow-500 uppercase italic">Aggiungi Personaggio</h3>
-                <button onclick="closeCharSelectionModal()" class="text-slate-400 hover:text-white text-xl">&times;</button>
+                <h3 class="text-sm font-bold text-yellow-500 uppercase italic">Seleziona Personaggio</h3>
+                <button onclick="closeCharPicker()" class="text-slate-400 hover:text-white text-xl">&times;</button>
             </div>
             <div class="p-4">
-                <input type="text" id="search-char-input" oninput="filterCharSelectionList(this.value)" class="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg text-sm text-white outline-none mb-4" placeholder="Filtra personaggi...">
+                <input type="text" id="search-char-input" oninput="filterChars(this.value)" class="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg text-sm text-white outline-none mb-4" placeholder="Cerca personaggio...">
                 <div id="char-selection-list" class="space-y-2 max-h-64 overflow-y-auto custom-scrollbar pr-2">
                     </div>
             </div>
@@ -356,6 +357,7 @@
         let currentCodiceId = null;
         let currentView = 'grid'; 
         let currentData = [];
+        let allCharsCache = []; // Per ricerca veloce personaggi
 
         const FULL_QUERY = `*, annata(id, nome), serie(id, nome, immagine_url, collana_id, collana(nome)), tipo_pubblicazione(nome)`;
 
@@ -509,7 +511,6 @@
             }).join('');
         }
 
-        // MODALI LOGICA
         async function openAddModal() {
             document.getElementById('modal-title').innerText = "Nuovo Albo";
             document.getElementById('edit-form').reset();
@@ -593,7 +594,7 @@
             }
         }
 
-        // STORIE LOGICA
+        // LOGICA STORIE E PERSONAGGI
         async function loadIssueStories(issueId) {
             const list = document.getElementById('issue-stories-list');
             const { data: stories } = await window.supabaseClient.from('storie_in_issue').select('posizione, storie(id, nome)').eq('issue_id', issueId).order('posizione');
@@ -636,12 +637,10 @@
                 const { data: storia } = await window.supabaseClient.from('storie').select('nome').eq('id', storiaId).single();
                 document.getElementById('storie-nome').value = storia?.nome || "";
                 document.getElementById('storie-modal-title').innerText = "Modifica Storia";
-                document.getElementById('btn-add-char-to-story').disabled = false;
                 await loadPersonaggiStoria(storiaId);
             } else {
                 document.getElementById('storie-modal-title').innerText = "Nuova Storia";
                 document.getElementById('lista-personaggi-storia').innerHTML = `<p class="text-[10px] text-slate-500 italic uppercase">Salva la storia per gestire i personaggi.</p>`;
-                document.getElementById('btn-add-char-to-story').disabled = true;
             }
 
             modal.classList.remove('hidden');
@@ -652,74 +651,74 @@
 
         async function loadPersonaggiStoria(storiaId) {
             const list = document.getElementById('lista-personaggi-storia');
-            const { data: pers } = await window.supabaseClient.from('personaggi_storie').select('personaggio_id, personaggio(id, nome, nome_originale, immagine_url)').eq('storia_id', storiaId);
+            const { data: pRel } = await window.supabaseClient.from('personaggi_storie').select('personaggio_id, personaggio(id, nome, nome_originale, immagine_url)').eq('storia_id', storiaId);
             
-            if (!pers || pers.length === 0) {
-                list.innerHTML = `<p class="text-[10px] text-slate-500 italic uppercase">Nessun personaggio associato.</p>`;
+            if (!pRel || pRel.length === 0) {
+                list.innerHTML = `<p class="text-[10px] text-slate-500 italic uppercase">Nessun personaggio.</p>`;
                 return;
             }
 
-            list.innerHTML = pers.map(p => {
+            list.innerHTML = pRel.map(p => {
                 const char = p.personaggio;
                 return `
-                <div class="bg-slate-900 border border-slate-700 rounded-lg p-2 flex items-center gap-3 group">
+                <div class="bg-slate-900 border border-slate-700 rounded-lg p-2 flex items-center gap-3 group relative">
                     <img src="${char.immagine_url || placeholderAvatar}" class="w-8 h-8 rounded-full object-cover border border-slate-700">
                     <div class="flex-1 min-w-0">
                         <p class="text-[10px] font-black text-white uppercase truncate">${char.nome}</p>
                         <p class="text-[8px] font-bold text-slate-500 uppercase truncate">${char.nome_originale || ''}</p>
                     </div>
-                    <button onclick="rimuoviPersonaggioDaStoria('${char.id}', '${storiaId}')" class="text-red-500 hover:text-white transition-colors p-1 opacity-0 group-hover:opacity-100">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    <button onclick="rimuoviPersonaggioDaStoria('${char.id}', '${storiaId}')" class="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-400 p-1 transition-all">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                     </button>
                 </div>`;
             }).join('');
         }
 
-        // GESTIONE PERSONAGGI (ASSOCIA/RIMUOVI)
-        let allPersonaggi = [];
-        async function openAggiungiPersonaggioModal() {
+        // FUNZIONI GESTIONE PERSONAGGI (V7.4)
+        async function openCharPicker() {
             const storiaId = document.getElementById('storie-id').value;
-            if (!storiaId) return;
-            const { data } = await window.supabaseClient.from('personaggio').select('*').order('nome');
-            allPersonaggi = data || [];
-            renderCharSelectionList(allPersonaggi);
+            if (!storiaId) { alert("Salva prima la storia per poter associare i personaggi."); return; }
+            
             document.getElementById('char-selection-modal').classList.remove('hidden');
+            const { data } = await window.supabaseClient.from('personaggio').select('*').order('nome');
+            allCharsCache = data || [];
+            renderCharList(allCharsCache);
         }
 
-        function closeCharSelectionModal() { document.getElementById('char-selection-modal').classList.add('hidden'); }
+        function closeCharPicker() { document.getElementById('char-selection-modal').classList.add('hidden'); }
 
-        function renderCharSelectionList(list) {
+        function renderCharList(list) {
             const container = document.getElementById('char-selection-list');
             container.innerHTML = list.map(c => `
-                <div onclick="associaPersonaggioAStoria('${c.id}')" class="flex items-center gap-3 p-2 hover:bg-slate-700 rounded-lg cursor-pointer border border-transparent hover:border-yellow-500 transition-all">
-                    <img src="${c.immagine_url || placeholderAvatar}" class="w-8 h-8 rounded-full object-cover bg-slate-900">
-                    <div class="flex-1">
-                        <p class="text-[10px] font-black text-white uppercase">${c.nome}</p>
+                <div onclick="associaPersonaggio('${c.id}')" class="flex items-center gap-3 p-2 hover:bg-slate-700 rounded-lg cursor-pointer border border-transparent hover:border-yellow-500/50 transition-all">
+                    <img src="${c.immagine_url || placeholderAvatar}" class="w-10 h-10 rounded-full object-cover bg-slate-900">
+                    <div>
+                        <p class="text-[10px] font-black text-white uppercase leading-none">${c.nome}</p>
                         <p class="text-[8px] font-bold text-slate-500 uppercase">${c.nome_originale || ''}</p>
                     </div>
                 </div>
             `).join('');
         }
 
-        function filterCharSelectionList(val) {
-            const filtered = allPersonaggi.filter(p => p.nome.toLowerCase().includes(val.toLowerCase()) || (p.nome_originale && p.nome_originale.toLowerCase().includes(val.toLowerCase())));
-            renderCharSelectionList(filtered);
+        function filterChars(val) {
+            const filtered = allCharsCache.filter(c => c.nome.toLowerCase().includes(val.toLowerCase()) || (c.nome_originale && c.nome_originale.toLowerCase().includes(val.toLowerCase())));
+            renderCharList(filtered);
         }
 
-        async function associaPersonaggioAStoria(personaggioId) {
+        async function associaPersonaggio(personaggioId) {
             const storiaId = document.getElementById('storie-id').value;
             const { error } = await window.supabaseClient.from('personaggi_storie').insert([{ personaggio_id: personaggioId, storia_id: storiaId }]);
             if (error) {
-                if (error.code === '23505') alert("Personaggio già associato a questa storia.");
+                if (error.code === '23505') alert("Personaggio già presente in questa storia.");
                 else alert(error.message);
             } else {
-                closeCharSelectionModal();
+                closeCharPicker();
                 await loadPersonaggiStoria(storiaId);
             }
         }
 
         async function rimuoviPersonaggioDaStoria(personaggioId, storiaId) {
-            if (!confirm("Rimuovere il personaggio da questa storia?")) return;
+            if (!confirm("Rimuovere questo personaggio dalla storia?")) return;
             const { error } = await window.supabaseClient.from('personaggi_storie').delete().match({ personaggio_id: personaggioId, storia_id: storiaId });
             if (error) alert(error.message);
             else await loadPersonaggiStoria(storiaId);
@@ -745,8 +744,7 @@
                 immagine_url: document.getElementById('edit-immagine_url').value
             };
             const { error } = id ? await window.supabaseClient.from('issue').update(payload).eq('id', id) : await window.supabaseClient.from('issue').insert([payload]);
-            if (error) alert(error.message);
-            else { closeModal(); if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome); else loadRecent(); }
+            if (error) alert(error.message); else { closeModal(); if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome); else loadRecent(); }
         });
 
         document.getElementById('storie-form').addEventListener('submit', async (e) => {
@@ -775,7 +773,6 @@
             alert("Storia salvata!");
             document.getElementById('storie-id').value = finalStoriaId;
             document.getElementById('old-storia-id').value = finalStoriaId;
-            document.getElementById('btn-add-char-to-story').disabled = false;
             await loadPersonaggiStoria(finalStoriaId);
             if (document.getElementById('edit-id').value) await loadIssueStories(document.getElementById('edit-id').value);
         });
