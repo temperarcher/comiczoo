@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comic Archive Pro - V7.3 - Modale Storie Personaggi</title>
+    <title>Comic Archive Pro - V7.4 - Gestione Relazioni Personaggi</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
@@ -91,7 +91,7 @@
 
     <footer class="bg-slate-800 border-t border-slate-700 p-4 mt-8">
         <div class="container mx-auto text-center text-slate-500 text-[10px] font-bold uppercase tracking-widest">
-            versione 7.3.1 - gestione personaggi
+            versione 7.4 - modale personaggi_storie aggiungi+rimuovi
         </div>
     </footer>
 
@@ -256,14 +256,36 @@
                     </div>
                 </form>
 
-                <div id="sezione-personaggi" class="hidden pt-6 border-t border-slate-700">
+                <div id="sezione-personaggi" class="pt-6 border-t border-slate-700">
                     <div class="flex justify-between items-center mb-4">
                         <h4 class="text-xs font-black text-yellow-500 uppercase tracking-widest">Personaggi Protagonisti</h4>
-                        <button type="button" class="text-[9px] bg-emerald-500 text-slate-900 px-3 py-1 rounded-full font-black uppercase tracking-widest hover:bg-emerald-400 transition-all">+ AGGIUNGI</button>
+                        <button type="button" onclick="openPersonaggioStoriaModal()" class="text-[9px] bg-emerald-500 text-slate-900 px-3 py-1 rounded-full font-black uppercase tracking-widest hover:bg-emerald-400 transition-all">+ AGGIUNGI</button>
                     </div>
                     <div id="lista-personaggi-storia" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <div id="personaggio-storia-modal" class="hidden fixed inset-0 z-[140] bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl">
+            <div class="p-6 border-b border-slate-700 flex justify-between items-center">
+                <h3 class="text-sm font-black text-yellow-500 uppercase tracking-widest italic">Aggiungi Personaggio</h3>
+                <button onclick="document.getElementById('personaggio-storia-modal').classList.add('hidden')" class="text-slate-400 hover:text-white">&times;</button>
+            </div>
+            <form id="personaggio-storia-form" class="p-6 space-y-4">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Seleziona Personaggio</label>
+                    <select id="ps-personaggio-id" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select>
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Associa alla Storia</label>
+                    <select id="ps-storia-id" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-yellow-500 outline-none"></select>
+                </div>
+                <div class="pt-4 flex gap-3">
+                    <button type="submit" class="flex-1 bg-emerald-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-emerald-400 transition-all text-xs shadow-lg shadow-emerald-500/20">Lega Personaggio</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -551,11 +573,11 @@
             const { data: tutte } = await window.supabaseClient.from('storia').select('nome');
             document.getElementById('storie-esistenti').innerHTML = [...new Set((tutte || []).map(t => t.nome))].map(n => `<option value="${n}">`).join('');
 
+            // 7.4: Caricamento personaggi se storia esistente, svuota lista se nuova
             if (sid) {
-                document.getElementById('sezione-personaggi').classList.remove('hidden');
                 loadPersonaggiStoria(sid);
             } else {
-                document.getElementById('sezione-personaggi').classList.add('hidden');
+                document.getElementById('lista-personaggi-storia').innerHTML = "";
             }
             document.getElementById('storie-modal').classList.remove('hidden');
         }
@@ -569,11 +591,48 @@
                         <img src="${p.personaggio?.immagine_url || placeholderAvatar}" class="w-8 h-8 rounded-full object-cover border border-slate-600">
                         <span class="text-[10px] font-black uppercase text-slate-300 truncate max-w-[100px]">${p.personaggio?.nome}</span>
                     </div>
-                    <button type="button" class="text-red-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
+                    <button type="button" onclick="rimuoviPersonaggioDaStoria('${p.personaggio?.id}', '${storiaId}')" class="text-red-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all" title="Rimuovi dalla storia">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                     </button>
                 </div>
             `).join('');
+        }
+
+        // 7.4: Funzioni Relazioni Personaggi
+        async function openPersonaggioStoriaModal() {
+            const sid = document.getElementById('storie-id').value;
+            if(!sid) { alert("Salva prima la storia per poter aggiungere personaggi."); return; }
+
+            const [pRes, sRes] = await Promise.all([
+                window.supabaseClient.from('personaggio').select('id, nome').order('nome'),
+                window.supabaseClient.from('storia').select('id, nome').order('nome')
+            ]);
+
+            document.getElementById('ps-personaggio-id').innerHTML = (pRes.data || []).map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+            document.getElementById('ps-storia-id').innerHTML = (sRes.data || []).map(s => `<option value="${s.id}" ${s.id === sid ? 'selected' : ''}>${s.nome}</option>`).join('');
+            
+            document.getElementById('personaggio-storia-modal').classList.remove('hidden');
+        }
+
+        document.getElementById('personaggio-storia-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const pId = document.getElementById('ps-personaggio-id').value;
+            const sId = document.getElementById('ps-storia-id').value;
+            
+            const { error } = await window.supabaseClient.from('personaggi_in_storia').insert([{ personaggio_id: pId, storia_id: sId }]);
+            if (error) {
+                if(error.code === '23505') alert("Personaggio già associato a questa storia.");
+                else alert(error.message);
+            } else {
+                document.getElementById('personaggio-storia-modal').classList.add('hidden');
+                loadPersonaggiStoria(sId);
+            }
+        });
+
+        async function rimuoviPersonaggioDaStoria(pId, sId) {
+            if(!confirm("Vuoi davvero rimuovere questo personaggio dalla storia?")) return;
+            const { error } = await window.supabaseClient.from('personaggi_in_storia').delete().eq('personaggio_id', pId).eq('storia_id', sId);
+            if (error) alert(error.message); else loadPersonaggiStoria(sId);
         }
 
         function togglePosizioneField(val) {
