@@ -1,4 +1,4 @@
-// Configurazione e Inizializzazione
+// CONFIGURAZIONE E ELEMENTI UI
 const searchInput = document.getElementById('serie-search');
 const resultsDiv = document.getElementById('serie-results');
 const grid = document.getElementById('comic-grid');
@@ -23,7 +23,19 @@ function getSerieDisplayName(s) {
     return s.collana?.nome ? `${s.nome} (${s.collana.nome})` : s.nome;
 }
 
-// Caricamento Dati Iniziali
+// INIZIALIZZAZIONE
+async function init() {
+    try {
+        await loadCodiciBar();
+        await loadSerieShowcase();
+        await loadRecent();
+    } catch (err) {
+        console.error("Errore inizializzazione:", err);
+        document.getElementById('view-title').innerText = "Errore Caricamento";
+    }
+}
+
+// CARICAMENTO DATI
 async function loadSerieShowcase() {
     const { data } = await window.supabaseClient.from('serie').select('id, nome, immagine_url, collana(nome)').order('nome').limit(25);
     showcase.innerHTML = (data || []).map(s => `
@@ -51,47 +63,10 @@ async function loadRecent() {
     let query = window.supabaseClient.from('issue').select(FULL_QUERY).order('created_at', { ascending: false }).limit(25);
     if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
     const { data } = await query;
-    currentData = data || [];
-    renderGrid(currentData, "Ultimi Arrivi", "Le ultime novità inserite nel tuo archivio");
+    renderGrid(data || [], "Ultimi Arrivi", "Le ultime novità inserite");
 }
 
-// Filtri e Navigazione
-async function selectSerie(id, fullNome) {
-    currentSerieId = id; currentSerieFullNome = fullNome;
-    let query = window.supabaseClient.from('issue').select(FULL_QUERY).eq('serie_id', id).order('numero', { ascending: true });
-    if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
-    const { data } = await query;
-    renderGrid(data || [], fullNome, "Tutti gli albi della serie selezionata");
-}
-
-async function selectCodice(id) {
-    currentCodiceId = id; currentSerieId = null;
-    const { data: serieIds } = await window.supabaseClient.from('serie').select('id').eq('codice_editore_id', id);
-    const ids = (serieIds || []).map(s => s.id);
-    let query = window.supabaseClient.from('issue').select(FULL_QUERY).in('serie_id', ids).order('created_at', { ascending: false });
-    if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
-    const { data } = await query;
-    renderGrid(data || [], "Filtro Codice", "Albi filtrati per codice editore");
-    loadCodiciBar();
-}
-
-function setFilter(f) {
-    currentFilter = f;
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(`btn-${f}`).classList.add('active');
-    if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome);
-    else if (currentCodiceId) selectCodice(currentCodiceId);
-    else loadRecent();
-}
-
-function setView(v) {
-    currentView = v;
-    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(`view-${v}`).classList.add('active');
-    renderGrid(currentData, document.getElementById('view-title').innerText, document.getElementById('view-subtitle').innerText);
-}
-
-// Rendering UI
+// RENDERING
 function renderGrid(data, title, subtitle) {
     currentData = data;
     document.getElementById('view-title').innerText = title;
@@ -122,10 +97,49 @@ function renderGrid(data, title, subtitle) {
     `).join('');
 }
 
-// Gestione Modali Albo
+// FILTRI
+async function selectSerie(id, fullNome) {
+    currentSerieId = id; currentSerieFullNome = fullNome;
+    let query = window.supabaseClient.from('issue').select(FULL_QUERY).eq('serie_id', id).order('numero', { ascending: true });
+    if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
+    const { data } = await query;
+    renderGrid(data || [], fullNome, "Tutti gli albi della serie");
+}
+
+async function selectCodice(id) {
+    currentCodiceId = id; currentSerieId = null;
+    const { data: serieIds } = await window.supabaseClient.from('serie').select('id').eq('codice_editore_id', id);
+    const ids = (serieIds || []).map(s => s.id);
+    let query = window.supabaseClient.from('issue').select(FULL_QUERY).in('serie_id', ids).order('created_at', { ascending: false });
+    if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
+    const { data } = await query;
+    renderGrid(data || [], "Filtro Codice", "Albi per codice");
+}
+
+function setFilter(f) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`btn-${f}`).classList.add('active');
+    if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome);
+    else if (currentCodiceId) selectCodice(currentCodiceId);
+    else loadRecent();
+}
+
+function setView(v) {
+    currentView = v;
+    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`view-${v}`).classList.add('active');
+    renderGrid(currentData, document.getElementById('view-title').innerText, document.getElementById('view-subtitle').innerText);
+}
+
+function resetAllFilters() { currentCodiceId = null; currentSerieId = null; loadRecent(); loadCodiciBar(); }
+
+// MODALI
+function closeModal() { document.getElementById('edit-modal').classList.add('hidden'); }
+function closeStorieModal() { document.getElementById('storie-modal').classList.add('hidden'); }
+
 async function openEditModal(id = null) {
-    const form = document.getElementById('edit-form');
-    form.reset();
+    document.getElementById('edit-form').reset();
     document.getElementById('edit-id').value = id || "";
     document.getElementById('modal-title').innerText = id ? "Modifica Albo" : "Nuovo Albo";
     document.getElementById('edit-preview').src = placeholderImg;
@@ -177,7 +191,17 @@ async function populateAllSelects() {
     document.getElementById('edit-supplemento_id').innerHTML = '<option value="">-- Nessuno --</option>' + (sup.data || []).map(x => `<option value="${x.id}">${x.nome} #${x.numero}</option>`).join('');
 }
 
-// Gestione Storie e Personaggi (Versione 7.3)
+async function handleSerieChange(serieId) {
+    const btnEdit = document.getElementById('btn-edit-context');
+    if (!serieId || !btnEdit) return;
+    btnEdit.disabled = false;
+    const { data: serie } = await window.supabaseClient.from('serie').select('collana_id, collana(nome)').eq('id', serieId).single();
+    if (serie && serie.collana_id) {
+        document.getElementById('edit-collana_id').innerHTML = `<option value="${serie.collana_id}">${serie.collana.nome}</option>`;
+    }
+}
+
+// STORIE E PERSONAGGI
 async function loadIssueStories(issueId) {
     const list = document.getElementById('issue-stories-list');
     const { data } = await window.supabaseClient.from('storie_in_issue').select('posizione, storia:storia_id(id, nome)').eq('issue_id', issueId).order('posizione');
@@ -194,8 +218,7 @@ async function loadIssueStories(issueId) {
 }
 
 async function openStorieModal(storia = null) {
-    const form = document.getElementById('storie-form');
-    form.reset();
+    document.getElementById('storie-form').reset();
     const sid = storia?.id || "";
     document.getElementById('storie-id').value = sid;
     document.getElementById('storie-nome').value = storia?.nome || "";
@@ -206,7 +229,6 @@ async function openStorieModal(storia = null) {
     selectIssue.innerHTML = (issues || []).map(i => `<option value="${i.id}" ${i.id === currentIssueId ? 'selected' : ''}>${i.nome} #${i.numero}</option>`).join('');
     
     if (storia?.posizione) document.getElementById('storie-posizione').value = storia.posizione;
-
     const { data: tutte } = await window.supabaseClient.from('storia').select('nome');
     document.getElementById('storie-esistenti').innerHTML = [...new Set((tutte || []).map(t => t.nome))].map(n => `<option value="${n}">`).join('');
 
@@ -227,18 +249,17 @@ async function loadPersonaggiStoria(storiaId) {
     `).join('');
 }
 
-// Utility e Eventi
-function closeModal() { document.getElementById('edit-modal').classList.add('hidden'); }
-function resetAllFilters() { currentCodiceId = null; currentSerieId = null; loadRecent(); loadCodiciBar(); }
-
+// LISTENERS
 searchInput.addEventListener('input', async (e) => {
     const queryText = e.target.value.trim(); if (queryText.length < 2) { resultsDiv.classList.add('hidden'); return; }
     const { data } = await window.supabaseClient.from('serie').select('id, nome, collana(nome)').ilike('nome', `%${queryText}%`).limit(10);
     if (data && data.length > 0) {
-        resultsDiv.innerHTML = data.map(s => { const full = getSerieDisplayName(s); return `<div onclick="selectSerie('${s.id}', '${full}')" class="p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700 last:border-0 text-sm font-bold">${full}</div>`; }).join('');
+        resultsDiv.innerHTML = data.map(s => `<div onclick="selectSerie('${s.id}', '${getSerieDisplayName(s)}')" class="p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700 text-sm font-bold">${getSerieDisplayName(s)}</div>`).join('');
         resultsDiv.classList.remove('hidden');
     } else { resultsDiv.classList.add('hidden'); }
 });
 
-// Avvio
-loadCodiciBar(); loadSerieShowcase(); loadRecent();
+document.addEventListener('click', (e) => { if (!searchInput.contains(e.target)) resultsDiv.classList.add('hidden'); });
+
+// AVVIO
+init();
