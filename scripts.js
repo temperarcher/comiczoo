@@ -119,7 +119,7 @@ function renderGrid(items, fallbackSerie = "") {
     }).join('');
 }
 
-// LOGICA STORIE E PERSONAGGI V7.3
+// LOGICA STORIE E PERSONAGGI V7.4
 async function loadStorieEsistenti() {
     const { data } = await window.supabaseClient.from('storie').select('id, nome').order('nome');
     const datalist = document.getElementById('storie-esistenti');
@@ -127,33 +127,68 @@ async function loadStorieEsistenti() {
 }
 
 async function loadPersonaggiStoria(storiaId) {
-    const container = document.getElementById('sezione-personaggi');
     const lista = document.getElementById('lista-personaggi-storia');
-    if (!storiaId) { container.classList.add('hidden'); return; }
+    if (!storiaId) { 
+        lista.innerHTML = `<p class="text-[10px] text-slate-500 italic uppercase">Salva la storia per aggiungere personaggi</p>`;
+        return; 
+    }
+    lista.innerHTML = `<p class="text-[10px] text-slate-500 italic uppercase">Ricerca personaggi...</p>`;
     
-    container.classList.remove('hidden');
-    lista.innerHTML = `<p class="text-[10px] text-slate-500 italic uppercase col-span-2">Ricerca personaggi...</p>`;
-    
-    // Query relazionale: da personaggi_storie recuperiamo i dettagli da personaggio
     const { data, error } = await window.supabaseClient
         .from('personaggi_storie')
-        .select(`personaggio ( id, nome, immagine_url )`)
+        .select(`personaggio_id, personaggio:personaggio_id ( id, nome, immagine_url )`)
         .eq('storia_id', storiaId);
 
     if (error || !data || data.length === 0) {
-        lista.innerHTML = `<p class="text-[10px] text-slate-400 italic uppercase col-span-2">Nessun personaggio associato a questa storia</p>`;
+        lista.innerHTML = `<p class="text-[10px] text-slate-400 italic uppercase">Nessun personaggio associato</p>`;
         return;
     }
 
     lista.innerHTML = data.map(p => `
-        <div class="flex items-center gap-3 bg-slate-900/40 p-2 rounded-lg border border-slate-700/50">
-            <div class="w-10 h-10 rounded-full overflow-hidden border border-yellow-500/30 shrink-0 shadow-lg">
-                <img src="${p.personaggio?.immagine_url || placeholderAvatar}" class="w-full h-full object-cover" onerror="this.src='${placeholderAvatar}'">
+        <div class="flex items-center justify-between bg-slate-900/40 p-2 rounded-lg border border-slate-700/50 group">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full overflow-hidden border border-yellow-500/30 shrink-0">
+                    <img src="${p.personaggio?.immagine_url || placeholderAvatar}" class="w-full h-full object-cover" onerror="this.src='${placeholderAvatar}'">
+                </div>
+                <span class="text-[11px] font-black text-slate-200 uppercase truncate tracking-tight">${p.personaggio?.nome || 'Ignoto'}</span>
             </div>
-            <span class="text-[11px] font-black text-slate-200 uppercase truncate tracking-tight">${p.personaggio?.nome || 'Ignoto'}</span>
+            <button type="button" onclick="removePersonaggioDaStoria('${p.personaggio_id}', '${storiaId}')" class="text-[9px] text-red-500 font-bold opacity-0 group-hover:opacity-100 transition-all hover:underline uppercase">Rimuovi</button>
         </div>
     `).join('');
 }
+
+async function removePersonaggioDaStoria(personaggioId, storiaId) {
+    if(!confirm("Vuoi rimuovere questo personaggio dalla storia?")) return;
+    const { error } = await window.supabaseClient.from('personaggi_storie').delete().match({ personaggio_id: personaggioId, storia_id: storiaId });
+    if (error) alert(error.message); else loadPersonaggiStoria(storiaId);
+}
+
+async function openAddPersonaggioStoriaModal() {
+    const storiaId = document.getElementById('storie-id').value;
+    if (!storiaId) { alert("Devi prima salvare la storia per potervi associare personaggi."); return; }
+    
+    const selectPers = document.getElementById('ps-personaggio-id');
+    const selectStor = document.getElementById('ps-storia-id');
+    
+    const { data: personaggi } = await window.supabaseClient.from('personaggio').select('id, nome').order('nome');
+    selectPers.innerHTML = (personaggi || []).map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+    
+    const { data: storie } = await window.supabaseClient.from('storie').select('id, nome').order('nome');
+    selectStor.innerHTML = (storie || []).map(s => `<option value="${s.id}" ${s.id === storiaId ? 'selected' : ''}>${s.nome}</option>`).join('');
+    
+    document.getElementById('personaggio-storia-modal').classList.remove('hidden');
+}
+
+function closeAddPersonaggioStoriaModal() { document.getElementById('personaggio-storia-modal').classList.add('hidden'); }
+
+document.getElementById('personaggio-storia-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const pId = document.getElementById('ps-personaggio-id').value;
+    const sId = document.getElementById('ps-storia-id').value;
+    const { error } = await window.supabaseClient.from('personaggi_storie').insert([{ personaggio_id: pId, storia_id: sId }]);
+    if (error) { if(error.code === '23505') alert("Già associato."); else alert(error.message); } 
+    else { closeAddPersonaggioStoriaModal(); if (document.getElementById('storie-id').value === sId) loadPersonaggiStoria(sId); }
+});
 
 async function loadIssueStories(issueId) {
     const list = document.getElementById('issue-stories-list');
@@ -176,7 +211,7 @@ async function openStorieModal(dataStr = null) {
     
     await loadStorieEsistenti();
     const { data: issues } = await window.supabaseClient.from('issue').select('id, numero, nome, annata(nome), serie(nome)').order('created_at', {ascending: false}).limit(100);
-    issueSelect.innerHTML = `<option value="">-- Seleziona Albo --</option>` + (issues || []).map(i => `<option value="${i.id}">${i.serie?.nome || ''} ${i.annata?.nome ? '['+i.annata.nome+']' : ''} #${i.numero || ''} ${i.nome || ''}</option>`).join('');
+    issueSelect.innerHTML = `<option value="">-- Seleziona Albo --</option>` + (issues || []).map(i => `<option value="${i.id}">${i.serie?.nome || ''} #${i.numero || ''}</option>`).join('');
 
     if (dataStr) {
         const story = JSON.parse(decodeURIComponent(dataStr));
@@ -194,7 +229,7 @@ async function openStorieModal(dataStr = null) {
         const currentId = document.getElementById('edit-id').value;
         if (currentId) { document.getElementById('storie-issue-id').value = currentId; posContainer.classList.remove('hidden'); }
         else { posContainer.classList.add('hidden'); }
-        document.getElementById('sezione-personaggi').classList.add('hidden');
+        loadPersonaggiStoria(null);
     }
     document.getElementById('storie-modal').classList.remove('hidden');
 }
@@ -225,12 +260,14 @@ document.getElementById('storie-form').addEventListener('submit', async (e) => {
                 await window.supabaseClient.from('storie_in_issue').insert([{ issue_id: issueId, storia_id: targetStoryId, posizione: posizione || null }]);
             }
         }
-        closeStorieModal();
+        document.getElementById('storie-id').value = targetStoryId;
+        loadPersonaggiStoria(targetStoryId);
         const currentIssueId = document.getElementById('edit-id').value;
         if (currentIssueId) loadIssueStories(currentIssueId);
     } catch (err) { alert("Errore: " + err.message); }
 });
 
+// LOGICA COMUNE E ALTRI MODALI
 async function loadSelectOptions(table, elementId, selectedId = null, orderBy = 'nome') {
     const { data } = await window.supabaseClient.from(table).select('*').order(orderBy);
     const select = document.getElementById(elementId);
@@ -247,7 +284,7 @@ async function loadSerieSelect(selectedId = null) {
 async function loadSupplementoSelect(selectedId = null) {
     const { data } = await window.supabaseClient.from('issue').select('id, numero, nome, serie(nome)').order('created_at', {ascending: false}).limit(100);
     const select = document.getElementById('edit-supplemento_id');
-    select.innerHTML = `<option value="">Nessuno</option>` + (data || []).map(i => `<option value="${i.id}" ${i.id == selectedId ? 'selected' : ''}>${i.serie?.nome} #${i.numero} ${i.nome || ''}</option>`).join('');
+    select.innerHTML = `<option value="">Nessuno</option>` + (data || []).map(i => `<option value="${i.id}" ${i.id == selectedId ? 'selected' : ''}>${i.serie?.nome} #${i.numero}</option>`).join('');
 }
 
 async function handleSerieChange(serieId) {
@@ -266,8 +303,8 @@ async function handleSerieChange(serieId) {
 async function openAddModal() {
     document.getElementById('modal-title').innerText = "Nuovo Albo"; document.getElementById('edit-form').reset();
     document.getElementById('edit-id').value = ""; document.getElementById('edit-preview').src = "";
-    document.getElementById('issue-stories-list').innerHTML = `<p class="text-[10px] text-slate-500 italic uppercase">Nessuna storia</p>`;
-    ['serie-context', 'collana-issue', 'editore-issue', 'testata-issue', 'annata-issue'].forEach(id => document.getElementById(`btn-edit-${id}`).disabled = true);
+    document.getElementById('issue-stories-list').innerHTML = "";
+    ['serie-context', 'collana-issue', 'editore-issue', 'testata-issue', 'annata-issue'].forEach(id => { const el = document.getElementById(`btn-edit-${id}`); if(el) el.disabled = true; });
     await loadSerieSelect(); await loadSelectOptions('editore', 'edit-editore_id'); await loadSelectOptions('testata', 'edit-testata_id');
     await loadSelectOptions('annata', 'edit-annata_id'); await loadSelectOptions('tipo_pubblicazione', 'edit-tipo_pubblicazione_id');
     await loadSupplementoSelect(); document.getElementById('edit-modal').classList.remove('hidden');
@@ -290,6 +327,7 @@ async function openEditModal(comicData) {
 }
 
 function closeModal() { document.getElementById('edit-modal').classList.add('hidden'); }
+
 async function openSerieModal(serieId = null) {
     document.getElementById('serie-modal-title').innerText = serieId ? "Modifica Serie" : "Nuova Serie";
     document.getElementById('serie-form').reset(); document.getElementById('new-serie-id').value = serieId || "";
@@ -304,13 +342,16 @@ async function openSerieModal(serieId = null) {
     } else { document.getElementById('btn-edit-collana-serie').disabled = true; }
     document.getElementById('serie-modal').classList.remove('hidden');
 }
+
 function closeSerieModal() { document.getElementById('serie-modal').classList.add('hidden'); }
+
 document.getElementById('serie-form').addEventListener('submit', async (e) => {
     e.preventDefault(); const id = document.getElementById('new-serie-id').value;
     const payload = { nome: document.getElementById('new-serie-nome').value, collana_id: document.getElementById('new-serie-collana').value || null, immagine_url: document.getElementById('new-serie-immagine').value };
     const { error } = id ? await window.supabaseClient.from('serie').update(payload).eq('id', id) : await window.supabaseClient.from('serie').insert([payload]);
     if (error) alert(error.message); else { closeSerieModal(); const currentSerie = document.getElementById('edit-serie_id').value; await loadSerieSelect(currentSerie || null); if (id && currentSerie == id) await handleSerieChange(id); await loadSerieShowcase(); }
 });
+
 function openSimpleModal(config) {
     document.getElementById('simple-modal-title').innerText = config.title; document.getElementById('simple-id').value = config.id || "";
     const previewContainer = document.getElementById('simple-preview-container'); const previewImg = document.getElementById('simple-preview-img');
