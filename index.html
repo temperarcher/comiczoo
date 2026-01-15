@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comic Archive Pro - V7.4 - Gestione Personaggi</title>
+    <title>Comic Archive Pro - V7.3.1 - Gestione Personaggi (Struttura)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
@@ -23,12 +23,6 @@
         .codice-item-square { width: 48px; height: 48px; flex-shrink: 0; }
         
         button:disabled { opacity: 0.3; cursor: not-allowed; filter: grayscale(1); }
-
-        .list-view-container { grid-template-columns: 1fr !important; gap: 1rem !important; }
-        .list-view-item { display: flex !important; flex-direction: row !important; height: 120px !important; }
-        .list-view-item .relative { width: 100px !important; height: 100% !important; flex-shrink: 0 !important; }
-        .list-view-item .p-4 { flex-grow: 1 !important; display: flex !important; flex-direction: column !important; justify-content: center !important; padding: 0 1.5rem !important; }
-        .list-view-item .mt-4 { margin-top: 0.5rem !important; border-top: none !important; padding-top: 0 !important; justify-content: flex-start !important; gap: 1.5rem !important; }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col">
@@ -48,14 +42,6 @@
                     <button onclick="openAddModal()" class="bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-black px-5 py-2.5 rounded-full uppercase text-[10px] tracking-widest transition-all shadow-lg shadow-yellow-500/20">
                         + Nuovo Albo
                     </button>
-                    <div class="flex bg-slate-900 p-1 rounded-full border border-slate-700 mr-1">
-                        <button onclick="setView('grid')" id="view-grid" class="view-btn active px-3 py-1.5 rounded-full transition-all" title="Vista Griglia">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
-                        </button>
-                        <button onclick="setView('list')" id="view-list" class="view-btn px-3 py-1.5 rounded-full transition-all" title="Vista Lista">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
-                        </button>
-                    </div>
                     <div class="flex bg-slate-900 p-1 rounded-full border border-slate-700">
                         <button onclick="setFilter('all')" id="btn-all" class="filter-btn active px-4 py-1.5 rounded-full text-xs font-bold uppercase transition-all">Tutti</button>
                         <button onclick="setFilter('celo')" id="btn-celo" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold uppercase transition-all">Celo</button>
@@ -98,9 +84,9 @@
             <form id="edit-form" class="p-6 overflow-y-auto custom-scrollbar flex flex-col md:flex-row gap-8">
                 <input type="hidden" id="edit-id">
                 <div class="w-full md:w-56 shrink-0">
-                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Anteprima Copertina</label>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Anteprima</label>
                     <div class="aspect-[2/3] bg-slate-900 rounded-lg border border-slate-700 overflow-hidden shadow-inner mb-4">
-                        <img id="edit-preview" src="" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/300x450/1e293b/fbbf24?text=No+Cover'">
+                        <img id="edit-preview" src="" class="w-full h-full object-cover">
                     </div>
                     
                     <div class="mt-4">
@@ -108,16 +94,14 @@
                             <label class="text-[10px] font-bold text-yellow-500 uppercase tracking-widest block">Storie Incluse</label>
                             <button type="button" onclick="openStorieModal()" class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded hover:bg-yellow-500/20 transition-all font-bold">+ AGGIUNGI</button>
                         </div>
-                        <div id="issue-stories-list" class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-2">
-                            <p class="text-[10px] text-slate-500 italic uppercase tracking-widest">Caricamento storie...</p>
-                        </div>
+                        <div id="issue-stories-list" class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-2"></div>
                     </div>
                 </div>
                 
                 <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="md:col-span-2">
                         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">URL Immagine</label>
-                        <input type="text" id="edit-immagine_url" oninput="document.getElementById('edit-preview').src = this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm text-blue-400 outline-none focus:ring-1 focus:ring-yellow-500">
+                        <input type="text" id="edit-immagine_url" oninput="document.getElementById('edit-preview').src = this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm text-blue-400 outline-none">
                     </div>
                     <div class="md:col-span-2">
                         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Titolo Albo</label>
@@ -126,22 +110,6 @@
                     <div>
                         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Serie</label>
                         <select id="edit-serie_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-yellow-500 outline-none"></select>
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Collana</label>
-                        <select id="edit-collana_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none" disabled></select>
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Editore</label>
-                        <select id="edit-editore_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select>
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Testata</label>
-                        <select id="edit-testata_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select>
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Annata</label>
-                        <select id="edit-annata_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select>
                     </div>
                     <div>
                         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Numero</label>
@@ -156,7 +124,7 @@
                     </div>
                     <div>
                         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Condizione</label>
-                        <select id="edit-condizione" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-yellow-500 outline-none">
+                        <select id="edit-condizione" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none">
                             <option value="">Nessuna</option>
                             <option value="1">1 Stella</option>
                             <option value="2">2 Stelle</option>
@@ -165,8 +133,8 @@
                             <option value="5">5 Stelle</option>
                         </select>
                     </div>
-                    <div class="md:col-span-2 pt-4 flex gap-3">
-                        <button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all shadow-lg shadow-yellow-500/20">Salva Albo</button>
+                    <div class="md:col-span-2 pt-4">
+                        <button type="submit" class="w-full bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all">Salva</button>
                     </div>
                 </div>
             </form>
@@ -176,7 +144,7 @@
     <div id="storie-modal" class="hidden fixed inset-0 z-[130] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
             <div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800">
-                <h3 class="text-xl font-bold text-yellow-500 uppercase italic">Dettagli Storia</h3>
+                <h3 class="text-xl font-bold text-yellow-500 uppercase italic">Dettaglio Storia</h3>
                 <button onclick="closeStorieModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
             </div>
             <div class="p-6 overflow-y-auto custom-scrollbar">
@@ -184,306 +152,118 @@
                     <input type="hidden" id="storie-id">
                     <div>
                         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Titolo Storia</label>
-                        <input type="text" id="storie-nome" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none shadow-inner" placeholder="Esempio: Una storia di Natale...">
+                        <input type="text" id="storie-nome" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none">
                     </div>
-                    <button type="submit" class="w-full bg-yellow-500 text-slate-900 font-black py-2 rounded-xl uppercase tracking-widest text-xs hover:bg-yellow-400 transition-all">Salva Titolo</button>
+                    <button type="submit" class="w-full bg-yellow-500 text-slate-900 font-black py-2 rounded-xl uppercase tracking-widest text-xs">Salva Titolo</button>
                 </form>
 
-                <div id="sezione-personaggi" class="pt-6 border-t border-slate-700">
+                <div class="pt-6 border-t border-slate-700">
                     <div class="flex justify-between items-center mb-4">
                         <h4 class="text-xs font-black text-yellow-500 uppercase tracking-widest italic">Personaggi Protagonisti</h4>
-                        <button type="button" onclick="openPersonaggiSelectModal()" class="text-[9px] bg-emerald-500 text-slate-900 px-3 py-1 rounded-full font-black uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20">+ AGGIUNGI</button>
+                        <button type="button" onclick="placeholderAdd()" class="text-[9px] bg-emerald-500 text-slate-900 px-3 py-1 rounded-full font-black uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-lg">+ AGGIUNGI</button>
                     </div>
-                    <div id="lista-personaggi-storia" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div id="lista-personaggi-storia" class="grid grid-cols-1 gap-3">
+                        <div class="flex items-center justify-between bg-slate-900/50 p-2 rounded-lg border border-slate-700 group">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-slate-800 border border-slate-600"></div>
+                                <span class="text-[10px] font-black uppercase text-slate-300">Personaggio Esempio</span>
+                            </div>
+                            <button type="button" onclick="placeholderRemove()" class="text-red-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all p-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
                         </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <div id="personaggi-select-modal" class="hidden fixed inset-0 z-[150] bg-slate-950/95 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
-            <div class="p-5 border-b border-slate-700 flex justify-between items-center bg-slate-800/50">
-                <h4 class="text-sm font-black text-yellow-500 uppercase tracking-widest italic">Scegli Personaggio</h4>
-                <button onclick="closePersonaggiSelectModal()" class="text-slate-400 hover:text-white text-xl">&times;</button>
-            </div>
-            <div class="p-4 border-b border-slate-700">
-                <input type="text" id="personaggi-search" oninput="filterPersonaggiList(this.value)" class="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg text-sm text-white outline-none" placeholder="Cerca tra i personaggi...">
-            </div>
-            <div id="personaggi-list-container" class="max-h-64 overflow-y-auto custom-scrollbar p-2 grid grid-cols-1 gap-1 bg-slate-900/30">
-                </div>
         </div>
     </div>
 
     <footer class="bg-slate-800 border-t border-slate-700 p-4 mt-8">
         <div class="container mx-auto text-center text-slate-500 text-[10px] font-bold uppercase tracking-widest">
-            versione 7.4 - gestione personaggi consolidata
+            versione 7.3.1 - struttura gestione personaggi
         </div>
     </footer>
 
     <script>
         const placeholderImg = 'https://placehold.co/300x450/1e293b/fbbf24?text=No+Cover';
-        const placeholderAvatar = 'https://placehold.co/100x100/1e293b/fbbf24?text=?';
-        const searchInput = document.getElementById('serie-search');
-        const resultsDiv = document.getElementById('serie-results');
-        const grid = document.getElementById('comic-grid');
-        const statsCount = document.getElementById('stats-count');
-        const showcase = document.getElementById('serie-showcase');
-        const codiciBar = document.getElementById('codici-bar');
-
         let currentFilter = 'all';
         let currentSerieId = null;
-        let currentSerieFullNome = "";
-        let currentCodiceId = null;
-        let currentView = 'grid';
-        let currentData = [];
-        let allPersonaggi = []; // Cache personaggi globali
 
-        const FULL_QUERY = `*, annata(id, nome), serie(id, nome, immagine_url, collana(nome)), editore(id, nome), testata(id, nome)`;
-
-        // --- GESTIONE PERSONAGGI (LOGICA 7.4) ---
-
-        async function loadAllPersonaggi() {
-            const { data } = await window.supabaseClient.from('personaggio').select('id, nome, immagine_url').order('nome');
-            allPersonaggi = data || [];
+        // --- FUNZIONI VUOTE CHIRURGICHE 7.3.1 ---
+        function placeholderAdd() {
+            alert("Azione: Apertura selettore personaggi (Da implementare)");
+        }
+        function placeholderRemove() {
+            alert("Azione: Rimozione personaggio (Da implementare)");
         }
 
-        function openPersonaggiSelectModal() {
-            document.getElementById('personaggi-select-modal').classList.remove('hidden');
-            renderPersonaggiList();
-        }
-
-        function closePersonaggiSelectModal() {
-            document.getElementById('personaggi-select-modal').classList.add('hidden');
-        }
-
-        function filterPersonaggiList(query) {
-            renderPersonaggiList(query);
-        }
-
-        function renderPersonaggiList(filter = "") {
-            const container = document.getElementById('personaggi-list-container');
-            const filtered = allPersonaggi.filter(p => p.nome.toLowerCase().includes(filter.toLowerCase()));
-            
-            container.innerHTML = filtered.map(p => `
-                <div onclick="addPersonaggioToStoria('${p.id}')" class="flex items-center gap-3 p-2 hover:bg-slate-700 rounded-lg cursor-pointer transition-all border border-transparent hover:border-yellow-500/30">
-                    <img src="${p.immagine_url || placeholderAvatar}" class="w-8 h-8 rounded-full object-cover border border-slate-600">
-                    <span class="text-xs font-bold text-slate-200">${p.nome}</span>
-                </div>
-            `).join('');
-        }
-
-        async function addPersonaggioToStoria(personaggioId) {
-            const storiaId = document.getElementById('storie-id').value;
-            if (!storiaId) { alert("Salva il titolo della storia prima di aggiungere personaggi."); return; }
-            const { error } = await window.supabaseClient.from('storia_personaggio').upsert({ storia_id: storiaId, personaggio_id: personaggioId });
-            if (error) alert(error.message);
-            else { closePersonaggiSelectModal(); loadPersonaggiStoria(storiaId); }
-        }
-
-        async function removePersonaggioFromStoria(personaggioId) {
-            const storiaId = document.getElementById('storie-id').value;
-            if (!confirm("Rimuovere il personaggio da questa storia?")) return;
-            const { error } = await window.supabaseClient.from('storia_personaggio').delete().eq('storia_id', storiaId).eq('personaggio_id', personaggioId);
-            if (error) alert(error.message);
-            else loadPersonaggiStoria(storiaId);
-        }
-
-        async function loadPersonaggiStoria(storiaId) {
-            const container = document.getElementById('lista-personaggi-storia');
-            container.innerHTML = '<p class="text-[10px] text-slate-500 italic uppercase">Caricamento...</p>';
-            const { data } = await window.supabaseClient.from('storia_personaggio').select('personaggio(id, nome, immagine_url)').eq('storia_id', storiaId);
-            
-            if (!data || data.length === 0) {
-                container.innerHTML = '<p class="text-[10px] text-slate-400 italic col-span-2">Nessun personaggio associato.</p>';
-                return;
-            }
-            container.innerHTML = data.map(item => `
-                <div class="flex items-center justify-between bg-slate-900/50 p-2 rounded-lg border border-slate-700 group">
-                    <div class="flex items-center gap-3">
-                        <img src="${item.personaggio.immagine_url || placeholderAvatar}" class="w-8 h-8 rounded-full object-cover border border-slate-700">
-                        <span class="text-[10px] font-black uppercase text-slate-300">${item.personaggio.nome}</span>
-                    </div>
-                    <button type="button" onclick="removePersonaggioFromStoria('${item.personaggio.id}')" class="text-red-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all p-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                    </button>
-                </div>
-            `).join('');
-        }
-
-        // --- LOGICA MODALE STORIA (INTERMEDIO) ---
-
-        function openStorieModal(storia = null) {
-            const form = document.getElementById('storie-form');
-            form.reset();
-            const idInput = document.getElementById('storie-id');
-            const nomeInput = document.getElementById('storie-nome');
-            
-            if(storia) {
-                idInput.value = storia.id;
-                nomeInput.value = storia.nome;
-                loadPersonaggiStoria(storia.id);
-            } else {
-                idInput.value = "";
-                document.getElementById('lista-personaggi-storia').innerHTML = '<p class="text-[10px] text-slate-400 italic col-span-2">Salva il titolo per sbloccare i personaggi.</p>';
-            }
-            document.getElementById('storie-modal').classList.remove('hidden');
-        }
-
-        document.getElementById('storie-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('storie-id').value;
-            const nome = document.getElementById('storie-nome').value;
-            const issue_id = document.getElementById('edit-id').value;
-
-            const payload = { nome, issue_id };
-            let result;
-            if(id) result = await window.supabaseClient.from('storia').update(payload).eq('id', id).select();
-            else result = await window.supabaseClient.from('storia').insert([payload]).select();
-
-            if(result.error) alert(result.error.message);
-            else {
-                const savedStoria = result.data[0];
-                document.getElementById('storie-id').value = savedStoria.id;
-                loadIssueStories(issue_id);
-                loadPersonaggiStoria(savedStoria.id);
-            }
-        });
-
-        // --- CORE LOGIC RIPRISTINATA 7.3 ---
-
-        async function loadIssueStories(issueId) {
-            const container = document.getElementById('issue-stories-list');
-            const { data } = await window.supabaseClient.from('storia').select('*').eq('issue_id', issueId).order('created_at');
-            if(!data || data.length === 0) {
-                container.innerHTML = '<p class="text-[10px] text-slate-500 italic uppercase">Nessuna storia.</p>';
-                return;
-            }
-            container.innerHTML = data.map(s => `
-                <div class="flex items-center justify-between bg-slate-900/80 p-2 rounded border border-slate-700 hover:border-yellow-500/50 transition-all group">
-                    <span class="text-[10px] font-bold text-slate-200 uppercase truncate pr-2">${s.nome}</span>
-                    <button type="button" onclick="openStorieModal({id:'${s.id}', nome:'${s.nome.replace(/'/g, "\\'")}'})" class="text-[9px] text-yellow-500 font-black opacity-0 group-hover:opacity-100 transition-all">EDIT</button>
-                </div>
-            `).join('');
-        }
-
+        // --- RIPRISTINO LOGICA 7.3 ---
         async function loadSerieShowcase() {
-            const { data } = await window.supabaseClient.from('serie').select('id, nome, immagine_url').order('nome').limit(20);
+            const { data } = await window.supabaseClient.from('serie').select('id, nome, immagine_url').limit(15);
+            const showcase = document.getElementById('serie-showcase');
             showcase.innerHTML = data.map(s => `
-                <div onclick="selectSerie('${s.id}', '${s.nome}')" class="serie-showcase-item shrink-0 w-32 cursor-pointer group">
-                    <div class="aspect-square bg-slate-800 rounded-xl overflow-hidden border border-slate-700 mb-2 shadow-lg group-hover:border-yellow-500 transition-all">
+                <div onclick="selectSerie('${s.id}', '${s.nome}')" class="serie-showcase-item shrink-0 w-32 cursor-pointer">
+                    <div class="aspect-square bg-slate-800 rounded-xl overflow-hidden border border-slate-700 mb-2">
                         <img src="${s.immagine_url || placeholderImg}" class="w-full h-full object-cover">
                     </div>
-                    <p class="text-[9px] font-black text-center uppercase tracking-tighter truncate text-slate-400 group-hover:text-yellow-500">${s.nome}</p>
+                    <p class="text-[9px] font-black text-center uppercase tracking-tighter truncate text-slate-400">${s.nome}</p>
                 </div>
             `).join('');
-        }
-
-        async function loadCodiciBar() {
-            const { data } = await window.supabaseClient.from('codice_editore').select('id, nome, immagine_url').order('nome');
-            let html = `<button onclick="resetAllFilters()" class="codice-item ${!currentCodiceId ? 'active' : ''} shrink-0 h-12 px-6 bg-slate-800 border border-slate-700 rounded-lg text-[11px] font-black uppercase text-yellow-500">TUTTI</button>`;
-            html += (data || []).map(cod => `
-                <div onclick="selectCodice('${cod.id}')" class="codice-item codice-item-square ${currentCodiceId === cod.id ? 'active' : ''} bg-slate-800 border border-slate-700 rounded-lg overflow-hidden flex items-center justify-center">
-                    <img src="${cod.immagine_url || placeholderImg}" class="w-full h-full object-cover grayscale hover:grayscale-0 transition-all">
-                </div>
-            `).join('');
-            codiciBar.innerHTML = html;
         }
 
         async function loadRecent() {
-            let query = window.supabaseClient.from('issue').select(FULL_QUERY).order('created_at', { ascending: false }).limit(25);
-            if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
-            const { data } = await query;
-            currentData = data || [];
-            renderGrid(currentData, "Ultimi Arrivi");
-        }
-
-        async function selectSerie(id, nome) {
-            currentSerieId = id; currentSerieFullNome = nome;
-            let query = window.supabaseClient.from('issue').select(FULL_QUERY).eq('serie_id', id).order('numero', { ascending: true });
-            if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
-            const { data } = await query;
-            renderGrid(data || [], nome);
+            const { data } = await window.supabaseClient.from('issue').select('*, serie(nome)').order('created_at', { ascending: false }).limit(20);
+            renderGrid(data || [], "Ultimi Arrivi");
         }
 
         function renderGrid(data, title) {
             document.getElementById('view-title').innerText = title;
-            statsCount.innerText = `${data.length} ALBI`;
-            grid.innerHTML = data.map(comic => `
-                <div class="comic-card bg-slate-800 rounded-2xl overflow-hidden shadow-xl border border-slate-700 hover:border-yellow-500/50 transition-all group cursor-pointer" onclick="openEditModal('${comic.id}')">
-                    <div class="relative aspect-[2/3] overflow-hidden bg-slate-900">
-                        <img src="${comic.immagine_url || placeholderImg}" class="comic-image w-full h-full object-cover grayscale opacity-80 group-hover:scale-105 transition-all">
-                        <div class="absolute bottom-3 right-3">
-                            <span class="px-3 py-1 rounded-full text-[9px] font-black uppercase ${comic.possesso === 'celo' ? 'bg-emerald-500 text-slate-900' : 'bg-red-500 text-white'}">${comic.possesso}</span>
-                        </div>
-                    </div>
-                    <div class="p-4">
-                        <p class="text-[10px] font-bold text-yellow-500 uppercase truncate">${comic.serie?.nome || 'Serie'}</p>
-                        <h3 class="text-sm font-black text-white leading-tight uppercase italic line-clamp-2">${comic.nome || 'Senza Titolo'}</h3>
-                        <div class="mt-4 pt-4 border-t border-slate-700/50 flex justify-between items-center">
-                            <span class="text-xl font-black text-white italic">#${comic.numero || '0'}</span>
-                        </div>
-                    </div>
+            document.getElementById('comic-grid').innerHTML = data.map(comic => `
+                <div class="comic-card bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 p-4" onclick="openEditModal('${comic.id}')">
+                    <img src="${comic.immagine_url || placeholderImg}" class="aspect-[2/3] object-cover w-full rounded-lg mb-4">
+                    <p class="text-[10px] font-bold text-yellow-500 uppercase">${comic.serie?.nome}</p>
+                    <h3 class="text-sm font-black text-white uppercase italic">${comic.nome}</h3>
                 </div>
             `).join('');
         }
 
         async function openEditModal(id) {
-            const { data: comic } = await window.supabaseClient.from('issue').select(FULL_QUERY).eq('id', id).single();
+            const { data: comic } = await window.supabaseClient.from('issue').select('*, serie(id, nome)').eq('id', id).single();
             if (!comic) return;
             document.getElementById('edit-id').value = comic.id;
-            document.getElementById('edit-nome').value = comic.nome || "";
-            document.getElementById('edit-numero').value = comic.numero || "";
-            document.getElementById('edit-immagine_url').value = comic.immagine_url || "";
+            document.getElementById('edit-nome').value = comic.nome;
             document.getElementById('edit-preview').src = comic.immagine_url || placeholderImg;
-            document.getElementById('edit-possesso').value = comic.possesso;
-            document.getElementById('edit-condizione').value = comic.condizione || "";
-            
-            await populateSelects(comic);
-            loadIssueStories(comic.id);
             document.getElementById('edit-modal').classList.remove('hidden');
+            loadIssueStories(comic.id);
         }
 
-        async function populateSelects(comic) {
-            const { data: serie } = await window.supabaseClient.from('serie').select('id, nome').order('nome');
-            const { data: editori } = await window.supabaseClient.from('editore').select('id, nome').order('nome');
-            const { data: testate } = await window.supabaseClient.from('testata').select('id, nome').order('nome');
-            const { data: annate } = await window.supabaseClient.from('annata').select('id, nome').order('nome');
-
-            document.getElementById('edit-serie_id').innerHTML = (serie || []).map(s => `<option value="${s.id}" ${comic?.serie_id === s.id ? 'selected' : ''}>${s.nome}</option>`).join('');
-            document.getElementById('edit-editore_id').innerHTML = '<option value="">-- Seleziona --</option>' + (editori || []).map(e => `<option value="${e.id}" ${comic?.editore_id === e.id ? 'selected' : ''}>${e.nome}</option>`).join('');
-            document.getElementById('edit-testata_id').innerHTML = '<option value="">-- Seleziona --</option>' + (testate || []).map(t => `<option value="${t.id}" ${comic?.testata_id === t.id ? 'selected' : ''}>${t.nome}</option>`).join('');
-            document.getElementById('edit-annata_id').innerHTML = '<option value="">-- Seleziona --</option>' + (annate || []).map(a => `<option value="${a.id}" ${comic?.annata_id === a.id ? 'selected' : ''}>${a.nome}</option>`).join('');
+        async function loadIssueStories(issueId) {
+            const container = document.getElementById('issue-stories-list');
+            const { data } = await window.supabaseClient.from('storia').select('*').eq('issue_id', issueId);
+            container.innerHTML = (data || []).map(s => `
+                <div class="bg-slate-900/80 p-2 rounded border border-slate-700 flex justify-between items-center group">
+                    <span class="text-[10px] font-bold text-slate-200 uppercase truncate">${s.nome}</span>
+                    <button type="button" onclick="openStorieModal({id:'${s.id}', nome:'${s.nome}'})" class="text-[9px] text-yellow-500 font-black opacity-0 group-hover:opacity-100">EDIT</button>
+                </div>
+            `).join('');
         }
 
-        function closeModal() { document.getElementById('edit-modal').classList.add('hidden'); }
+        function openStorieModal(storia = null) {
+            document.getElementById('storie-modal').classList.remove('hidden');
+            if(storia) {
+                document.getElementById('storie-id').value = storia.id;
+                document.getElementById('storie-nome').value = storia.nome;
+            } else {
+                document.getElementById('storie-id').value = '';
+                document.getElementById('storie-nome').value = '';
+            }
+        }
+
         function closeStorieModal() { document.getElementById('storie-modal').classList.add('hidden'); }
-        function resetAllFilters() { currentCodiceId = null; currentSerieId = null; loadRecent(); }
+        function closeModal() { document.getElementById('edit-modal').classList.add('hidden'); }
 
-        document.getElementById('edit-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('edit-id').value;
-            const payload = {
-                nome: document.getElementById('edit-nome').value,
-                numero: document.getElementById('edit-numero').value,
-                serie_id: document.getElementById('edit-serie_id').value,
-                editore_id: document.getElementById('edit-editore_id').value || null,
-                testata_id: document.getElementById('edit-testata_id').value || null,
-                annata_id: document.getElementById('edit-annata_id').value || null,
-                possesso: document.getElementById('edit-possesso').value,
-                condizione: document.getElementById('edit-condizione').value || null,
-                immagine_url: document.getElementById('edit-immagine_url').value
-            };
-            const { error } = await window.supabaseClient.from('issue').update(payload).eq('id', id);
-            if (error) alert(error.message);
-            else { closeModal(); loadRecent(); }
-        });
-
-        // Inizializzazione
-        loadAllPersonaggi();
-        loadCodiciBar();
         loadSerieShowcase();
         loadRecent();
     </script>
