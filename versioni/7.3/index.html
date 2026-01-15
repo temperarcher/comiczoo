@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comic Archive Pro - V7.3 - Modale Storie Personaggi split</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col">
+
+    <header class="bg-slate-800 border-b border-slate-700 p-6 sticky top-0 z-50 shadow-2xl">
+        <div class="container mx-auto flex flex-col lg:flex-row justify-between items-center gap-6">
+            <h1 class="text-3xl font-black text-yellow-500 tracking-tighter uppercase italic cursor-pointer select-none shrink-0" onclick="resetAllFilters()">Comic Archive</h1>
+            
+            <div class="flex flex-col md:flex-row w-full gap-4 items-center">
+                <div class="relative w-full">
+                    <input type="text" id="serie-search" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-full pl-12 focus:ring-2 focus:ring-yellow-500 outline-none transition-all" placeholder="Cerca una serie...">
+                    <span class="absolute left-4 top-3.5 opacity-40">🔍</span>
+                    <div id="serie-results" class="absolute w-full mt-2 bg-slate-800 border border-slate-700 rounded-xl hidden shadow-2xl max-h-60 overflow-y-auto custom-scrollbar z-50"></div>
+                </div>
+
+                <div class="flex gap-3 items-center shrink-0">
+                    <button onclick="openAddModal()" class="bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-black px-5 py-2.5 rounded-full uppercase text-[10px] tracking-widest transition-all shadow-lg shadow-yellow-500/20">
+                        + Nuovo Albo
+                    </button>
+                    <div class="flex bg-slate-900 p-1 rounded-full border border-slate-700 mr-1">
+                        <button onclick="setView('grid')" id="view-grid" class="view-btn active px-3 py-1.5 rounded-full transition-all" title="Vista Griglia">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                        </button>
+                        <button onclick="setView('list')" id="view-list" class="view-btn px-3 py-1.5 rounded-full transition-all" title="Vista Lista">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                        </button>
+                    </div>
+                    <div class="flex bg-slate-900 p-1 rounded-full border border-slate-700">
+                        <button onclick="setFilter('all')" id="btn-all" class="filter-btn active px-4 py-1.5 rounded-full text-xs font-bold uppercase transition-all">Tutti</button>
+                        <button onclick="setFilter('celo')" id="btn-celo" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold uppercase transition-all">Celo</button>
+                        <button onclick="setFilter('manca')" id="btn-manca" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold uppercase transition-all">Manca</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <section class="bg-slate-800/30 border-b border-slate-800 py-3">
+        <div class="container mx-auto px-6">
+            <div id="codici-bar" class="flex gap-3 overflow-x-auto pb-2 custom-scrollbar items-center"></div>
+        </div>
+    </section>
+
+    <section class="bg-slate-900/50 border-b border-slate-800 py-4 overflow-hidden">
+        <div class="container mx-auto px-6">
+            <div id="serie-showcase" class="flex gap-4 overflow-x-auto pb-2 custom-scrollbar items-center"></div>
+        </div>
+    </section>
+
+    <main class="container mx-auto p-6 flex-grow">
+        <div class="mb-8 border-l-4 border-yellow-500 pl-4 flex justify-between items-end">
+            <div>
+                <h2 id="view-title" class="text-2xl font-bold uppercase tracking-tight text-white">Caricamento...</h2>
+                <p id="view-subtitle" class="text-slate-400 text-sm italic"></p>
+            </div>
+            <div id="stats-count" class="text-slate-500 text-xs font-mono uppercase"></div>
+        </div>
+        <div id="comic-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8"></div>
+    </main>
+
+    <footer class="bg-slate-800 border-t border-slate-700 p-4 mt-8">
+        <div class="container mx-auto text-center text-slate-500 text-[10px] font-bold uppercase tracking-widest">
+            versione 7.3 - modale storie con personaggi
+        </div>
+    </footer>
+
+    <div id="edit-modal" class="hidden fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden max-h-[95vh] flex flex-col">
+            <div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800">
+                <h3 id="modal-title" class="text-xl font-bold text-yellow-500 uppercase italic">Gestione Albo</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            <form id="edit-form" class="p-6 overflow-y-auto custom-scrollbar flex flex-col md:flex-row gap-8">
+                <input type="hidden" id="edit-id">
+                <div class="w-full md:w-56 shrink-0">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Anteprima Copertina</label>
+                    <div class="aspect-[2/3] bg-slate-900 rounded-lg border border-slate-700 overflow-hidden shadow-inner mb-4">
+                        <img id="edit-preview" src="" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/300x450/1e293b/fbbf24?text=No+Cover'">
+                    </div>
+                    
+                    <div class="mt-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="text-[10px] font-bold text-yellow-500 uppercase tracking-widest block">Storie Incluse</label>
+                            <button type="button" onclick="openStorieModal()" class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded hover:bg-yellow-500/20 transition-all font-bold">+ NUOVA</button>
+                        </div>
+                        <div id="issue-stories-list" class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-2">
+                            <p class="text-[10px] text-slate-500 italic uppercase">Caricamento...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="md:col-span-2">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">URL Immagine</label>
+                        <input type="text" id="edit-immagine_url" oninput="document.getElementById('edit-preview').src = this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm text-blue-400 outline-none focus:ring-1 focus:ring-yellow-500">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Titolo Albo</label>
+                        <input type="text" id="edit-nome" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Serie</label>
+                            <div class="flex gap-2">
+                                <button type="button" id="btn-edit-serie-context" onclick="openEditSerieFromContext()" disabled class="text-[9px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded hover:bg-blue-500/20 transition-all font-bold">✏️ EDIT</button>
+                                <button type="button" onclick="openSerieModal()" class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded hover:bg-yellow-500/20 transition-all font-bold">+ NUOVA</button>
+                            </div>
+                        </div>
+                        <select id="edit-serie_id" onchange="handleSerieChange(this.value)" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-yellow-500 outline-none"></select>
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Collana</label>
+                            <div class="flex gap-2">
+                                <button type="button" id="btn-edit-collana-issue" onclick="openEditCollanaFromIssue()" disabled class="text-[9px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded hover:bg-blue-500/20 transition-all font-bold">✏️ EDIT</button>
+                                <button type="button" onclick="openCollanaModal()" class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded hover:bg-yellow-500/20 transition-all font-bold">+ NUOVA</button>
+                            </div>
+                        </div>
+                        <select id="edit-collana_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none" disabled></select>
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Editore</label>
+                            <div class="flex gap-2">
+                                <button type="button" id="btn-edit-editore-issue" onclick="openEditEditoreFromIssue()" disabled class="text-[9px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded hover:bg-blue-500/20 transition-all font-bold">✏️ EDIT</button>
+                                <button type="button" onclick="openEditoreModal()" class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded hover:bg-yellow-500/20 transition-all font-bold">+ NUOVO</button>
+                            </div>
+                        </div>
+                        <select id="edit-editore_id" onchange="document.getElementById('btn-edit-editore-issue').disabled = !this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select>
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Testata</label>
+                            <div class="flex gap-2">
+                                <button type="button" id="btn-edit-testata-issue" onclick="openEditTestataFromIssue()" disabled class="text-[9px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded hover:bg-blue-500/20 transition-all font-bold">✏️ EDIT</button>
+                                <button type="button" onclick="openTestataModal()" class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded hover:bg-yellow-500/20 transition-all font-bold">+ NUOVA</button>
+                            </div>
+                        </div>
+                        <select id="edit-testata_id" onchange="document.getElementById('btn-edit-testata-issue').disabled = !this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select>
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Annata</label>
+                            <div class="flex gap-2">
+                                <button type="button" id="btn-edit-annata-issue" onclick="openEditAnnataFromIssue()" disabled class="text-[9px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded hover:bg-blue-500/20 transition-all font-bold">✏️ EDIT</button>
+                                <button type="button" onclick="openAnnataModal()" class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded hover:bg-yellow-500/20 transition-all font-bold">+ NUOVA</button>
+                            </div>
+                        </div>
+                        <select id="edit-annata_id" onchange="document.getElementById('btn-edit-annata-issue').disabled = !this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Periodicità</label>
+                        <select id="edit-tipo_pubblicazione_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Data Pubblicazione</label>
+                        <input type="date" id="edit-data_pubblicazione" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Supplemento a...</label>
+                        <select id="edit-supplemento_id" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-[11px] font-bold text-orange-400 outline-none"></select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Numero</label>
+                        <input type="text" id="edit-numero" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Condizione</label>
+                        <select id="edit-condizione" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-yellow-500 outline-none">
+                            <option value="">Nessuna (Null)</option>
+                            <option value="1">1 Stella (Pessimo)</option>
+                            <option value="2">2 Stella (Mediocre)</option>
+                            <option value="3">3 Stella (Buono)</option>
+                            <option value="4">4 Stella (Ottimo)</option>
+                            <option value="5">5 Stella (Edicola)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Valore (€)</label>
+                        <input type="number" step="0.01" id="edit-valore" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-emerald-400 outline-none focus:ring-1 focus:ring-emerald-500" placeholder="0.00">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Possesso</label>
+                        <select id="edit-possesso" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none">
+                            <option value="celo">Celo</option>
+                            <option value="manca">Manca</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-2 pt-4 flex gap-3">
+                        <button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all">Salva</button>
+                        <button type="button" onclick="closeModal()" class="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl uppercase tracking-widest hover:bg-slate-600 transition-all">Chiudi</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="storie-modal" class="hidden fixed inset-0 z-[130] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+            <div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800">
+                <h3 id="storie-modal-title" class="text-xl font-bold text-yellow-500 uppercase italic">Gestione Storia</h3>
+                <button onclick="closeStorieModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            <div class="p-6 overflow-y-auto custom-scrollbar">
+                <form id="storie-form" class="space-y-4 mb-6">
+                    <input type="hidden" id="storie-id">
+                    <input type="hidden" id="old-storia-id">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="md:col-span-2">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Titolo Storia</label>
+                            <input list="storie-esistenti" id="storie-nome" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none" placeholder="Cerca o scrivi un titolo...">
+                            <datalist id="storie-esistenti"></datalist>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Associa all'Albo</label>
+                            <select id="storie-issue-id" onchange="togglePosizioneField(this.value)" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-[11px] font-bold text-yellow-500 outline-none"></select>
+                        </div>
+                        <div id="storie-posizione-container" class="hidden">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Posizione (Indice)</label>
+                            <input type="number" id="storie-posizione" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none" placeholder="1, 2, 3...">
+                        </div>
+                    </div>
+                    <div class="pt-4 flex gap-3">
+                        <button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-2 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all text-xs">Salva Storia</button>
+                    </div>
+                </form>
+
+                <div id="sezione-personaggi" class="hidden pt-6 border-t border-slate-700">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-xs font-black text-yellow-500 uppercase tracking-widest">Personaggi Protagonisti</h4>
+                    </div>
+                    <div id="lista-personaggi-storia" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="serie-modal" class="hidden fixed inset-0 z-[110] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800">
+                <h3 id="serie-modal-title" class="text-xl font-bold text-yellow-500 uppercase italic">Gestione Serie</h3>
+                <button onclick="closeSerieModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            <div class="w-full h-32 bg-slate-900 border-b border-slate-700 overflow-hidden shadow-inner">
+                <img id="new-serie-preview" src="" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/600x200/1e293b/fbbf24?text=Anteprima+Serie'">
+            </div>
+            <form id="serie-form" class="p-6 space-y-4">
+                <input type="hidden" id="new-serie-id">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome Serie</label>
+                    <input type="text" id="new-serie-nome" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none">
+                </div>
+                <div>
+                    <div class="flex justify-between items-center">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Collana</label>
+                        <div class="flex gap-2">
+                            <button type="button" id="btn-edit-collana-serie" onclick="openEditCollanaFromSerie()" disabled class="text-[9px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded hover:bg-blue-500/20 transition-all font-bold">✏️ EDIT</button>
+                            <button type="button" onclick="openCollanaModal()" class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded hover:bg-yellow-500/20 transition-all font-bold">+ NUOVA</button>
+                        </div>
+                    </div>
+                    <select id="new-serie-collana" onchange="document.getElementById('btn-edit-collana-serie').disabled = !this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select>
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">URL Immagine</label>
+                    <input type="text" id="new-serie-immagine" oninput="document.getElementById('new-serie-preview').src = this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm text-blue-400 outline-none">
+                </div>
+                <div class="pt-4 flex gap-3">
+                    <button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all">Salva</button>
+                    <button type="button" onclick="closeSerieModal()" class="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl uppercase tracking-widest hover:bg-slate-600 transition-all">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="simple-modal" class="hidden fixed inset-0 z-[120] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+            <div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800">
+                <h3 id="simple-modal-title" class="text-xl font-bold text-yellow-500 uppercase italic">Gestione</h3>
+                <button onclick="closeSimpleModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            <div id="simple-preview-container" class="hidden w-full h-32 bg-slate-900 border-b border-slate-700 overflow-hidden shadow-inner">
+                <img id="simple-preview-img" src="" class="w-full h-full object-contain" onerror="this.src='https://placehold.co/400x150/1e293b/fbbf24?text=Nessun+Logo'">
+            </div>
+            <form id="simple-form" class="p-6 space-y-4">
+                <input type="hidden" id="simple-id">
+                <div id="simple-form-fields"></div>
+                <div class="pt-4 flex gap-3">
+                    <button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all">Salva</button>
+                    <button type="button" onclick="closeSimpleModal()" class="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl uppercase tracking-widest hover:bg-slate-600 transition-all">Chiudi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="scripts.js"></script>
+</body>
+</html>
