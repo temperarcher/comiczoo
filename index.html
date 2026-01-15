@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comic Archive Pro - V7.3 - Modale Storie Personaggi split</title>
+    <title>Comic Archive Pro - V7.4 - Gestione Protagonisti</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
@@ -69,7 +69,7 @@
 
     <footer class="bg-slate-800 border-t border-slate-700 p-4 mt-8">
         <div class="container mx-auto text-center text-slate-500 text-[10px] font-bold uppercase tracking-widest">
-            versione 7.3 - modale storie con personaggi
+            versione 7.4 - gestione protagonisti
         </div>
     </footer>
 
@@ -93,7 +93,6 @@
                             <button type="button" onclick="openStorieModal()" class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded hover:bg-yellow-500/20 transition-all font-bold">+ NUOVA</button>
                         </div>
                         <div id="issue-stories-list" class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-2">
-                            <p class="text-[10px] text-slate-500 italic uppercase">Caricamento...</p>
                         </div>
                     </div>
                 </div>
@@ -234,14 +233,37 @@
                     </div>
                 </form>
 
-                <div id="sezione-personaggi" class="hidden pt-6 border-t border-slate-700">
+                <div id="sezione-personaggi" class="pt-6 border-t border-slate-700">
                     <div class="flex justify-between items-center mb-4">
                         <h4 class="text-xs font-black text-yellow-500 uppercase tracking-widest">Personaggi Protagonisti</h4>
+                        <button type="button" onclick="openAddPersonaggioStoriaModal()" class="text-[9px] bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded hover:bg-emerald-500/20 transition-all font-bold">+ AGGIUNGI</button>
                     </div>
-                    <div id="lista-personaggi-storia" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        </div>
+                    <div id="lista-personaggi-storia" class="grid grid-cols-1 gap-3">
+                    </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <div id="personaggio-storia-modal" class="hidden fixed inset-0 z-[150] bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl">
+            <div class="p-4 border-b border-slate-700 flex justify-between items-center">
+                <h3 class="text-sm font-black text-yellow-500 uppercase italic">Associa Protagonista</h3>
+                <button onclick="closeAddPersonaggioStoriaModal()" class="text-slate-400 hover:text-white">&times;</button>
+            </div>
+            <form id="personaggio-storia-form" class="p-6 space-y-4">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Seleziona Personaggio</label>
+                    <select id="ps-personaggio-id" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select>
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Alla Storia</label>
+                    <select id="ps-storia-id" required class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-yellow-500 outline-none"></select>
+                </div>
+                <div class="pt-4 flex gap-3">
+                    <button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase tracking-widest hover:bg-yellow-400 transition-all text-xs">Conferma Legame</button>
+                </div>
+            </form>
         </div>
     </div>
 
