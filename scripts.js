@@ -84,6 +84,7 @@ async function loadRecent() {
     if (currentFilter === 'celo') query = query.eq('possesso', 'celo');
     if (currentFilter === 'manca') query = query.eq('possesso', 'manca');
     
+    // MODIFICA 7.5: Ordinamento data crescente
     const { data } = await query.order('data_pubblicazione', { ascending: true, nullsFirst: false }).limit(24);
     currentData = data || [];
     renderGrid(currentData, "Ultimi Arrivi");
@@ -101,6 +102,7 @@ async function selectSerie(id, fullNome) {
     if (currentFilter === 'celo') query = query.eq('possesso', 'celo');
     if (currentFilter === 'manca') query = query.eq('possesso', 'manca');
     
+    // MODIFICA 7.5: Ordinamento data crescente
     const { data } = await query.order('data_pubblicazione', { ascending: true, nullsFirst: false });
     currentData = data || [];
     renderGrid(currentData, fullNome);
@@ -119,6 +121,7 @@ async function loadByCodice(codId) {
     if (currentFilter === 'celo') query = query.eq('possesso', 'celo');
     if (currentFilter === 'manca') query = query.eq('possesso', 'manca');
     
+    // MODIFICA 7.5: Ordinamento data crescente
     const { data } = await query.order('data_pubblicazione', { ascending: true, nullsFirst: false });
     currentData = data || [];
     renderGrid(currentData, currentSerieFullNome);
