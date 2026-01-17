@@ -28,493 +28,363 @@ function setFilter(filter) {
     currentFilter = filter;
     document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
     document.getElementById(`btn-${filter}`).classList.add('active');
-    
-    if (currentCodiceId) loadByCodice(currentCodiceId);
-    else if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome);
+    if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome);
     else loadRecent();
 }
 
-function resetAllFilters() {
-    currentFilter = 'all';
-    currentSerieId = null;
-    currentSerieFullNome = "";
-    currentCodiceId = null;
-    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-    document.getElementById('btn-all').classList.add('active');
-    document.querySelectorAll('.codice-item').forEach(c => c.classList.remove('active'));
-    loadRecent();
+async function resetAllFilters() {
+    currentCodiceId = null; currentSerieId = null; searchInput.value = "";
+    await loadCodiciBar(); await loadSerieShowcase(); await loadRecent();
 }
 
 async function loadCodiciBar() {
-    const { data } = await window.supabaseClient.from('codice_editore').select('*').order('nome');
-    if (data) {
-        codiciBar.innerHTML = data.map(c => `
-            <div onclick="loadByCodice('${c.id}')" id="codice-${c.id}" class="codice-item bg-slate-800 p-2 rounded-xl border border-slate-700 flex items-center gap-3 min-w-[140px]">
-                <div class="codice-item-square bg-slate-900 rounded-lg overflow-hidden">
-                    <img src="${c.immagine_url || placeholderLogo}" class="w-full h-full object-contain grayscale">
-                </div>
-                <span class="text-[10px] font-black uppercase tracking-tighter truncate">${c.nome}</span>
+    const { data: codici } = await window.supabaseClient.from('codice_editore').select('id, nome, immagine_url').order('nome');
+    let html = `<button id="codice-tutti" onclick="resetAllFilters()" class="codice-item ${!currentCodiceId ? 'active' : ''} shrink-0 h-12 px-6 bg-slate-800 border border-slate-700 rounded-lg flex items-center justify-center text-[11px] font-black uppercase tracking-widest text-yellow-500">TUTTI</button>`;
+    if (codici) {
+        html += codici.map(cod => `
+            <div id="codice-${cod.id}" onclick="selectCodice('${cod.id}')" class="codice-item codice-item-square ${currentCodiceId === cod.id ? 'active' : ''} bg-slate-800 border border-slate-700 rounded-lg overflow-hidden flex items-center justify-center p-0">
+                 <img src="${cod.immagine_url || placeholderLogo}" alt="${cod.nome}" title="${cod.nome}" class="w-full h-full object-cover grayscale hover:grayscale-0 transition-all">
             </div>
         `).join('');
+    }
+    codiciBar.innerHTML = html;
+}
+
+async function selectCodice(codiceId) {
+    currentCodiceId = codiceId;
+    document.querySelectorAll('.codice-item').forEach(el => el.classList.remove('active'));
+    const el = document.getElementById(`codice-${codiceId}`);
+    if(el) el.classList.add('active');
+    const { data: editori } = await window.supabaseClient.from('editore').select('id').eq('codice_editore_id', codiceId);
+    const editoriIds = (editori || []).map(e => e.id);
+    if (editoriIds.length === 0) { showcase.innerHTML = `<p class="text-slate-500 text-xs uppercase px-4 italic">Nessuna serie associata</p>`; return; }
+    const { data: issues } = await window.supabaseClient.from('issue').select('serie_id').in('editore_id', editoriIds);
+    const serieIds = [...new Set((issues || []).map(i => i.serie_id))];
+    await loadSerieShowcase(serieIds);
+}
+
+async function loadSerieShowcase(filterSerieIds = null) {
+    let query = window.supabaseClient.from('serie').select('id, nome, immagine_url, collana(nome)').order('nome');
+    if (filterSerieIds) query = query.in('id', filterSerieIds);
+    const { data: series } = await query;
+    if (series) {
+        showcase.innerHTML = series.map(serie => {
+            const display = getSerieDisplayName(serie);
+            return `<div class="serie-showcase-item shrink-0 h-16 bg-slate-800 border border-slate-700 rounded-lg overflow-hidden cursor-pointer shadow-lg relative group">
+                <div onclick="selectSerie('${serie.id}', '${display}')" class="h-full"><img src="${serie.immagine_url || placeholderImg}" class="h-full w-auto object-contain"></div>
+                <button onclick="openSerieModal('${serie.id}')" class="absolute top-1 right-1 bg-yellow-500 text-slate-900 p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity text-[10px] z-10">✏️</button>
+            </div>`;
+        }).join('');
     }
 }
 
-async function loadSerieShowcase() {
-    const { data } = await window.supabaseClient.from('serie').select('*, collana(nome)').order('nome');
-    if (data) {
-        showcase.innerHTML = data.map(s => `
-            <div onclick="selectSerie('${s.id}', '${getSerieDisplayName(s)}')" class="serie-showcase-item shrink-0 cursor-pointer group border border-slate-700 p-3 rounded-2xl bg-slate-800 hover:border-yellow-500 transition-all flex items-center gap-4">
-                <img src="${s.immagine_url || placeholderLogo}" class="h-12 object-contain group-hover:scale-110 transition-transform">
-                <div class="pr-4">
-                    <div class="text-[10px] font-black text-yellow-500 uppercase tracking-tighter leading-none mb-1">${s.collana?.nome || 'Serie'}</div>
-                    <div class="text-xs font-black text-white uppercase whitespace-nowrap">${s.nome}</div>
-                </div>
-            </div>
-        `).join('');
-    }
+function getStarsHTML(valore) {
+    const num = parseInt(valore);
+    if (isNaN(num)) return '<span class="text-[10px] text-slate-600 italic">N.D.</span>';
+    let starsHTML = '';
+    for (let i = 1; i <= 5; i++) starsHTML += `<span class="text-xs ${i <= num ? 'text-yellow-500 opacity-100' : 'text-slate-500 opacity-20'}">★</span>`;
+    return `<div class="flex gap-0.5">${starsHTML}</div>`;
+}
+
+function getSerieDisplayName(serie) { if (!serie) return ""; const nomeCollana = serie.collana?.nome; return nomeCollana ? `${serie.nome} (${nomeCollana})` : serie.nome; }
+
+async function selectSerie(serieId, fullSerieNome) {
+    currentSerieId = serieId; currentSerieFullNome = fullSerieNome; searchInput.value = fullSerieNome; resultsDiv.classList.add('hidden');
+    document.getElementById('view-title').innerText = fullSerieNome;
+    let query = window.supabaseClient.from('issue').select(FULL_QUERY).eq('serie_id', serieId);
+    if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
+    const { data } = await query.order('numero', { ascending: true });
+    currentData = data || []; renderGrid(currentData, fullSerieNome);
 }
 
 async function loadRecent() {
-    currentSerieId = null;
-    currentCodiceId = null;
-    currentSerieFullNome = "Ultimi Arrivi";
-    document.querySelectorAll('.codice-item').forEach(c => c.classList.remove('active'));
-    
+    currentSerieId = null; document.getElementById('view-title').innerText = "Ultimi Arrivi";
     let query = window.supabaseClient.from('issue').select(FULL_QUERY);
-    if (currentFilter === 'celo') query = query.eq('possesso', 'celo');
-    if (currentFilter === 'manca') query = query.eq('possesso', 'manca');
-    
-    // MODIFICA 7.5: Ordinamento data crescente
-    const { data } = await query.order('data_pubblicazione', { ascending: true, nullsFirst: false }).limit(24);
-    currentData = data || [];
-    renderGrid(currentData, "Ultimi Arrivi");
+    if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
+    const { data } = await query.order('created_at', { ascending: false }).limit(20);
+    currentData = data || []; renderGrid(currentData);
 }
 
-async function selectSerie(id, fullNome) {
-    currentSerieId = id;
-    currentCodiceId = null;
-    currentSerieFullNome = fullNome;
-    resultsDiv.classList.add('hidden');
-    searchInput.value = '';
-    document.querySelectorAll('.codice-item').forEach(c => c.classList.remove('active'));
-    
-    let query = window.supabaseClient.from('issue').select(FULL_QUERY).eq('serie_id', id);
-    if (currentFilter === 'celo') query = query.eq('possesso', 'celo');
-    if (currentFilter === 'manca') query = query.eq('possesso', 'manca');
-    
-    // MODIFICA 7.5: Ordinamento data crescente
-    const { data } = await query.order('data_pubblicazione', { ascending: true, nullsFirst: false });
-    currentData = data || [];
-    renderGrid(currentData, fullNome);
+function renderGrid(items, fallbackSerie = "") {
+    statsCount.innerText = `${items?.length || 0} fumetti`;
+    if (currentView === 'list') grid.classList.add('list-view-container'); else grid.classList.remove('list-view-container');
+    grid.innerHTML = (items || []).map(comic => {
+        const isOwned = comic.possesso === 'celo';
+        const comicData = encodeURIComponent(JSON.stringify(comic));
+        const annataLabel = comic.annata?.nome ? `<span class="text-slate-400 font-normal mr-1">${comic.annata.nome}</span>` : "";
+        return `<div class="comic-card group bg-slate-800 rounded-xl overflow-hidden border ${isOwned ? 'border-slate-700 shadow-xl' : 'border-slate-800 opacity-80'} transition-all relative ${currentView === 'list' ? 'list-view-item' : ''}">
+            <button onclick="openEditModal('${comicData}')" class="absolute top-2 right-2 z-40 bg-yellow-500 text-slate-900 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">✏️</button>
+            <div class="relative ${currentView === 'list' ? 'h-full' : 'h-72'} bg-slate-950 overflow-hidden shrink-0"><img src="${comic.immagine_url || placeholderImg}" class="comic-image w-full h-full object-cover ${isOwned ? '' : 'grayscale opacity-40'}"></div>
+            <div class="p-4 flex-grow"><p class="text-[10px] text-yellow-500 font-bold uppercase truncate mb-1">${fallbackSerie || getSerieDisplayName(comic.serie)}</p><h4 class="${currentView === 'list' ? 'text-xl' : 'text-lg'} font-bold leading-tight truncate">${annataLabel}#${comic.numero || '?'} ${comic.nome || ''}</h4><div class="mt-4 flex items-center justify-between border-t border-slate-700 pt-3">${getStarsHTML(comic.condizione)}<span class="text-[9px] text-slate-500 font-bold uppercase">${comic.tipo_pubblicazione?.nome || ''}</span></div></div></div>`;
+    }).join('');
 }
 
-async function loadByCodice(codId) {
-    currentCodiceId = codId;
-    currentSerieId = null;
-    document.querySelectorAll('.codice-item').forEach(c => c.classList.remove('active'));
-    document.getElementById(`codice-${codId}`)?.classList.add('active');
-    
-    const { data: codData } = await window.supabaseClient.from('codice_editore').select('nome').eq('id', codId).single();
-    currentSerieFullNome = codData ? `Codice: ${codData.nome}` : "Filtro Codice";
-
-    let query = window.supabaseClient.from('issue').select(FULL_QUERY).eq('serie.collana.codice_id', codId);
-    if (currentFilter === 'celo') query = query.eq('possesso', 'celo');
-    if (currentFilter === 'manca') query = query.eq('possesso', 'manca');
-    
-    // MODIFICA 7.5: Ordinamento data crescente
-    const { data } = await query.order('data_pubblicazione', { ascending: true, nullsFirst: false });
-    currentData = data || [];
-    renderGrid(currentData, currentSerieFullNome);
+// LOGICA STORIE E PERSONAGGI V7.4
+async function loadStorieEsistenti() {
+    const { data } = await window.supabaseClient.from('storie').select('id, nome').order('nome');
+    const datalist = document.getElementById('storie-esistenti');
+    if (data) datalist.innerHTML = data.map(s => `<option value="${s.nome}" data-id="${s.id}"></option>`).join('');
 }
 
-function renderGrid(data, title) {
-    document.getElementById('view-title').innerText = title;
-    statsCount.innerText = `${data.length} fumetti`;
+async function loadPersonaggiStoria(storiaId) {
+    const lista = document.getElementById('lista-personaggi-storia');
+    if (!storiaId) { 
+        lista.innerHTML = `<p class="text-[10px] text-slate-500 italic uppercase">Salva la storia per aggiungere personaggi</p>`;
+        return; 
+    }
+    lista.innerHTML = `<p class="text-[10px] text-slate-500 italic uppercase">Ricerca personaggi...</p>`;
     
-    if (currentView === 'list') {
-        grid.className = "flex flex-col gap-4";
-        grid.innerHTML = data.map(item => `
-            <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex items-center gap-6 hover:border-yellow-500/50 transition-all group">
-                <div class="w-16 h-24 bg-slate-900 rounded-lg overflow-hidden shrink-0 shadow-lg group-hover:scale-105 transition-transform">
-                    <img src="${item.immagine_url || placeholderImg}" class="w-full h-full object-cover ${item.possesso === 'manca' ? 'grayscale opacity-50' : ''}">
+    const { data, error } = await window.supabaseClient
+        .from('personaggi_storie')
+        .select(`personaggio_id, personaggio:personaggio_id ( id, nome, immagine_url )`)
+        .eq('storia_id', storiaId);
+
+    if (error || !data || data.length === 0) {
+        lista.innerHTML = `<p class="text-[10px] text-slate-400 italic uppercase">Nessun personaggio associato</p>`;
+        return;
+    }
+
+    lista.innerHTML = data.map(p => `
+        <div class="flex items-center justify-between bg-slate-900/40 p-2 rounded-lg border border-slate-700/50 group">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full overflow-hidden border border-yellow-500/30 shrink-0">
+                    <img src="${p.personaggio?.immagine_url || placeholderAvatar}" class="w-full h-full object-cover" onerror="this.src='${placeholderAvatar}'">
                 </div>
-                <div class="flex-grow">
-                    <div class="text-[10px] font-black text-yellow-500 uppercase tracking-widest mb-1">${item.serie?.nome}</div>
-                    <div class="text-lg font-black text-white uppercase italic">#${item.numero} - ${item.nome || 'Senza Titolo'}</div>
-                    <div class="flex gap-4 mt-2">
-                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Annata: ${item.annata?.nome || '-'}</span>
-                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Tipo: ${item.tipo_pubblicazione?.nome || '-'}</span>
-                    </div>
-                </div>
-                <div class="flex gap-3">
-                    <button onclick='openEditModal(${JSON.stringify(item).replace(/'/g, "&apos;")})' class="bg-slate-700 hover:bg-yellow-500 hover:text-slate-900 p-3 rounded-xl transition-all">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                    </button>
-                    <button onclick="deleteIssue('${item.id}')" class="bg-slate-700 hover:bg-red-500 p-3 rounded-xl transition-all group-hover:opacity-100 opacity-30">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    </button>
-                </div>
+                <span class="text-[11px] font-black text-slate-200 uppercase truncate tracking-tight">${p.personaggio?.nome || 'Ignoto'}</span>
             </div>
-        `).join('');
+            <button type="button" onclick="removePersonaggioDaStoria('${p.personaggio_id}', '${storiaId}')" class="text-[9px] text-red-500 font-bold opacity-0 group-hover:opacity-100 transition-all hover:underline uppercase">Rimuovi</button>
+        </div>
+    `).join('');
+}
+
+async function removePersonaggioDaStoria(personaggioId, storiaId) {
+    if(!confirm("Vuoi rimuovere questo personaggio dalla storia?")) return;
+    const { error } = await window.supabaseClient.from('personaggi_storie').delete().match({ personaggio_id: personaggioId, storia_id: storiaId });
+    if (error) alert(error.message); else loadPersonaggiStoria(storiaId);
+}
+
+async function openAddPersonaggioStoriaModal() {
+    const storiaId = document.getElementById('storie-id').value;
+    if (!storiaId) { alert("Devi prima salvare la storia per potervi associare personaggi."); return; }
+    
+    const selectPers = document.getElementById('ps-personaggio-id');
+    const selectStor = document.getElementById('ps-storia-id');
+    
+    const { data: personaggi } = await window.supabaseClient.from('personaggio').select('id, nome').order('nome');
+    selectPers.innerHTML = (personaggi || []).map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+    
+    const { data: storie } = await window.supabaseClient.from('storie').select('id, nome').order('nome');
+    selectStor.innerHTML = (storie || []).map(s => `<option value="${s.id}" ${s.id === storiaId ? 'selected' : ''}>${s.nome}</option>`).join('');
+    
+    document.getElementById('personaggio-storia-modal').classList.remove('hidden');
+}
+
+function closeAddPersonaggioStoriaModal() { document.getElementById('personaggio-storia-modal').classList.add('hidden'); }
+
+document.getElementById('personaggio-storia-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const pId = document.getElementById('ps-personaggio-id').value;
+    const sId = document.getElementById('ps-storia-id').value;
+    const { error } = await window.supabaseClient.from('personaggi_storie').insert([{ personaggio_id: pId, storia_id: sId }]);
+    if (error) { if(error.code === '23505') alert("Già associato."); else alert(error.message); } 
+    else { closeAddPersonaggioStoriaModal(); if (document.getElementById('storie-id').value === sId) loadPersonaggiStoria(sId); }
+});
+
+async function loadIssueStories(issueId) {
+    const list = document.getElementById('issue-stories-list');
+    list.innerHTML = `<p class="text-[10px] text-slate-500 italic uppercase">Caricamento...</p>`;
+    const { data: stories } = await window.supabaseClient.from('storie_in_issue').select(`posizione, storie ( id, nome )`).eq('issue_id', issueId).order('posizione', { ascending: true });
+    if (!stories || stories.length === 0) { list.innerHTML = `<p class="text-[10px] text-slate-500 italic uppercase">Nessuna storia</p>`; return; }
+    list.innerHTML = stories.map(s => {
+        const storyPayload = encodeURIComponent(JSON.stringify({ id: s.storie?.id, nome: s.storie?.nome, issue_id: issueId, posizione: s.posizione }));
+        return `<div class="bg-slate-900/50 p-2 rounded border border-slate-700/50 group">
+            <div class="flex items-center justify-between mb-1"><span class="text-[9px] font-black text-yellow-500/50 uppercase">Pos. ${s.posizione || '?'}</span>
+            <button type="button" onclick="openStorieModal('${storyPayload}')" class="text-[9px] text-blue-400 font-bold hover:underline opacity-0 group-hover:opacity-100 transition-opacity uppercase">Edit / Personaggi</button></div>
+            <span class="text-[11px] font-bold text-slate-200 truncate uppercase tracking-tight block">${s.storie?.nome || 'Titolo non trovato'}</span></div>`;
+    }).join('');
+}
+
+async function openStorieModal(dataStr = null) {
+    const form = document.getElementById('storie-form'); form.reset();
+    const issueSelect = document.getElementById('storie-issue-id');
+    const posContainer = document.getElementById('storie-posizione-container');
+    
+    await loadStorieEsistenti();
+    const { data: issues } = await window.supabaseClient.from('issue').select('id, numero, nome, annata(nome), serie(nome)').order('created_at', {ascending: false}).limit(100);
+    issueSelect.innerHTML = `<option value="">-- Seleziona Albo --</option>` + (issues || []).map(i => `<option value="${i.id}">${i.serie?.nome || ''} #${i.numero || ''}</option>`).join('');
+
+    if (dataStr) {
+        const story = JSON.parse(decodeURIComponent(dataStr));
+        document.getElementById('storie-modal-title').innerText = "Modifica Storia";
+        document.getElementById('storie-id').value = story.id;
+        document.getElementById('old-storia-id').value = story.id;
+        document.getElementById('storie-nome').value = story.nome;
+        document.getElementById('storie-issue-id').value = story.issue_id;
+        document.getElementById('storie-posizione').value = story.posizione || "";
+        posContainer.classList.remove('hidden');
+        loadPersonaggiStoria(story.id); 
     } else {
-        grid.className = "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-8";
-        grid.innerHTML = data.map(item => `
-            <div class="comic-card group">
-                <div class="relative aspect-[2/3] rounded-[2rem] overflow-hidden shadow-2xl border-2 border-slate-800 group-hover:border-yellow-500 transition-all bg-slate-800" onclick='openEditModal(${JSON.stringify(item).replace(/'/g, "&apos;")})'>
-                    <img src="${item.immagine_url || placeholderImg}" class="comic-image w-full h-full object-cover ${item.possesso === 'manca' ? 'grayscale opacity-40' : ''}">
-                    <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80"></div>
-                    <div class="absolute top-4 right-4 bg-slate-950/80 backdrop-blur-md px-3 py-1 rounded-full border border-slate-700">
-                        <span class="text-xs font-black text-yellow-500">#${item.numero}</span>
-                    </div>
-                    <div class="absolute bottom-6 left-6 right-6">
-                        <div class="text-[9px] font-black text-yellow-500 uppercase tracking-[0.2em] mb-1 truncate">${item.serie?.nome}</div>
-                        <div class="text-sm font-black text-white uppercase italic leading-tight line-clamp-2">${item.nome || 'Senza Titolo'}</div>
-                    </div>
-                </div>
-            </div>
-        `).join('');
+        document.getElementById('storie-modal-title').innerText = "Nuova Storia";
+        document.getElementById('storie-id').value = ""; document.getElementById('old-storia-id').value = "";
+        const currentId = document.getElementById('edit-id').value;
+        if (currentId) { document.getElementById('storie-issue-id').value = currentId; posContainer.classList.remove('hidden'); }
+        else { posContainer.classList.add('hidden'); }
+        loadPersonaggiStoria(null);
     }
+    document.getElementById('storie-modal').classList.remove('hidden');
 }
 
-function getSerieDisplayName(s) {
-    const collName = s.collana?.nome || '';
-    return collName ? `${collName} - ${s.nome}` : s.nome;
-}
+function closeStorieModal() { document.getElementById('storie-modal').classList.add('hidden'); }
+function togglePosizioneField(val) { const container = document.getElementById('storie-posizione-container'); if(val) container.classList.remove('hidden'); else container.classList.add('hidden'); }
 
-const MODAL_CONFIG = {
-    annata: { table: 'annata', fields: [{ id: 'nome', label: 'Anno (es. 1995)', type: 'text' }] },
-    tipo_pubblicazione: { table: 'tipo_pubblicazione', fields: [{ id: 'nome', label: 'Nome Tipo', type: 'text' }] },
-    collana: { table: 'collana', fields: [{ id: 'nome', label: 'Nome Collana', type: 'text' }, { id: 'codice_id', label: 'Codice Editore', type: 'select', table: 'codice_editore' }] },
-    personaggio: { table: 'personaggi', fields: [{ id: 'nome', label: 'Nome Personaggio', type: 'text' }, { id: 'immagine_url', label: 'Avatar URL', type: 'text' }] }
-};
+document.getElementById('storie-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const nomeInviato = document.getElementById('storie-nome').value.trim();
+    const issueId = document.getElementById('storie-issue-id').value;
+    const posizione = document.getElementById('storie-posizione').value;
+    const oldStoryId = document.getElementById('old-storia-id').value;
 
-async function openSimpleModal(type, existingId = null) {
-    const config = MODAL_CONFIG[type];
-    const modal = document.getElementById('simple-modal');
-    const title = document.getElementById('simple-modal-title');
-    const fieldsDiv = document.getElementById('simple-form-fields');
-    const prevCont = document.getElementById('simple-preview-container');
-    const prevImg = document.getElementById('simple-preview-img');
+    try {
+        const { data: storyExist } = await window.supabaseClient.from('storie').select('id').eq('nome', nomeInviato).maybeSingle();
+        let targetStoryId;
+        if (storyExist) { targetStoryId = storyExist.id; } 
+        else {
+            const { data: newStory } = await window.supabaseClient.from('storie').insert([{ nome: nomeInviato }]).select().single();
+            targetStoryId = newStory.id;
+        }
 
-    title.innerText = existingId ? `Modifica ${type}` : `Nuovo ${type}`;
-    document.getElementById('simple-id').value = existingId || '';
-    fieldsDiv.innerHTML = '';
-    prevCont.classList.add('hidden');
-
-    let existingData = {};
-    if (existingId) {
-        const { data } = await window.supabaseClient.from(config.table).select('*').eq('id', existingId).single();
-        existingData = data || {};
-    }
-
-    for (const f of config.fields) {
-        if (f.type === 'select') {
-            const { data: options } = await window.supabaseClient.from(f.table).select('*').order('nome');
-            fieldsDiv.innerHTML += `
-                <label class="text-[10px] font-black uppercase text-slate-500 tracking-widest">${f.label}</label>
-                <select id="simple-${f.id}" class="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl mb-4 text-white">
-                    ${options.map(opt => `<option value="${opt.id}" ${existingData[f.id] === opt.id ? 'selected' : ''}>${opt.nome}</option>`).join('')}
-                </select>
-            `;
-        } else {
-            fieldsDiv.innerHTML += `
-                <label class="text-[10px] font-black uppercase text-slate-500 tracking-widest">${f.label}</label>
-                <input type="${f.type}" id="simple-${f.id}" value="${existingData[f.id] || ''}" class="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl mb-4 text-white">
-            `;
-            if (f.id === 'immagine_url') {
-                prevCont.classList.remove('hidden');
-                prevImg.src = existingData[f.id] || '';
-                document.getElementById(`simple-${f.id}`).oninput = (e) => prevImg.src = e.target.value;
+        if (issueId) {
+            if (oldStoryId) {
+                await window.supabaseClient.from('storie_in_issue').update({ storia_id: targetStoryId, posizione: posizione || null }).match({ issue_id: issueId, storia_id: oldStoryId });
+            } else {
+                await window.supabaseClient.from('storie_in_issue').insert([{ issue_id: issueId, storia_id: targetStoryId, posizione: posizione || null }]);
             }
         }
-    }
-    modal.classList.remove('hidden');
+        document.getElementById('storie-id').value = targetStoryId;
+        loadPersonaggiStoria(targetStoryId);
+        const currentIssueId = document.getElementById('edit-id').value;
+        if (currentIssueId) loadIssueStories(currentIssueId);
+    } catch (err) { alert("Errore: " + err.message); }
+});
+
+// LOGICA COMUNE E ALTRI MODALI
+async function loadSelectOptions(table, elementId, selectedId = null, orderBy = 'nome') {
+    const { data } = await window.supabaseClient.from(table).select('*').order(orderBy);
+    const select = document.getElementById(elementId);
+    if (select) select.innerHTML = `<option value="">-- Seleziona --</option>` + (data || []).map(item => `<option value="${item.id}" ${item.id == selectedId ? 'selected' : ''}>${item.nome}</option>`).join('');
+    return data;
 }
 
-function closeSimpleModal() { document.getElementById('simple-modal').classList.add('hidden'); }
-
-document.getElementById('simple-form').onsubmit = async (e) => {
-    e.preventDefault();
-    const id = document.getElementById('simple-id').value;
-    const type = document.getElementById('simple-modal-title').innerText.split(' ').pop().toLowerCase();
-    const config = MODAL_CONFIG[type];
-    const payload = {};
-    config.fields.forEach(f => payload[f.id] = document.getElementById(`simple-${f.id}`).value);
-
-    const { error } = id ? await window.supabaseClient.from(config.table).update(payload).eq('id', id) : await window.supabaseClient.from(config.table).insert([payload]);
-    if (error) alert(error.message); else { closeSimpleModal(); populateSelects(); loadCodiciBar(); }
-};
-
-async function openSerieModal(id = null) {
-    const { data: collane } = await window.supabaseClient.from('collana').select('*').order('nome');
-    const select = document.getElementById('new-serie-collana');
-    select.innerHTML = collane.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
-    
-    if (id) {
-        const { data } = await window.supabaseClient.from('serie').select('*').eq('id', id).single();
-        document.getElementById('new-serie-id').value = data.id;
-        document.getElementById('new-serie-nome').value = data.nome;
-        document.getElementById('new-serie-immagine').value = data.immagine_url || '';
-        document.getElementById('new-serie-preview').src = data.immagine_url || '';
-        select.value = data.collana_id;
-        document.getElementById('btn-edit-collana-serie').disabled = false;
-    } else {
-        document.getElementById('serie-form').reset();
-        document.getElementById('new-serie-id').value = '';
-        document.getElementById('new-serie-preview').src = '';
-        document.getElementById('btn-edit-collana-serie').disabled = true;
-    }
-    document.getElementById('serie-modal').classList.remove('hidden');
+async function loadSerieSelect(selectedId = null) {
+    const { data } = await window.supabaseClient.from('serie').select('id, nome, collana(nome)').order('nome');
+    const select = document.getElementById('edit-serie_id');
+    select.innerHTML = `<option value="">-- Seleziona Serie --</option>` + (data || []).map(s => `<option value="${s.id}" ${s.id == selectedId ? 'selected' : ''}>${getSerieDisplayName(s)}</option>`).join('');
 }
 
-function closeSerieModal() { document.getElementById('serie-modal').classList.add('hidden'); }
+async function loadSupplementoSelect(selectedId = null) {
+    const { data } = await window.supabaseClient.from('issue').select('id, numero, nome, serie(nome)').order('created_at', {ascending: false}).limit(100);
+    const select = document.getElementById('edit-supplemento_id');
+    select.innerHTML = `<option value="">Nessuno</option>` + (data || []).map(i => `<option value="${i.id}" ${i.id == selectedId ? 'selected' : ''}>${i.serie?.nome} #${i.numero}</option>`).join('');
+}
 
-document.getElementById('serie-form').onsubmit = async (e) => {
-    e.preventDefault();
-    const id = document.getElementById('new-serie-id').value;
-    const payload = {
-        nome: document.getElementById('new-serie-nome').value,
-        immagine_url: document.getElementById('new-serie-immagine').value,
-        collana_id: document.getElementById('new-serie-collana').value
-    };
-    const { error } = id ? await window.supabaseClient.from('serie').update(payload).eq('id', id) : await window.supabaseClient.from('serie').insert([payload]);
-    if (error) alert(error.message); else { closeSerieModal(); populateSelects(); loadSerieShowcase(); }
-};
+async function handleSerieChange(serieId) {
+    const btnEdit = document.getElementById('btn-edit-serie-context');
+    const collanaSelect = document.getElementById('edit-collana_id');
+    const btnCollana = document.getElementById('btn-edit-collana-issue');
+    if (!serieId) { btnEdit.disabled = true; collanaSelect.value = ""; collanaSelect.disabled = true; btnCollana.disabled = true; return; }
+    btnEdit.disabled = false;
+    const { data: serie } = await window.supabaseClient.from('serie').select('collana_id').eq('id', serieId).single();
+    if (serie && serie.collana_id) {
+        await loadSelectOptions('collana', 'edit-collana_id', serie.collana_id);
+        collanaSelect.disabled = false; btnCollana.disabled = false;
+    } else { collanaSelect.value = ""; collanaSelect.disabled = true; btnCollana.disabled = true; }
+}
 
 async function openAddModal() {
-    document.getElementById('edit-form').reset();
-    document.getElementById('edit-id').value = '';
-    document.getElementById('modal-title').innerText = "Nuovo Albo";
-    document.getElementById('edit-preview').src = placeholderImg;
-    document.getElementById('issue-stories-list').innerHTML = '';
-    document.getElementById('btn-edit-serie-context').disabled = true;
-    document.getElementById('btn-edit-annata-issue').disabled = true;
-    await populateSelects();
-    document.getElementById('edit-modal').classList.remove('hidden');
+    document.getElementById('modal-title').innerText = "Nuovo Albo"; document.getElementById('edit-form').reset();
+    document.getElementById('edit-id').value = ""; document.getElementById('edit-preview').src = "";
+    document.getElementById('issue-stories-list').innerHTML = "";
+    ['serie-context', 'collana-issue', 'editore-issue', 'testata-issue', 'annata-issue'].forEach(id => { const el = document.getElementById(`btn-edit-${id}`); if(el) el.disabled = true; });
+    await loadSerieSelect(); await loadSelectOptions('editore', 'edit-editore_id'); await loadSelectOptions('testata', 'edit-testata_id');
+    await loadSelectOptions('annata', 'edit-annata_id'); await loadSelectOptions('tipo_pubblicazione', 'edit-tipo_pubblicazione_id');
+    await loadSupplementoSelect(); document.getElementById('edit-modal').classList.remove('hidden');
 }
 
-async function openEditModal(item) {
-    await populateSelects();
-    document.getElementById('edit-id').value = item.id;
-    document.getElementById('modal-title').innerText = "Modifica Albo";
-    document.getElementById('edit-serie_id').value = item.serie_id;
-    document.getElementById('edit-nome').value = item.nome || '';
-    document.getElementById('edit-numero').value = item.numero;
-    document.getElementById('edit-possesso').value = item.possesso;
-    document.getElementById('edit-condizione').value = item.condizione || '';
-    document.getElementById('edit-valore').value = item.valore || '';
-    document.getElementById('edit-data_pubblicazione').value = item.data_pubblicazione || '';
-    document.getElementById('edit-immagine_url').value = item.immagine_url || '';
-    document.getElementById('edit-preview').src = item.immagine_url || placeholderImg;
-    document.getElementById('edit-annata_id').value = item.annata_id || '';
-    document.getElementById('edit-tipo_pubblicazione_id').value = item.tipo_pubblicazione_id || '';
-    
-    document.getElementById('btn-edit-serie-context').disabled = false;
-    document.getElementById('btn-edit-annata-issue').disabled = !item.annata_id;
-    
-    handleSerieChange(item.serie_id);
-    loadIssueStories(item.id);
+async function openEditModal(comicData) {
+    const comic = JSON.parse(decodeURIComponent(comicData));
+    document.getElementById('modal-title').innerText = "Modifica Albo"; document.getElementById('edit-id').value = comic.id;
+    document.getElementById('edit-nome').value = comic.nome || ""; document.getElementById('edit-numero').value = comic.numero || "";
+    document.getElementById('edit-condizione').value = comic.condizione || ""; document.getElementById('edit-valore').value = comic.valore || "";
+    document.getElementById('edit-possesso').value = comic.possesso || "celo"; document.getElementById('edit-data_pubblicazione').value = comic.data_pubblicazione || "";
+    document.getElementById('edit-immagine_url').value = comic.immagine_url || ""; document.getElementById('edit-preview').src = comic.immagine_url || placeholderImg;
+    loadIssueStories(comic.id);
+    await loadSerieSelect(comic.serie_id); await loadSelectOptions('editore', 'edit-editore_id', comic.editore_id);
+    await loadSelectOptions('testata', 'edit-testata_id', comic.testata_id); await loadSelectOptions('annata', 'edit-annata_id', comic.annata_id);
+    await loadSelectOptions('tipo_pubblicazione', 'edit-tipo_pubblicazione_id', comic.tipo_pubblicazione_id); await loadSupplementoSelect(comic.supplemento_id);
+    await handleSerieChange(comic.serie_id); document.getElementById('btn-edit-editore-issue').disabled = !comic.editore_id;
+    document.getElementById('btn-edit-testata-issue').disabled = !comic.testata_id; document.getElementById('btn-edit-annata-issue').disabled = !comic.annata_id;
     document.getElementById('edit-modal').classList.remove('hidden');
 }
 
 function closeModal() { document.getElementById('edit-modal').classList.add('hidden'); }
 
-async function populateSelects() {
-    const { data: serie } = await window.supabaseClient.from('serie').select('id, nome, collana(nome)').order('nome');
-    const { data: annate } = await window.supabaseClient.from('annata').select('*').order('nome', { ascending: false });
-    const { data: tipi } = await window.supabaseClient.from('tipo_pubblicazione').select('*').order('nome');
-
-    document.getElementById('edit-serie_id').innerHTML = serie.map(s => `<option value="${s.id}">${getSerieDisplayName(s)}</option>`).join('');
-    document.getElementById('edit-annata_id').innerHTML = '<option value="">-</option>' + annate.map(a => `<option value="${a.id}">${a.nome}</option>`).join('');
-    document.getElementById('edit-tipo_pubblicazione_id').innerHTML = tipi.map(t => `<option value="${t.id}">${t.nome}</option>`).join('');
-}
-
-async function handleSerieChange(serieId) {
-    const { data } = await window.supabaseClient.from('serie').select('collana(id, nome)').eq('id', serieId).single();
-    const colSelect = document.getElementById('edit-collana_id');
-    colSelect.innerHTML = `<option value="${data.collana.id}">${data.collana.nome}</option>`;
-    document.getElementById('btn-edit-collana-issue').disabled = false;
-    document.getElementById('btn-edit-serie-context').disabled = false;
-}
-
-async function loadIssueStories(issueId) {
-    const container = document.getElementById('issue-stories-list');
-    const { data } = await window.supabaseClient.from('storie_in_issue').select(`posizione, storia_id, storie(nome)`).eq('issue_id', issueId).order('posizione');
-
-    if (data && data.length > 0) {
-        container.innerHTML = data.map(s => `
-            <div class="flex items-center justify-between bg-slate-900/80 p-3 rounded-xl border border-slate-700 hover:border-blue-500/50 transition-all cursor-pointer group" onclick="openStorieModal('${s.storia_id}', '${issueId}')">
-                <div class="flex items-center gap-3">
-                    <span class="text-blue-500 font-black italic text-xs">#${s.posizione || '?'}</span>
-                    <span class="text-[11px] font-bold text-slate-200 uppercase truncate max-w-[140px]">${s.storie.nome}</span>
-                </div>
-                <button onclick="event.stopPropagation(); removeStoriaFromIssue('${s.storia_id}', '${issueId}')" class="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-500 transition-all">&times;</button>
-            </div>
-        `).join('');
-    } else {
-        container.innerHTML = '<p class="text-[10px] text-slate-600 text-center py-4 font-bold uppercase italic">Nessuna storia collegata</p>';
-    }
-}
-
-async function openStorieModal(storiaId = null, issueId = null) {
-    const modal = document.getElementById('storie-modal');
-    const form = document.getElementById('storie-form');
-    const listPers = document.getElementById('lista-personaggi-storia');
-    form.reset();
-    listPers.innerHTML = '';
-    
-    const { data: issues } = await window.supabaseClient.from('issue').select('id, numero, serie(nome)').order('numero');
-    const issueSelect = document.getElementById('storie-issue-id');
-    issueSelect.innerHTML = '<option value="">- Seleziona Albo -</option>' + issues.map(i => `<option value="${i.id}">#${i.numero} (${i.serie.nome})</option>`).join('');
-    
-    const { data: tutteStorie } = await window.supabaseClient.from('storie').select('nome');
-    document.getElementById('storie-esistenti').innerHTML = tutteStorie.map(s => `<option value="${s.nome}">`).join('');
-
-    if (storiaId) {
-        const { data: storia } = await window.supabaseClient.from('storie').select('*').eq('id', storiaId).single();
-        document.getElementById('storie-id').value = storia.id;
-        document.getElementById('old-storia-id').value = storia.id;
-        document.getElementById('storie-nome').value = storia.nome;
-        
-        if (issueId) {
-            const { data: rel } = await window.supabaseClient.from('storie_in_issue').select('*').eq('storia_id', storiaId).eq('issue_id', issueId).single();
-            issueSelect.value = issueId;
-            document.getElementById('storie-posizione').value = rel.posizione || '';
-            document.getElementById('storie-posizione-container').classList.remove('hidden');
+async function openSerieModal(serieId = null) {
+    document.getElementById('serie-modal-title').innerText = serieId ? "Modifica Serie" : "Nuova Serie";
+    document.getElementById('serie-form').reset(); document.getElementById('new-serie-id').value = serieId || "";
+    document.getElementById('new-serie-preview').src = ""; await loadSelectOptions('collana', 'new-serie-collana');
+    if (serieId) {
+        const { data } = await window.supabaseClient.from('serie').select('*').eq('id', serieId).single();
+        if (data) {
+            document.getElementById('new-serie-nome').value = data.nome; document.getElementById('new-serie-collana').value = data.collana_id || "";
+            document.getElementById('new-serie-immagine').value = data.immagine_url || ""; document.getElementById('new-serie-preview').src = data.immagine_url || "";
+            document.getElementById('btn-edit-collana-serie').disabled = !data.collana_id;
         }
-        loadPersonaggiStoria(storiaId);
-    } else {
-        document.getElementById('storie-id').value = '';
-        document.getElementById('old-storia-id').value = '';
-        if (issueId) {
-            issueSelect.value = issueId;
-            document.getElementById('storie-posizione-container').classList.remove('hidden');
-        }
-    }
-    modal.classList.remove('hidden');
+    } else { document.getElementById('btn-edit-collana-serie').disabled = true; }
+    document.getElementById('serie-modal').classList.remove('hidden');
 }
 
-async function loadPersonaggiStoria(storiaId) {
-    const container = document.getElementById('lista-personaggi-storia');
-    const { data } = await window.supabaseClient.from('personaggi_storia').select('personaggio_id, personaggi(nome, immagine_url)').eq('storia_id', storiaId);
-    
-    if (data && data.length > 0) {
-        container.innerHTML = data.map(p => `
-            <div class="bg-slate-800 p-3 rounded-2xl border border-slate-700 flex items-center gap-3 group relative">
-                <img src="${p.personaggi.immagine_url || placeholderAvatar}" class="w-10 h-10 rounded-full object-cover border-2 border-slate-900">
-                <span class="text-[10px] font-black uppercase text-white truncate">${p.personaggi.nome}</span>
-                <button type="button" onclick="removePersonaggioFromStoria('${p.personaggio_id}', '${storiaId}')" class="absolute -top-2 -right-2 bg-red-500 text-white w-5 h-5 rounded-full text-[10px] font-black opacity-0 group-hover:opacity-100 transition-all shadow-lg">&times;</button>
-            </div>
-        `).join('');
-    } else {
-        container.innerHTML = '<div class="col-span-full py-8 text-center text-slate-600 text-[10px] font-black uppercase italic">Nessun personaggio collegato</div>';
-    }
-}
+function closeSerieModal() { document.getElementById('serie-modal').classList.add('hidden'); }
 
-async function openAddPersonaggioStoriaModal() {
-    const storiaId = document.getElementById('storie-id').value;
-    if (!storiaId) return alert("Salva prima la storia!");
-    
-    const { data: tuttiPers } = await window.supabaseClient.from('personaggi').select('*').order('nome');
-    const pSelect = document.getElementById('ps-personaggio-id');
-    pSelect.innerHTML = tuttiPers.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
-    
-    const sSelect = document.getElementById('ps-storia-id');
-    const currentName = document.getElementById('storie-nome').value;
-    sSelect.innerHTML = `<option value="${storiaId}">${currentName}</option>`;
-    
-    document.getElementById('personaggio-storia-modal').classList.remove('hidden');
-}
+document.getElementById('serie-form').addEventListener('submit', async (e) => {
+    e.preventDefault(); const id = document.getElementById('new-serie-id').value;
+    const payload = { nome: document.getElementById('new-serie-nome').value, collana_id: document.getElementById('new-serie-collana').value || null, immagine_url: document.getElementById('new-serie-immagine').value };
+    const { error } = id ? await window.supabaseClient.from('serie').update(payload).eq('id', id) : await window.supabaseClient.from('serie').insert([payload]);
+    if (error) alert(error.message); else { closeSerieModal(); const currentSerie = document.getElementById('edit-serie_id').value; await loadSerieSelect(currentSerie || null); if (id && currentSerie == id) await handleSerieChange(id); await loadSerieShowcase(); }
+});
 
-document.getElementById('storie-form').onsubmit = async (e) => {
-    e.preventDefault();
-    const nome = document.getElementById('storie-nome').value;
-    const issueId = document.getElementById('storie-issue-id').value;
-    const posizione = document.getElementById('storie-posizione').value;
-    let storiaId = document.getElementById('storie-id').value;
-
-    let { data: storiaEsistente } = await window.supabaseClient.from('storie').select('id').eq('nome', nome).maybeSingle();
-    
-    if (storiaEsistente) {
-        storiaId = storiaEsistente.id;
-    } else {
-        const { data: nuovaStoria } = await window.supabaseClient.from('storie').insert([{ nome }]).select().single();
-        storiaId = nuovaStoria.id;
-    }
-
-    if (issueId) {
-        const payloadRel = { issue_id: issueId, storia_id: storiaId, posizione: posizione ? parseInt(posizione) : null };
-        const oldId = document.getElementById('old-storia-id').value;
-        if (oldId && oldId !== storiaId) await window.supabaseClient.from('storie_in_issue').delete().eq('storia_id', oldId).eq('issue_id', issueId);
-        await window.supabaseClient.from('storie_in_issue').upsert([payloadRel]);
-    }
-
-    alert("Storia salvata!");
-    closeStorieModal();
-    if (document.getElementById('edit-id').value) loadIssueStories(document.getElementById('edit-id').value);
-};
-
-document.getElementById('personaggio-storia-form').onsubmit = async (e) => {
-    e.preventDefault();
-    const payload = {
-        personaggio_id: document.getElementById('ps-personaggio-id').value,
-        storia_id: document.getElementById('ps-storia-id').value
+function openSimpleModal(config) {
+    document.getElementById('simple-modal-title').innerText = config.title; document.getElementById('simple-id').value = config.id || "";
+    const previewContainer = document.getElementById('simple-preview-container'); const previewImg = document.getElementById('simple-preview-img');
+    if (config.table === 'codice_editore' || config.table === 'editore') { previewContainer.classList.remove('hidden'); previewImg.src = config.img || ""; } else { previewContainer.classList.add('hidden'); }
+    let html = `<div><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome</label><input type="text" id="simple-nome" required value="${config.nome || ''}" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></div>`;
+    if (config.table === 'codice_editore' || config.table === 'editore') { html += `<div class="mt-4"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">URL Immagine / Logo</label><input type="text" id="simple-img" value="${config.img || ''}" oninput="document.getElementById('simple-preview-img').src = this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm text-blue-400 outline-none"></div>`; }
+    if (config.table === 'editore') { html += `<div class="mt-4"><div class="flex justify-between items-center"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Codice Editore</label><div class="flex gap-2"><button type="button" id="btn-edit-codice-editore" onclick="openEditCodiceFromEditore()" disabled class="text-[9px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded hover:bg-blue-500/20 transition-all font-bold">✏️ EDIT</button><button type="button" onclick="openCodiceModal()" class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded hover:bg-yellow-500/20 transition-all font-bold">+ NUOVO</button></div></div><select id="simple-rel" onchange="document.getElementById('btn-edit-codice-editore').disabled = !this.value" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mt-1 text-sm font-bold text-white outline-none"></select></div>`; }
+    document.getElementById('simple-form-fields').innerHTML = html;
+    document.getElementById('simple-form').onsubmit = async (e) => {
+        e.preventDefault(); const payload = { nome: document.getElementById('simple-nome').value }; if (document.getElementById('simple-img')) payload.immagine_url = document.getElementById('simple-img').value; if (document.getElementById('simple-rel')) payload.codice_editore_id = document.getElementById('simple-rel').value || null;
+        const { error } = config.id ? await window.supabaseClient.from(config.table).update(payload).eq('id', config.id) : await window.supabaseClient.from(config.table).insert([payload]);
+        if (error) alert(error.message); else { closeSimpleModal(); if (config.callback) config.callback(); }
     };
-    const { error } = await window.supabaseClient.from('personaggi_storia').upsert([payload]);
-    if (error) alert(error.message); else { closeAddPersonaggioStoriaModal(); loadPersonaggiStoria(payload.storia_id); }
-};
-
-async function removeStoriaFromIssue(sId, iId) {
-    if (confirm("Rimuovere la storia da questo albo?")) {
-        await window.supabaseClient.from('storie_in_issue').delete().eq('storia_id', sId).eq('issue_id', iId);
-        loadIssueStories(iId);
-    }
+    if (config.table === 'editore') loadSelectOptions('codice_editore', 'simple-rel', config.relId).then(() => { if(config.relId) document.getElementById('btn-edit-codice-editore').disabled = false; });
+    document.getElementById('simple-modal').classList.remove('hidden');
 }
-
-async function removePersonaggioFromStoria(pId, sId) {
-    if (confirm("Scollegare il personaggio?")) {
-        await window.supabaseClient.from('personaggi_storia').delete().eq('personaggio_id', pId).eq('storia_id', sId);
-        loadPersonaggiStoria(sId);
-    }
-}
-
-async function deleteIssue(id) {
-    if (confirm("Eliminare definitivamente questo albo?")) {
-        const { error } = await window.supabaseClient.from('issue').delete().eq('id', id);
-        if (error) alert(error.message); else if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome); else loadRecent();
-    }
-}
-
-function togglePosizioneField(val) {
-    document.getElementById('storie-posizione-container').classList.toggle('hidden', !val);
-}
-
-function closeStorieModal() { document.getElementById('storie-modal').classList.add('hidden'); }
-function closeAddPersonaggioStoriaModal() { document.getElementById('personaggio-storia-modal').classList.add('hidden'); }
-
+function closeSimpleModal() { document.getElementById('simple-modal').classList.add('hidden'); }
+function openCodiceModal() { openSimpleModal({ title: "Nuovo Codice Editore", table: 'codice_editore', callback: () => { loadCodiciBar(); if(document.getElementById('simple-rel')) loadSelectOptions('codice_editore', 'simple-rel'); }}); }
+async function openEditCodiceFromEditore() { const select = document.getElementById('simple-rel'); const id = select.value; if(!id) return; const { data } = await window.supabaseClient.from('codice_editore').select('*').eq('id', id).single(); openSimpleModal({ title: "Modifica Codice Editore", table: 'codice_editore', id, nome: data?.nome || "", img: data?.immagine_url || "", callback: () => { loadCodiciBar(); loadSelectOptions('codice_editore', 'simple-rel', id); } }); }
 function openEditSerieFromContext() { openSerieModal(document.getElementById('edit-serie_id').value); }
-function openEditAnnataFromIssue() { openSimpleModal('annata', document.getElementById('edit-annata_id').value); }
-function openEditCollanaFromIssue() { openSimpleModal('collana', document.getElementById('edit-collana_id').value); }
-function openEditCollanaFromSerie() { openSimpleModal('collana', document.getElementById('new-serie-collana').value); }
-
-function openAnnataModal() { openSimpleModal('annata'); }
-function openCollanaModal() { openSimpleModal('collana'); }
+function openCollanaModal() { openSimpleModal({ title: "Nuova Collana", table: 'collana', callback: () => { loadSelectOptions('collana', 'new-serie-collana'); loadSelectOptions('collana', 'edit-collana_id'); } }); }
+function openEditCollanaFromIssue() { const id = document.getElementById('edit-collana_id').value; const nome = document.getElementById('edit-collana_id').options[document.getElementById('edit-collana_id').selectedIndex].text; openSimpleModal({ title: "Modifica Collana", table: 'collana', id, nome, callback: () => { loadSelectOptions('collana', 'edit-collana_id', id); } }); }
+function openEditCollanaFromSerie() { const id = document.getElementById('new-serie-collana').value; const nome = document.getElementById('new-serie-collana').options[document.getElementById('new-serie-collana').selectedIndex].text; openSimpleModal({ title: "Modifica Collana", table: 'collana', id, nome, callback: () => { loadSelectOptions('collana', 'new-serie-collana', id); } }); }
+function openEditoreModal() { openSimpleModal({ title: "Nuovo Editore", table: 'editore', callback: () => loadSelectOptions('editore', 'edit-editore_id') }); }
+async function openEditEditoreFromIssue() { const select = document.getElementById('edit-editore_id'); const id = select.value; if(!id) return; const { data } = await window.supabaseClient.from('editore').select('*').eq('id', id).single(); openSimpleModal({ title: "Modifica Editore", table: 'editore', id, nome: data?.nome || "", img: data?.immagine_url || "", relId: data?.codice_editore_id || null, callback: () => loadSelectOptions('editore', 'edit-editore_id', id) }); }
+function openTestataModal() { openSimpleModal({ title: "Nuova Testata", table: 'testata', callback: () => loadSelectOptions('testata', 'edit-testata_id') }); }
+function openEditTestataFromIssue() { const select = document.getElementById('edit-testata_id'); const id = select.value; const nome = select.options[select.selectedIndex].text; openSimpleModal({ title: "Modifica Testata", table: 'testata', id, nome, callback: () => { loadSelectOptions('testata', 'edit-testata_id', id); } }); }
+function openAnnataModal() { openSimpleModal({ title: "Nuova Annata", table: 'annata', callback: () => loadSelectOptions('annata', 'edit-annata_id') }); }
+function openEditAnnataFromIssue() { const select = document.getElementById('edit-annata_id'); const id = select.value; const nome = select.options[select.selectedIndex].text; openSimpleModal({ title: "Modifica Annata", table: 'annata', id, nome, callback: () => { loadSelectOptions('annata', 'edit-annata_id', id); } }); }
 
 document.getElementById('edit-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const id = document.getElementById('edit-id').value;
-    const payload = {
-        serie_id: document.getElementById('edit-serie_id').value,
-        nome: document.getElementById('edit-nome').value,
-        numero: document.getElementById('edit-numero').value,
-        possesso: document.getElementById('edit-possesso').value,
-        condizione: parseInt(document.getElementById('edit-condizione').value) || null,
-        annata_id: document.getElementById('edit-annata_id').value || null,
-        tipo_pubblicazione_id: document.getElementById('edit-tipo_pubblicazione_id').value || null,
-        valore: document.getElementById('edit-valore').value === "" ? null : parseFloat(document.getElementById('edit-valore').value),
-        data_pubblicazione: document.getElementById('edit-data_pubblicazione').value || null,
-        immagine_url: document.getElementById('edit-immagine_url').value
-    };
+    e.preventDefault(); const id = document.getElementById('edit-id').value;
+    const payload = { nome: document.getElementById('edit-nome').value, serie_id: document.getElementById('edit-serie_id').value, editore_id: document.getElementById('edit-editore_id').value || null, testata_id: document.getElementById('edit-testata_id').value || null, annata_id: document.getElementById('edit-annata_id').value || null, tipo_pubblicazione_id: document.getElementById('edit-tipo_pubblicazione_id').value || null, supplemento_id: document.getElementById('edit-supplemento_id').value || null, numero: document.getElementById('edit-numero').value, possesso: document.getElementById('edit-possesso').value, condizione: document.getElementById('edit-condizione').value === "" ? null : document.getElementById('edit-condizione').value, valore: document.getElementById('edit-valore').value === "" ? null : parseFloat(document.getElementById('edit-valore').value), data_pubblicazione: document.getElementById('edit-data_pubblicazione').value || null, immagine_url: document.getElementById('edit-immagine_url').value };
     const { error } = id ? await window.supabaseClient.from('issue').update(payload).eq('id', id) : await window.supabaseClient.from('issue').insert([payload]);
     if (error) alert(error.message); else { closeModal(); if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome); else loadRecent(); }
 });
@@ -529,4 +399,4 @@ searchInput.addEventListener('input', async (e) => {
 });
 
 loadCodiciBar(); loadSerieShowcase(); loadRecent();
-document.addEventListener('click', (e) => { if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) resultsDiv.classList.add('hidden'); });
+document.addEventListener('click', (e) => { if (!searchInput.contains(e.target)) resultsDiv.classList.add('hidden'); });
