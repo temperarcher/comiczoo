@@ -88,26 +88,20 @@ function getStarsHTML(valore) {
 
 function getSerieDisplayName(serie) { if (!serie) return ""; const nomeCollana = serie.collana?.nome; return nomeCollana ? `${serie.nome} (${nomeCollana})` : serie.nome; }
 
-// AGGIORNAMENTO 7.5: Ordinamento per data_pubblicazione
 async function selectSerie(serieId, fullSerieNome) {
     currentSerieId = serieId; currentSerieFullNome = fullSerieNome; searchInput.value = fullSerieNome; resultsDiv.classList.add('hidden');
     document.getElementById('view-title').innerText = fullSerieNome;
     let query = window.supabaseClient.from('issue').select(FULL_QUERY).eq('serie_id', serieId);
     if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
-    const { data } = await query
-        .order('data_pubblicazione', { ascending: true, nullsFirst: false })
-        .order('numero', { ascending: true });
+    const { data } = await query.order('numero', { ascending: true });
     currentData = data || []; renderGrid(currentData, fullSerieNome);
 }
 
-// AGGIORNAMENTO 7.5: Ordinamento per data_pubblicazione
 async function loadRecent() {
     currentSerieId = null; document.getElementById('view-title').innerText = "Ultimi Arrivi";
     let query = window.supabaseClient.from('issue').select(FULL_QUERY);
     if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
-    const { data } = await query
-        .order('data_pubblicazione', { ascending: true, nullsFirst: false })
-        .limit(20);
+    const { data } = await query.order('created_at', { ascending: false }).limit(20);
     currentData = data || []; renderGrid(currentData);
 }
 
