@@ -62,19 +62,15 @@ async function loadCodiciBar() {
 async function loadSerieShowcase() {
     const { data } = await window.supabaseClient.from('serie').select('*, collana(nome)').order('nome');
     if (data) {
-        showcase.innerHTML = data.map(s => {
-            const displayName = getSerieDisplayName(s);
-            return `
-            <div onclick="selectSerie('${s.id}', '${displayName}')" class="serie-showcase-item shrink-0 cursor-pointer group">
-                <div class="h-20 bg-slate-800 rounded-2xl p-3 border border-slate-700 group-hover:border-yellow-500 transition-all flex items-center gap-4 shadow-lg">
-                    <img src="${s.immagine_url || placeholderLogo}" class="h-full object-contain group-hover:scale-110 transition-transform">
-                    <div class="pr-4">
-                        <div class="text-[10px] font-black text-yellow-500 uppercase tracking-tighter leading-none mb-1">${s.collana?.nome || 'Serie'}</div>
-                        <div class="text-xs font-black text-white uppercase whitespace-nowrap">${s.nome}</div>
-                    </div>
+        showcase.innerHTML = data.map(s => `
+            <div onclick="selectSerie('${s.id}', '${getSerieDisplayName(s)}')" class="serie-showcase-item shrink-0 cursor-pointer group border border-slate-700 p-3 rounded-2xl bg-slate-800 hover:border-yellow-500 transition-all flex items-center gap-4">
+                <img src="${s.immagine_url || placeholderLogo}" class="h-12 object-contain group-hover:scale-110 transition-transform">
+                <div class="pr-4">
+                    <div class="text-[10px] font-black text-yellow-500 uppercase tracking-tighter leading-none mb-1">${s.collana?.nome || 'Serie'}</div>
+                    <div class="text-xs font-black text-white uppercase whitespace-nowrap">${s.nome}</div>
                 </div>
             </div>
-        `}).join('');
+        `).join('');
     }
 }
 
@@ -88,7 +84,6 @@ async function loadRecent() {
     if (currentFilter === 'celo') query = query.eq('possesso', 'celo');
     if (currentFilter === 'manca') query = query.eq('possesso', 'manca');
     
-    // Ordine cronologico crescente
     const { data } = await query.order('data_pubblicazione', { ascending: true, nullsFirst: false }).limit(24);
     currentData = data || [];
     renderGrid(currentData, "Ultimi Arrivi");
@@ -106,7 +101,6 @@ async function selectSerie(id, fullNome) {
     if (currentFilter === 'celo') query = query.eq('possesso', 'celo');
     if (currentFilter === 'manca') query = query.eq('possesso', 'manca');
     
-    // Ordine cronologico crescente
     const { data } = await query.order('data_pubblicazione', { ascending: true, nullsFirst: false });
     currentData = data || [];
     renderGrid(currentData, fullNome);
@@ -125,7 +119,6 @@ async function loadByCodice(codId) {
     if (currentFilter === 'celo') query = query.eq('possesso', 'celo');
     if (currentFilter === 'manca') query = query.eq('possesso', 'manca');
     
-    // Ordine cronologico crescente
     const { data } = await query.order('data_pubblicazione', { ascending: true, nullsFirst: false });
     currentData = data || [];
     renderGrid(currentData, currentSerieFullNome);
@@ -185,7 +178,6 @@ function getSerieDisplayName(s) {
     return collName ? `${collName} - ${s.nome}` : s.nome;
 }
 
-// GESTIONE MODALI E TABELLE SECONDARIE
 const MODAL_CONFIG = {
     annata: { table: 'annata', fields: [{ id: 'nome', label: 'Anno (es. 1995)', type: 'text' }] },
     tipo_pubblicazione: { table: 'tipo_pubblicazione', fields: [{ id: 'nome', label: 'Nome Tipo', type: 'text' }] },
@@ -250,7 +242,6 @@ document.getElementById('simple-form').onsubmit = async (e) => {
     if (error) alert(error.message); else { closeSimpleModal(); populateSelects(); loadCodiciBar(); }
 };
 
-// MODALE SERIE
 async function openSerieModal(id = null) {
     const { data: collane } = await window.supabaseClient.from('collana').select('*').order('nome');
     const select = document.getElementById('new-serie-collana');
@@ -287,7 +278,6 @@ document.getElementById('serie-form').onsubmit = async (e) => {
     if (error) alert(error.message); else { closeSerieModal(); populateSelects(); loadSerieShowcase(); }
 };
 
-// MODALE ISSUE PRINCIPALE
 async function openAddModal() {
     document.getElementById('edit-form').reset();
     document.getElementById('edit-id').value = '';
@@ -344,14 +334,9 @@ async function handleSerieChange(serieId) {
     document.getElementById('btn-edit-serie-context').disabled = false;
 }
 
-// LOGICA STORIE E PERSONAGGI
 async function loadIssueStories(issueId) {
     const container = document.getElementById('issue-stories-list');
-    const { data, error } = await window.supabaseClient
-        .from('storie_in_issue')
-        .select(`posizione, storia_id, storie(nome)`)
-        .eq('issue_id', issueId)
-        .order('posizione');
+    const { data } = await window.supabaseClient.from('storie_in_issue').select(`posizione, storia_id, storie(nome)`).eq('issue_id', issueId).order('posizione');
 
     if (data && data.length > 0) {
         container.innerHTML = data.map(s => `
@@ -438,7 +423,6 @@ async function openAddPersonaggioStoriaModal() {
     document.getElementById('personaggio-storia-modal').classList.remove('hidden');
 }
 
-// SALVATAGGIO STORIE
 document.getElementById('storie-form').onsubmit = async (e) => {
     e.preventDefault();
     const nome = document.getElementById('storie-nome').value;
@@ -467,7 +451,6 @@ document.getElementById('storie-form').onsubmit = async (e) => {
     if (document.getElementById('edit-id').value) loadIssueStories(document.getElementById('edit-id').value);
 };
 
-// SALVATAGGIO PERSONAGGIO_STORIA
 document.getElementById('personaggio-storia-form').onsubmit = async (e) => {
     e.preventDefault();
     const payload = {
@@ -478,7 +461,6 @@ document.getElementById('personaggio-storia-form').onsubmit = async (e) => {
     if (error) alert(error.message); else { closeAddPersonaggioStoriaModal(); loadPersonaggiStoria(payload.storia_id); }
 };
 
-// AZIONI RAPIDE E UTILITY
 async function removeStoriaFromIssue(sId, iId) {
     if (confirm("Rimuovere la storia da questo albo?")) {
         await window.supabaseClient.from('storie_in_issue').delete().eq('storia_id', sId).eq('issue_id', iId);
@@ -515,7 +497,6 @@ function openEditCollanaFromSerie() { openSimpleModal('collana', document.getEle
 function openAnnataModal() { openSimpleModal('annata'); }
 function openCollanaModal() { openSimpleModal('collana'); }
 
-// SALVATAGGIO FINALE ALBO
 document.getElementById('edit-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('edit-id').value;
