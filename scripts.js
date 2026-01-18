@@ -28,6 +28,8 @@ function setFilter(filter) {
     currentFilter = filter;
     document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
     document.getElementById(`btn-${filter}`).classList.add('active');
+    
+    // Ricarica la vista usando il nome salvato per non perdere il titolo
     if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome);
     else loadRecent();
 }
@@ -88,21 +90,34 @@ function getStarsHTML(valore) {
 
 function getSerieDisplayName(serie) { if (!serie) return ""; const nomeCollana = serie.collana?.nome; return nomeCollana ? `${serie.nome} (${nomeCollana})` : serie.nome; }
 
-async function selectSerie(serieId, fullSerieNome) {
-    currentSerieId = serieId; currentSerieFullNome = fullSerieNome; searchInput.value = fullSerieNome; resultsDiv.classList.add('hidden');
-    document.getElementById('view-title').innerText = fullSerieNome;
-    let query = window.supabaseClient.from('issue').select(FULL_QUERY).eq('serie_id', serieId);
-    if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
-    const { data } = await query.order('numero', { ascending: true });
-    currentData = data || []; renderGrid(currentData, fullSerieNome);
+async function selectSerie(id, fullNome) {
+    currentSerieId = id;
+    currentSerieFullNome = fullNome;
+    resultsDiv.classList.add('hidden');
+    searchInput.value = '';
+    
+    let query = window.supabaseClient.from('issue').select(FULL_QUERY).eq('serie_id', id);
+    if (currentFilter === 'celo') query = query.eq('possesso', 'celo');
+    if (currentFilter === 'manca') query = query.eq('possesso', 'manca');
+    
+    // Ordinamento 7.5: data crescente e nullsFirst false
+    const { data } = await query.order('data_pubblicazione', { ascending: true, nullsFirst: false });
+    currentData = data || [];
+    renderGrid(currentData, fullNome);
 }
 
 async function loadRecent() {
-    currentSerieId = null; document.getElementById('view-title').innerText = "Ultimi Arrivi";
+    currentSerieId = null;
+    currentSerieFullNome = "Ultimi Arrivi";
+    
     let query = window.supabaseClient.from('issue').select(FULL_QUERY);
-    if (currentFilter !== 'all') query = query.eq('possesso', currentFilter);
-    const { data } = await query.order('created_at', { ascending: false }).limit(20);
-    currentData = data || []; renderGrid(currentData);
+    if (currentFilter === 'celo') query = query.eq('possesso', 'celo');
+    if (currentFilter === 'manca') query = query.eq('possesso', 'manca');
+    
+    // Ordinamento 7.5: data crescente e nullsFirst false
+    const { data } = await query.order('data_pubblicazione', { ascending: true, nullsFirst: false }).limit(24);
+    currentData = data || [];
+    renderGrid(currentData, "Ultimi Arrivi");
 }
 
 function renderGrid(items, fallbackSerie = "") {
