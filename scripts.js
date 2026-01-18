@@ -29,7 +29,7 @@ function setFilter(filter) {
     document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
     document.getElementById(`btn-${filter}`).classList.add('active');
     
-    // Ricarica la vista usando il nome salvato per non perdere il titolo
+    // Passa currentSerieFullNome per non perdere il titolo durante il filtraggio
     if (currentSerieId) selectSerie(currentSerieId, currentSerieFullNome);
     else loadRecent();
 }
@@ -100,10 +100,10 @@ async function selectSerie(id, fullNome) {
     if (currentFilter === 'celo') query = query.eq('possesso', 'celo');
     if (currentFilter === 'manca') query = query.eq('possesso', 'manca');
     
-    // Ordinamento 7.5: data crescente e nullsFirst false
+    // Ordinamento crescente e nullsFirst false
     const { data } = await query.order('data_pubblicazione', { ascending: true, nullsFirst: false });
     currentData = data || [];
-    renderGrid(currentData, fullNome);
+    renderGrid(currentData, currentSerieFullNome);
 }
 
 async function loadRecent() {
@@ -114,10 +114,10 @@ async function loadRecent() {
     if (currentFilter === 'celo') query = query.eq('possesso', 'celo');
     if (currentFilter === 'manca') query = query.eq('possesso', 'manca');
     
-    // Ordinamento 7.5: data crescente e nullsFirst false
+    // Ordinamento crescente e nullsFirst false
     const { data } = await query.order('data_pubblicazione', { ascending: true, nullsFirst: false }).limit(24);
     currentData = data || [];
-    renderGrid(currentData, "Ultimi Arrivi");
+    renderGrid(currentData, currentSerieFullNome);
 }
 
 function renderGrid(items, fallbackSerie = "") {
