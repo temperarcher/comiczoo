@@ -15,8 +15,7 @@ let currentCodiceId = null;
 let currentView = 'grid'; 
 let currentData = [];
 
-//const FULL_QUERY = `*, annata(id, nome), serie(id, nome, immagine_url, collana_id, collana(nome)), tipo_pubblicazione(nome)`;
-const FULL_QUERY = `*, annata(id, nome), serie(id, nome, immagine_url, testata_id, testata(nome)), tipo_pubblicazione(nome)`;
+const FULL_QUERY = `*, annata(id, nome), serie(id, nome, immagine_url, collana_id, collana(nome)), tipo_pubblicazione(nome)`;
 
 function setView(view) {
     currentView = view;
@@ -89,12 +88,8 @@ function getStarsHTML(valore) {
     return `<div class="flex gap-0.5">${starsHTML}</div>`;
 }
 
-//function getSerieDisplayName(serie) { if (!serie) return ""; const nomeCollana = serie.collana?.nome; return nomeCollana ? `${serie.nome} (${nomeCollana})` : serie.nome; }
-function getSerieDisplayName(serie) { 
-    if (!serie) return ""; 
-    const nomeTestata = serie.testata?.nome; 
-    return nomeTestata ? `${serie.nome} (${nomeTestata})` : serie.nome; 
-}
+function getSerieDisplayName(serie) { if (!serie) return ""; const nomeCollana = serie.collana?.nome; return nomeCollana ? `${serie.nome} (${nomeCollana})` : serie.nome; }
+
 async function selectSerie(id, fullNome) {
     currentSerieId = id;
     currentSerieFullNome = fullNome;
@@ -415,8 +410,7 @@ document.getElementById('edit-form').addEventListener('submit', async (e) => {
 
 searchInput.addEventListener('input', async (e) => {
     const queryText = e.target.value.trim(); if (queryText.length < 2) { resultsDiv.classList.add('hidden'); return; }
-    //const { data } = await window.supabaseClient.from('serie').select('id, nome, collana(nome)').ilike('nome', `%${queryText}%`).limit(10);
-	const { data } = await window.supabaseClient.from('serie').select('id, nome, testata(nome)').ilike('nome', `%${queryText}%`).limit(10);
+    const { data } = await window.supabaseClient.from('serie').select('id, nome, collana(nome)').ilike('nome', `%${queryText}%`).limit(10);
     if (data && data.length > 0) {
         resultsDiv.innerHTML = data.map(s => { const full = getSerieDisplayName(s); return `<div onclick="selectSerie('${s.id}', '${full}')" class="p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700 last:border-0 text-sm font-bold">${full}</div>`; }).join('');
         resultsDiv.classList.remove('hidden');
