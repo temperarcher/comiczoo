@@ -88,7 +88,11 @@ function getStarsHTML(valore) {
     return `<div class="flex gap-0.5">${starsHTML}</div>`;
 }
 
-function getSerieDisplayName(serie) { if (!serie) return ""; const nomeCollana = serie.collana?.nome; return nomeCollana ? `${serie.nome} (${nomeCollana})` : serie.nome; }
+//function getSerieDisplayName(serie) { if (!serie) return ""; const nomeCollana = serie.collana?.nome; return nomeCollana ? `${serie.nome} (${nomeCollana})` : serie.nome; }
+function getSerieDisplayName(serie) { 
+    if (!serie) return ""; 
+    return serie.nome; 
+}
 
 async function selectSerie(id, fullNome) {
     currentSerieId = id;
@@ -412,8 +416,9 @@ searchInput.addEventListener('input', async (e) => {
     const queryText = e.target.value.trim(); if (queryText.length < 2) { resultsDiv.classList.add('hidden'); return; }
     const { data } = await window.supabaseClient.from('serie').select('id, nome, collana(nome)').ilike('nome', `%${queryText}%`).limit(10);
     if (data && data.length > 0) {
+        //resultsDiv.innerHTML = data.map(s => { const full = getSerieDisplayName(s); return `<div onclick="selectSerie('${s.id}', '${full}')" class="p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700 last:border-0 text-sm font-bold">${full}</div>`; }).join('');
         resultsDiv.innerHTML = data.map(s => { const full = getSerieDisplayName(s); return `<div onclick="selectSerie('${s.id}', '${full}')" class="p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700 last:border-0 text-sm font-bold">${full}</div>`; }).join('');
-        resultsDiv.classList.remove('hidden');
+		resultsDiv.classList.remove('hidden');
     } else { resultsDiv.classList.add('hidden'); }
 });
 
