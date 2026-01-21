@@ -1,0 +1,20 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+| js/components.js | 8.3.1 | Fix mappatura storie e personaggi per iniezione modale. |
+| js/render.js     | 8.3.3 | Fix apertura modale e aggiornamento automatico griglia al cambio brand. |
+| js/api.js        | 8.3.4 | Correzione ISSUE_DETAILS_QUERY per includere correttamente storia_in_issue. |
+| js/components.js | 8.3.2 | Aggiunta gestione errori (try/catch) nel rendering del modale. |
+| js/render.js     | 8.3.4 | Aggiunto console.log di debug e fix evento click sulle card. |
+| js/components.js | 8.3.3 | Risolto TypeError: assicurata presenza e export di renderModalContent. |
+| js/render.js     | 8.3.5 | Aggiunto check typeof per prevenire crash su chiamate a funzioni mancanti. |
