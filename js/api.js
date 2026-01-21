@@ -8,6 +8,12 @@ const ISSUE_DETAILS_QUERY = `
     *,
     annata (id, nome),
     testata (id, nome),
+    tipo_pubblicazione (id, nome)
+`;
+/*const ISSUE_DETAILS_QUERY = `
+    *,
+    annata (id, nome),
+    testata (id, nome),
     tipo_pubblicazione (id, nome),
     editore (
         id, 
@@ -26,7 +32,7 @@ const ISSUE_DETAILS_QUERY = `
         )
     )
 `;
-
+*/
 export const api = {
     /**
      * Recupera tutti gli albi di una serie specifica
