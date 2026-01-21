@@ -1,23 +1,34 @@
 /**
- * VERSION: 1.1.0 (Ripristino Estetica v7.4)
- * FILE: js/ui.js
- * MODIFICA: Rimozione testi a vista e larghezza fissa nelle serie.
+ * VERSION: 1.2.0 (Consolidata v7.4)
+ * SCOPO: Definizione esclusiva dei template HTML.
  */
-
 export const UI = {
-    // Template per i Brand: Solo Logo, senza testo
+    // La pillola della v7.4: cerchio perfetto, ombra leggera, logo centrato
     PUBLISHER_PILL: (data, isActive) => {
         const activeClass = isActive 
-            ? 'border-yellow-500 bg-yellow-500/20 ring-1 ring-yellow-500 opacity-100 grayscale-0' 
-            : 'border-slate-800 bg-slate-900/50 grayscale opacity-60';
+            ? 'border-yellow-500 bg-yellow-500/10 shadow-[0_0_15px_rgba(234,179,8,0.2)] opacity-100 grayscale-0' 
+            : 'border-slate-800 bg-slate-900/40 grayscale opacity-50 hover:opacity-100 hover:grayscale-0';
         
         return `
-            <div class="flex-none ${activeClass} border rounded-full px-4 py-3 flex items-center justify-center hover:border-yellow-500 hover:grayscale-0 hover:opacity-100 transition-all cursor-pointer" data-brand-id="${data.id}" title="${data.nome}">
-                <img src="${data.immagine_url}" class="h-6 w-auto object-contain">
+            <div class="flex-none ${activeClass} border rounded-full w-14 h-14 md:w-16 md:h-16 flex items-center justify-center transition-all duration-300 cursor-pointer" 
+                 data-brand-id="${data.id}" 
+                 title="${data.nome}">
+                <img src="${data.immagine_url}" class="w-8 md:w-10 h-8 md:h-10 object-contain">
             </div>`;
     },
 
-    // Template per le Serie: Solo Immagine, larghezza variabile (v7.4 style)
+    // Il tasto "Tutti" integrato nello showcase (stile v7.4)
+    ALL_PUBLISHERS_BUTTON: (isActive) => {
+        const activeClass = isActive 
+            ? 'border-yellow-500 bg-yellow-500 text-black' 
+            : 'border-slate-800 bg-slate-900/40 text-slate-500 hover:text-white hover:border-slate-600';
+        return `
+            <div class="flex-none ${activeClass} border rounded-full w-14 h-14 md:w-16 md:h-16 flex items-center justify-center transition-all duration-300 cursor-pointer text-[10px] font-black uppercase tracking-tighter" 
+                 id="reset-brand-filter">
+                Tutti
+            </div>`;
+    },
+
     SERIE_ITEM: (serie) => `
         <div class="flex-none group cursor-pointer" data-serie-id="${serie.id}" title="${serie.nome}">
             <div class="relative overflow-hidden rounded-lg border border-slate-800 group-hover:border-yellow-500 transition-all shadow-lg">
@@ -29,7 +40,6 @@ export const UI = {
             </div>
         </div>`,
 
-    // Gli altri template (ISSUE_CARD, STORY_ROW, etc.) rimangono invariati per mantenere il consolidamento
     ISSUE_CARD: (issue, badgeStyle) => `
         <div class="flex flex-col bg-slate-800 rounded-xl overflow-hidden shadow-lg border border-slate-700 hover:border-yellow-500 transition-all cursor-pointer" data-id="${issue.id}">
             <img src="${issue.immagine_url}" class="w-full h-auto aspect-[2/3] object-cover" loading="lazy">
