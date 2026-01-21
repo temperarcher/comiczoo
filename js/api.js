@@ -1,6 +1,6 @@
 /**
- * VERSION: 8.2.1
- * ARCHITETTURA: Singolare Consolidato
+ * VERSION: 8.3.4
+ * SCOPO: Query Supabase con relazioni corrette per Modale
  */
 
 const ISSUE_DETAILS_QUERY = `
@@ -36,16 +36,6 @@ export const api = {
             console.error("ERRORE API:", error.message);
             throw error;
         }
-        return data;
-    },
-
-    async getIssueById(issueId) {
-        const { data, error } = await window.supabaseClient
-            .from('issue')
-            .select(ISSUE_DETAILS_QUERY)
-            .eq('id', issueId)
-            .single();
-        if (error) throw error;
         return data;
     }
 };
