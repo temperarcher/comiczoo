@@ -1,6 +1,6 @@
 /**
- * VERSION: 8.3.1
- * SCOPO: Logica di preparazione dati per UI.js
+ * VERSION: 8.3.2
+ * SCOPO: Preparazione dati con debug per Modale
  */
 import { store } from './store.js';
 import { UI } from './ui.js';
@@ -36,35 +36,38 @@ export const components = {
     },
 
     storyItem(si) {
-        // Estrazione sicura dei personaggi
-        const personaggiRel = si.storia?.personaggio_storia || [];
+        if (!si || !si.storia) return '';
+        const personaggiRel = si.storia.personaggio_storia || [];
         const charsHtml = personaggiRel.map(p => UI.CHARACTER_TAG({
-            nome: p.personaggio?.nome || '',
+            nome: p.personaggio?.nome || 'Ignoto',
             immagine_url: p.personaggio?.immagine_url || store.config.placeholders.avatar
         })).join('');
 
-        return UI.STORY_ROW(si.storia || { nome: 'Senza Titolo' }, si, charsHtml);
+        return UI.STORY_ROW(si.storia, si, charsHtml);
     },
 
     renderModalContent(issue) {
-        // 1. Genera l'HTML delle storie usando la funzione interna storyItem
-        const storiesHtml = (issue.storia_in_issue || [])
-            .sort((a, b) => a.posizione - b.posizione)
-            .map(si => this.storyItem(si))
-            .join('') || '<p class="text-slate-600 text-xs italic p-4">Nessun dettaglio storie presente.</p>';
+        try {
+            const storiesHtml = (issue.storia_in_issue || [])
+                .sort((a, b) => a.posizione - b.posizione)
+                .map(si => this.storyItem(si))
+                .join('') || '<p class="text-slate-500 text-xs italic">Nessun dettaglio storie.</p>';
 
-        // 2. Prepara i dati piatti per il layout del modale
-        const data = {
-            nome: issue.nome || 'Senza Titolo',
-            numero: issue.numero || 'N/D',
-            immagine_url: issue.immagine_url || store.config.placeholders.cover,
-            condizione: issue.condizione || 'N/D',
-            valore: issue.valore || '0',
-            testata: issue.testata?.nome || '',
-            annata: issue.annata?.nome || '',
-            brand_logo: issue.editore?.codice_editore?.immagine_url || ''
-        };
+            const data = {
+                nome: issue.nome || 'Senza Titolo',
+                numero: issue.numero || 'N/D',
+                immagine_url: issue.immagine_url || store.config.placeholders.cover,
+                condizione: issue.condizione || 'N/D',
+                valore: issue.valore || '0',
+                testata: issue.testata?.nome || '',
+                annata: issue.annata?.nome || '',
+                brand_logo: issue.editore?.codice_editore?.immagine_url || ''
+            };
 
-        return UI.MODAL_LAYOUT(data, storiesHtml);
+            return UI.MODAL_LAYOUT(data, storiesHtml);
+        } catch (err) {
+            console.error("Errore renderModalContent:", err);
+            return `<div class="p-4 text-red-500">Errore nel rendering dei dati: ${err.message}</div>`;
+        }
     }
 };
