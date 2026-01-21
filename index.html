@@ -3,12 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comics Manager v8.2</title>
+    <title>Comics Manager v8.3 - UI Protected</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="style.css">
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-200 min-h-screen">
@@ -20,10 +23,10 @@
                        class="w-full bg-slate-900 border border-slate-700 rounded-lg py-2 px-4 focus:ring-2 focus:ring-yellow-500 outline-none"
                        placeholder="Cerca numero o titolo...">
             </div>
-            <div class="flex gap-2">
-                <button data-filter="all" class="px-4 py-2 rounded-lg bg-yellow-500 text-black font-bold text-sm">Tutti</button>
-                <button data-filter="celo" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm">Celo</button>
-                <button data-filter="manca" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm">Manca</button>
+            <div class="flex gap-2" id="filter-group">
+                <button data-filter="all" class="px-4 py-2 rounded-lg bg-yellow-500 text-black font-bold text-sm transition-colors">Tutti</button>
+                <button data-filter="celo" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm transition-colors">Celo</button>
+                <button data-filter="manca" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm transition-colors">Manca</button>
             </div>
         </div>
     </header>
@@ -42,8 +45,8 @@
     </main>
 
     <div id="issue-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-        <div class="bg-slate-900 border border-slate-700 w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl relative">
-            <button id="close-modal" class="absolute top-4 right-4 text-slate-400 hover:text-white z-10">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl relative custom-scrollbar">
+            <button id="close-modal" class="absolute top-4 right-4 text-slate-400 hover:text-white z-10 transition-transform hover:scale-110">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
