@@ -1,10 +1,9 @@
 /**
- * VERSION: 8.3.2
+ * VERSION: 8.3.3
  */
 import { api } from './api.js';
 import { store } from './store.js';
 import { components } from './components.js';
-import { UI } from './ui.js';
 
 export const render = {
     async refreshShowcases() {
@@ -12,37 +11,32 @@ export const render = {
         const serieContainer = document.getElementById('serie-showcase');
 
         try {
-            // 1. Showcase Editori
             const { data: publishers } = await window.supabaseClient.from('codice_editore').select('*').order('nome');
             if (pubContainer && publishers) {
-                const allBtnHtml = UI.ALL_PUBLISHERS_BUTTON(!store.state.selectedBrand);
                 const pillsHtml = publishers.map(p => components.publisherPill(p)).join('');
-                
-                pubContainer.innerHTML = allBtnHtml + pillsHtml;
+                // Inseriamo il tasto reset e le pillole
+                pubContainer.innerHTML = `
+                    <div class="flex-none border ${!store.state.selectedBrand ? 'border-yellow-500 bg-yellow-500 text-black' : 'border-slate-800 bg-slate-900/40 text-slate-500'} rounded-full w-14 h-14 md:w-16 md:h-16 flex items-center justify-center transition-all duration-300 cursor-pointer text-[10px] font-black uppercase tracking-tighter" id="reset-brand-filter">Tutti</div>
+                    ${pillsHtml}
+                `;
 
-                // Evento Reset (Tutti)
-                const resetBtn = document.getElementById('reset-brand-filter');
-                if (resetBtn) {
-                    resetBtn.onclick = async () => {
-                        store.state.selectedBrand = null;
-                        store.state.selectedSerie = null; // Reset anche serie se cambio editore
-                        await this.refreshShowcases();
-                        await this.refreshGrid();
-                    };
-                }
+                document.getElementById('reset-brand-filter').onclick = async () => {
+                    store.state.selectedBrand = null;
+                    store.state.selectedSerie = null;
+                    await this.refreshShowcases();
+                    await this.refreshGrid();
+                };
 
-                // Eventi Pillole Brand
                 pubContainer.querySelectorAll('[data-brand-id]').forEach(el => {
                     el.onclick = async () => {
-                        const brandId = el.dataset.brandId;
-                        store.state.selectedBrand = (store.state.selectedBrand == brandId) ? null : brandId;
+                        store.state.selectedBrand = el.dataset.brandId;
                         store.state.selectedSerie = null;
                         await this.refreshShowcases();
+                        await this.refreshGrid();
                     };
                 });
             }
 
-            // 2. Showcase Serie
             let query = window.supabaseClient.from('serie').select(`id, nome, immagine_url, issue!inner ( editore!inner ( codice_editore_id ) )`);
             if (store.state.selectedBrand) query = query.eq('issue.editore.codice_editore_id', store.state.selectedBrand);
 
@@ -60,11 +54,13 @@ export const render = {
     async refreshGrid() {
         const container = document.getElementById('main-grid');
         if (!container) return;
-        container.innerHTML = `<div class="col-span-full text-center py-10 text-slate-500 italic">Caricamento albi...</div>`;
+        container.innerHTML = `<div class="col-span-full text-center py-10 text-slate-500 italic">Seleziona una serie...</div>`;
 
         try {
             if (store.state.selectedSerie?.id) {
                 store.state.issues = await api.getIssuesBySerie(store.state.selectedSerie.id);
+            } else {
+                return; // Non caricare nulla se non c'è una serie
             }
 
             const filtered = store.state.issues.filter(i => {
@@ -82,13 +78,23 @@ export const render = {
     async openIssueModal(id) {
         const modal = document.getElementById('issue-modal');
         const content = document.getElementById('modal-body');
-        const issue = store.state.issues.find(i => i.id === id);
+        const issue = store.state.issues.find(i => i.id == id);
+        
         if (!issue) return;
-        modal.classList.replace('hidden', 'flex');
+
         content.innerHTML = components.renderModalContent(issue);
+        modal.classList.replace('hidden', 'flex');
+        
+        // Gestione chiusura modale (se non già gestita in main.js)
+        const closeBtn = document.getElementById('close-modal');
+        if (closeBtn) {
+            closeBtn.onclick = () => modal.classList.replace('flex', 'hidden');
+        }
     },
 
     attachCardEvents() {
-        document.querySelectorAll('[data-id]').forEach(c => c.onclick = () => this.openIssueModal(c.dataset.id));
+        document.querySelectorAll('[data-id]').forEach(c => {
+            c.onclick = () => this.openIssueModal(c.dataset.id);
+        });
     }
 };
