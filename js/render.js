@@ -1,27 +1,56 @@
 /**
- * VERSION: 8.2.0
- * LOGICA: Rendering Showcase + Griglia con fix Null Check
+ * VERSION: 8.2.1
+ * MODIFICA: Filtraggio Serie per Brand selezionato (Inner Join Issue)
  */
 import { api } from './api.js';
 import { store } from './store.js';
 import { components } from './components.js';
 
 export const render = {
-    // Rendering degli showcase orizzontali (Editori e Serie)
     async refreshShowcases() {
         const pubContainer = document.getElementById('publisher-showcase');
         const serieContainer = document.getElementById('serie-showcase');
 
         try {
+            // 1. Caricamento Brand (Codici Editori)
             const { data: publishers } = await window.supabaseClient.from('codice_editore').select('*').order('nome');
-            const { data: series } = await window.supabaseClient.from('serie').select('*').order('nome');
-
             if (pubContainer && publishers) {
                 pubContainer.innerHTML = publishers.map(p => components.publisherPill(p)).join('');
+                
+                // Evento click sulle pillole Brand
+                pubContainer.querySelectorAll('[data-brand-id]').forEach(el => {
+                    el.onclick = async () => {
+                        const brandId = el.dataset.brandId;
+                        store.state.selectedBrand = (store.state.selectedBrand == brandId) ? null : brandId;
+                        await this.refreshShowcases(); // Ricarica lo showcase serie filtrato
+                    };
+                });
             }
+
+            // 2. Caricamento Serie filtrate per il Brand selezionato
+            // Usiamo !inner per filtrare solo le serie che hanno albi con quel codice editore
+            let query = window.supabaseClient.from('serie').select(`
+                id, nome, immagine_url,
+                issue!inner ( 
+                    editore!inner ( 
+                        codice_editore_id 
+                    ) 
+                )
+            `);
+
+            if (store.state.selectedBrand) {
+                query = query.eq('issue.editore.codice_editore_id', store.state.selectedBrand);
+            }
+
+            const { data: series, error } = await query.order('nome');
             
             if (serieContainer && series) {
-                serieContainer.innerHTML = series.map(s => components.serieShowcaseItem(s)).join('');
+                // Rimozione duplicati serie (PostgREST restituisce una riga per ogni match issue)
+                const uniqueSeries = Array.from(new Set(series.map(s => s.id))).map(id => series.find(s => s.id === id));
+                
+                serieContainer.innerHTML = uniqueSeries.map(s => components.serieShowcaseItem(s)).join('');
+                
+                // Evento click sulle serie per caricare la griglia
                 serieContainer.querySelectorAll('[data-serie-id]').forEach(el => {
                     el.onclick = () => {
                         store.state.selectedSerie = { id: el.dataset.serieId };
@@ -29,10 +58,9 @@ export const render = {
                     };
                 });
             }
-        } catch (e) { console.error("Showcase error:", e); }
+        } catch (e) { console.error("Showcase refresh error:", e); }
     },
 
-    // Rendering griglia principale
     async refreshGrid() {
         const container = document.getElementById('main-grid');
         if (!container) return;
@@ -45,7 +73,6 @@ export const render = {
 
             const filtered = store.state.issues.filter(i => {
                 const mF = store.state.filter === 'all' || i.possesso === store.state.filter;
-                // Fix per campi NULL
                 const nome = (i.nome || "").toLowerCase();
                 const num = (i.numero || "").toString();
                 const query = (store.state.searchQuery || "").toLowerCase();
@@ -54,13 +81,9 @@ export const render = {
 
             container.innerHTML = filtered.length ? filtered.map(i => components.issueCard(i)).join('') : `<div class="col-span-full text-center py-10 text-slate-500">Nessun albo trovato.</div>`;
             this.attachCardEvents();
-        } catch (e) { 
-            console.error("Render Grid Error:", e);
-            container.innerHTML = `<div class="text-red-500 text-center py-10">Errore: ${e.message}</div>`; 
-        }
+        } catch (e) { container.innerHTML = `<div class="text-red-500 text-center py-10">Errore: ${e.message}</div>`; }
     },
 
-    // Modale Storie e Personaggi
     async openIssueModal(id) {
         const modal = document.getElementById('issue-modal');
         const content = document.getElementById('modal-body');
@@ -87,7 +110,7 @@ export const render = {
                     <div class="space-y-2">
                         <h3 class="text-[9px] uppercase font-bold text-slate-500 border-b border-slate-800 pb-1">Sommario Albo</h3>
                         <div class="max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
-                            ${(issue.storia_in_issue || []).sort((a,b)=>a.posizione-b.posizione).map(si => components.storyItem(si)).join('') || '<p class="text-slate-600 text-xs italic">Nessun dettaglio storie presente.</p>'}
+                            ${(issue.storia_in_issue || []).sort((a,b)=>a.posizione-b.posizione).map(si => components.storyItem(si)).join('') || '<p class="text-slate-600 text-xs italic">Nessun dettaglio storie.</p>'}
                         </div>
                     </div>
                 </div>
