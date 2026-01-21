@@ -1,16 +1,10 @@
 /**
- * VINCOLO: Nessun riferimento al DOM. Restituisce solo oggetti strutturati.
- * Gestisce la gerarchia: Issue -> Storie -> Personaggi
+ * VERSION: 8.1.0
+ * ARCHITETTURA: Singolare Consolidato
+ * RELAZIONI: issue -> storia_in_issue -> storia -> personaggio_storia -> personaggio
  */
 
-// Definizione della query principale con tutti i JOIN necessari
 const ISSUE_DETAILS_QUERY = `
-    *,
-    annata (id, nome),
-    testata (id, nome),
-    tipo_pubblicazione (id, nome)
-`;
-/*const ISSUE_DETAILS_QUERY = `
     *,
     annata (id, nome),
     testata (id, nome),
@@ -21,38 +15,57 @@ const ISSUE_DETAILS_QUERY = `
         immagine_url, 
         codice_editore (id, nome, immagine_url)
     ),
-    storie_in_issue (
+    storia_in_issue (
         posizione,
-        storie (
+        storia (
             id,
             nome,
-            personaggi_storie (
+            personaggio_storia (
                 personaggio (id, nome, nome_originale, immagine_url)
             )
         )
     )
 `;
-*/
+
 export const api = {
     /**
-     * Recupera tutti gli albi di una serie specifica
+     * Recupera gli albi di una serie con tutti i join
      */
     async getIssuesBySerie(serieId) {
+        if (!serieId) return [];
+        
         const { data, error } = await window.supabaseClient
             .from('issue')
             .select(ISSUE_DETAILS_QUERY)
             .eq('serie_id', serieId)
-            .order('numero', { ascending: true }); // Ordinamento di base per numero
+            .order('numero', { ascending: true });
 
         if (error) {
-            console.error("Errore API getIssuesBySerie:", error);
+            console.error("ERRORE API (getIssuesBySerie):", error.message, error.details);
             throw error;
         }
         return data;
     },
 
     /**
-     * Ricerca rapida serie per input suggerimenti
+     * Recupera dettagli singolo albo
+     */
+    async getIssueById(issueId) {
+        const { data, error } = await window.supabaseClient
+            .from('issue')
+            .select(ISSUE_DETAILS_QUERY)
+            .eq('id', issueId)
+            .single();
+
+        if (error) {
+            console.error("ERRORE API (getIssueById):", error.message);
+            throw error;
+        }
+        return data;
+    },
+
+    /**
+     * Ricerca serie
      */
     async searchSerie(searchTerm) {
         const { data, error } = await window.supabaseClient
@@ -62,20 +75,6 @@ export const api = {
             .limit(10);
 
         if (error) return [];
-        return data;
-    },
-
-    /**
-     * Recupera i dettagli di un singolo albo (incluso il supplemento se presente)
-     */
-    async getIssueById(issueId) {
-        const { data, error } = await window.supabaseClient
-            .from('issue')
-            .select(ISSUE_DETAILS_QUERY)
-            .eq('id', issueId)
-            .single();
-
-        if (error) throw error;
         return data;
     }
 };
