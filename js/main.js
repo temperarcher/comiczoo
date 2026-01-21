@@ -1,75 +1,48 @@
 /**
- * VINCOLO: Nessun riferimento al DOM. Restituisce solo oggetti strutturati.
- * Gestisce la gerarchia: Issue -> Storie -> Personaggi
+ * VERSION: 8.0.0
+ * VINCOLO: Solo logica di alto livello e bridge tra UI e Render.
  */
+import { store } from './store.js';
+import { render } from './render.js';
 
-// Definizione della query principale con tutti i JOIN necessari
-const ISSUE_DETAILS_QUERY = `
-    *,
-    annata (id, nome),
-    testata (id, nome),
-    tipo_pubblicazione (id, nome),
-    editore (
-        id, 
-        nome, 
-        immagine_url, 
-        codice_editore (id, nome, immagine_url)
-    ),
-    storie_in_issue (
-        posizione,
-        storie (
-            id,
-            nome,
-            personaggi_storie (
-                personaggio (id, nome, nome_originale, immagine_url)
-            )
-        )
-    )
-`;
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log("Comics Manager v8.0 Inizializzato");
 
-export const api = {
-    /**
-     * Recupera tutti gli albi di una serie specifica
-     */
-    async getIssuesBySerie(serieId) {
-        const { data, error } = await window.supabaseClient
-            .from('issue')
-            .select(ISSUE_DETAILS_QUERY)
-            .eq('serie_id', serieId)
-            .order('numero', { ascending: true }); // Ordinamento di base per numero
+    // 1. Inizializzazione: Carichiamo una serie predefinita (es. la prima trovata)
+    // In produzione, questo ID verrebbe preso dall'URL o da una selezione utente.
+    store.state.selectedSerie = { id: 'IL_TUO_SERIE_ID_QUI', nome: 'Serie Attuale' };
+    
+    // Primo caricamento della griglia
+    render.refreshGrid();
 
-        if (error) {
-            console.error("Errore API getIssuesBySerie:", error);
-            throw error;
-        }
-        return data;
-    },
-
-    /**
-     * Ricerca rapida serie per input suggerimenti
-     */
-    async searchSerie(searchTerm) {
-        const { data, error } = await window.supabaseClient
-            .from('serie')
-            .select('id, nome, immagine_url')
-            .ilike('nome', `%${searchTerm}%`)
-            .limit(10);
-
-        if (error) return [];
-        return data;
-    },
-
-    /**
-     * Recupera i dettagli di un singolo albo (incluso il supplemento se presente)
-     */
-    async getIssueById(issueId) {
-        const { data, error } = await window.supabaseClient
-            .from('issue')
-            .select(ISSUE_DETAILS_QUERY)
-            .eq('id', issueId)
-            .single();
-
-        if (error) throw error;
-        return data;
+    // 2. Gestione Ricerca
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            store.state.searchQuery = e.target.value;
+            render.refreshGrid();
+        });
     }
-};
+
+    // 3. Gestione Filtri (Celo / Manca)
+    const filterButtons = document.querySelectorAll('[data-filter]');
+    filterButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Aggiorna UI bottoni
+            filterButtons.forEach(b => b.classList.remove('bg-yellow-500', 'text-black'));
+            btn.classList.add('bg-yellow-500', 'text-black');
+            
+            // Aggiorna stato e renderizza
+            store.state.filter = btn.dataset.filter;
+            render.refreshGrid();
+        });
+    } );
+
+    // 4. Gestione Chiusura Modale
+    const closeModal = document.getElementById('close-modal');
+    if (closeModal) {
+        closeModal.onclick = () => {
+            document.getElementById('issue-modal').classList.add('hidden');
+        };
+    }
+});
