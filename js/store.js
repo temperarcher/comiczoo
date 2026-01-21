@@ -1,27 +1,23 @@
 /**
- * VERSION: 8.0.0
- * VINCOLO: Solo dati e configurazioni. Nessun metodo DOM.
+ * VERSION: 8.2.1
  */
 export const store = {
-    // Stato dinamico
     state: {
-        issues: [],          // Array degli albi caricati (completi di storie/personaggi)
-        viewMode: 'grid',    // 'grid' | 'list'
-        filter: 'all',       // 'all' | 'celo' | 'manca'
-        searchQuery: '',
-        selectedSerie: { id: null, nome: "" }
+        selectedSerie: null,
+        selectedBrand: null, // Memorizza il filtro editore attivo
+        issues: [],
+        filter: 'all',
+        searchQuery: ''
     },
-    
-    // Costanti e configurazioni
     config: {
         placeholders: {
-            cover: 'https://placehold.co/300x450/1e293b/fbbf24?text=Copertina+Assente',
-            avatar: 'https://placehold.co/100x100/1e293b/fbbf24?text=?',
-            logo: 'https://placehold.co/50x50/1e293b/fbbf24?text=Logo'
+            cover: 'https://via.placeholder.com/300x450/1e293b/cbd5e1?text=No+Cover',
+            avatar: 'https://via.placeholder.com/100x100/1e293b/cbd5e1?text=?',
+            logo: 'https://via.placeholder.com/200x50/1e293b/cbd5e1?text=Logo'
         },
         badgeColors: {
-            celo: 'bg-green-900 text-green-300 border-green-700',
-            manca: 'bg-red-900 text-red-300 border-red-700'
+            celo: 'bg-green-500/20 text-green-400 border-green-500/50',
+            manca: 'bg-red-500/20 text-red-400 border-red-500/50'
         }
     }
 };
