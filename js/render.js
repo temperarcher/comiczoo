@@ -43,8 +43,9 @@ export const render = {
             this.attachCardEvents();
 
         } catch (error) {
-            container.innerHTML = `<div class="col-span-full text-center py-10 text-red-500">Errore nel caricamento dei dati.</div>`;
-        }
+    console.error("DETTAGLIO ERRORE:", error); // <-- AGGIUNGI QUESTO
+    container.innerHTML = `<div class="col-span-full text-center py-10 text-red-500">Errore: ${error.message}</div>`;
+}
     },
 
     /**
