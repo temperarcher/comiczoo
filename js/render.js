@@ -1,5 +1,6 @@
 /**
- * VERSION: 8.3.4
+ * VERSION: 8.3.5
+ * SCOPO: Gestione Render e Eventi - FIX MODAL CALL
  */
 import { api } from './api.js';
 import { store } from './store.js';
@@ -14,8 +15,9 @@ export const render = {
         try {
             const { data: publishers } = await window.supabaseClient.from('codice_editore').select('*').order('nome');
             if (publishers) {
-                const isActive = !store.state.selectedBrand;
-                const resetHtml = `<div class="flex-none border ${isActive ? 'border-yellow-500 bg-yellow-500 text-black' : 'border-slate-800 bg-slate-900/40 text-slate-500'} rounded-full w-14 h-14 md:w-16 md:h-16 flex items-center justify-center transition-all duration-300 cursor-pointer text-[10px] font-black uppercase tracking-tighter" id="reset-brand-filter">Tutti</div>`;
+                const isActiveReset = !store.state.selectedBrand;
+                const resetHtml = `<div class="flex-none border ${isActiveReset ? 'border-yellow-500 bg-yellow-500 text-black' : 'border-slate-800 bg-slate-900/40 text-slate-500'} rounded-full w-14 h-14 md:w-16 md:h-16 flex items-center justify-center transition-all duration-300 cursor-pointer text-[10px] font-black uppercase tracking-tighter" id="reset-brand-filter">Tutti</div>`;
+                
                 pubContainer.innerHTML = resetHtml + publishers.map(p => components.publisherPill(p)).join('');
 
                 document.getElementById('reset-brand-filter').onclick = async () => {
@@ -70,7 +72,7 @@ export const render = {
 
             container.innerHTML = filtered.length ? filtered.map(i => components.issueCard(i)).join('') : `<div class="col-span-full text-center py-10 text-slate-500">Nessun albo trovato.</div>`;
             this.attachCardEvents();
-        } catch (e) { console.error(e); }
+        } catch (e) { console.error("Grid error:", e); }
     },
 
     async openIssueModal(id) {
@@ -78,11 +80,15 @@ export const render = {
         const content = document.getElementById('modal-body');
         const issue = store.state.issues.find(i => i.id == id);
         
-        console.log("Dati Issue per Modale:", issue); // <--- DEBUG: Controlla la console del browser
-
         if (!issue) return;
-        content.innerHTML = components.renderModalContent(issue);
-        modal.classList.replace('hidden', 'flex');
+
+        // Controllo di sicurezza prima della chiamata
+        if (typeof components.renderModalContent === 'function') {
+            content.innerHTML = components.renderModalContent(issue);
+            modal.classList.replace('hidden', 'flex');
+        } else {
+            console.error("ERRORE: components.renderModalContent non è definita!");
+        }
         
         const closeBtn = document.getElementById('close-modal');
         if (closeBtn) closeBtn.onclick = () => modal.classList.replace('flex', 'hidden');
