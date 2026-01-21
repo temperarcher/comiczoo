@@ -1,75 +1,27 @@
 /**
- * VINCOLO: Nessun riferimento al DOM. Restituisce solo oggetti strutturati.
- * Gestisce la gerarchia: Issue -> Storie -> Personaggi
+ * VERSION: 8.0.0
+ * VINCOLO: Solo dati e configurazioni. Nessun metodo DOM.
  */
-
-// Definizione della query principale con tutti i JOIN necessari
-const ISSUE_DETAILS_QUERY = `
-    *,
-    annata (id, nome),
-    testata (id, nome),
-    tipo_pubblicazione (id, nome),
-    editore (
-        id, 
-        nome, 
-        immagine_url, 
-        codice_editore (id, nome, immagine_url)
-    ),
-    storie_in_issue (
-        posizione,
-        storie (
-            id,
-            nome,
-            personaggi_storie (
-                personaggio (id, nome, nome_originale, immagine_url)
-            )
-        )
-    )
-`;
-
-export const api = {
-    /**
-     * Recupera tutti gli albi di una serie specifica
-     */
-    async getIssuesBySerie(serieId) {
-        const { data, error } = await window.supabaseClient
-            .from('issue')
-            .select(ISSUE_DETAILS_QUERY)
-            .eq('serie_id', serieId)
-            .order('numero', { ascending: true }); // Ordinamento di base per numero
-
-        if (error) {
-            console.error("Errore API getIssuesBySerie:", error);
-            throw error;
+export const store = {
+    // Stato dinamico
+    state: {
+        issues: [],          // Array degli albi caricati (completi di storie/personaggi)
+        viewMode: 'grid',    // 'grid' | 'list'
+        filter: 'all',       // 'all' | 'celo' | 'manca'
+        searchQuery: '',
+        selectedSerie: { id: null, nome: "" }
+    },
+    
+    // Costanti e configurazioni
+    config: {
+        placeholders: {
+            cover: 'https://placehold.co/300x450/1e293b/fbbf24?text=Copertina+Assente',
+            avatar: 'https://placehold.co/100x100/1e293b/fbbf24?text=?',
+            logo: 'https://placehold.co/50x50/1e293b/fbbf24?text=Logo'
+        },
+        badgeColors: {
+            celo: 'bg-green-900 text-green-300 border-green-700',
+            manca: 'bg-red-900 text-red-300 border-red-700'
         }
-        return data;
-    },
-
-    /**
-     * Ricerca rapida serie per input suggerimenti
-     */
-    async searchSerie(searchTerm) {
-        const { data, error } = await window.supabaseClient
-            .from('serie')
-            .select('id, nome, immagine_url')
-            .ilike('nome', `%${searchTerm}%`)
-            .limit(10);
-
-        if (error) return [];
-        return data;
-    },
-
-    /**
-     * Recupera i dettagli di un singolo albo (incluso il supplemento se presente)
-     */
-    async getIssueById(issueId) {
-        const { data, error } = await window.supabaseClient
-            .from('issue')
-            .select(ISSUE_DETAILS_QUERY)
-            .eq('id', issueId)
-            .single();
-
-        if (error) throw error;
-        return data;
     }
 };
