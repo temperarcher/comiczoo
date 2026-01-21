@@ -1,5 +1,5 @@
 /**
- * VERSION: 8.0.0
+ * VERSION: 8.0.1
  * VINCOLO: Solo logica di alto livello e bridge tra UI e Render.
  */
 import { store } from './store.js';
@@ -8,13 +8,29 @@ import { render } from './render.js';
 document.addEventListener('DOMContentLoaded', async () => {
     console.log("Comics Manager v8.0 Inizializzato");
 
-    // 1. Inizializzazione: Carichiamo una serie predefinita (es. la prima trovata)
-    // In produzione, questo ID verrebbe preso dall'URL o da una selezione utente.
-    store.state.selectedSerie = { id: 'IL_TUO_SERIE_ID_QUI', nome: 'Serie Attuale' };
-    
-    // Primo caricamento della griglia
-    render.refreshGrid();
+// 1. Inizializzazione Automatica
+    try {
+        // Recuperiamo la prima serie disponibile per popolare la pagina
+        const { data: series, error } = await window.supabaseClient
+            .from('serie')
+            .select('id, nome')
+            .limit(1);
 
+        if (error) throw error;
+
+        if (series && series.length > 0) {
+            store.state.selectedSerie = { id: series[0].id, nome: series[0].nome };
+            console.log(`Serie caricata: ${series[0].nome}`);
+            
+            // Primo caricamento della griglia
+            await render.refreshGrid();
+        } else {
+            console.warn("Nessuna serie trovata nel database.");
+            document.getElementById('main-grid').innerHTML = "Nessuna serie disponibile.";
+        }
+    } catch (err) {
+        console.error("Errore durante l'inizializzazione:", err);
+    }
     // 2. Gestione Ricerca
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
