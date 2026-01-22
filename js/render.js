@@ -1,5 +1,5 @@
 /**
- * VERSION: 8.4.1
+ * VERSION: 8.4.1 
  */
 import { api } from './api.js';
 import { store } from './store.js';
