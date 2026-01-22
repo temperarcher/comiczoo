@@ -1,9 +1,9 @@
 /**
- * VERSION: 1.5.0 (Header v7.4 Consolidato + Atomizzazione)
- * SCOPO: Custode unico del design per evitare modifiche accidentali in index.html
+ * VERSION: 1.5.1 (Consolidamento Livello 2: Codici Bar v7.5)
+ * SCOPO: Design blindato. Header v7.4 + Codici Bar v7.5.
  */
 export const UI = {
-    // Ripristino esatto Header v7.4
+    // LIVELLO 1: HEADER (Consolidato)
     HEADER: () => `
         <header class="bg-slate-800 border-b border-slate-700 p-6 sticky top-0 z-50 shadow-2xl">
             <div class="container mx-auto flex flex-col lg:flex-row justify-between items-center gap-6">
@@ -40,6 +40,7 @@ export const UI = {
             </div>
         </header>`,
 
+    // LIVELLO 2: CODICI BAR (Consolidato v7.5)
     PUBLISHER_SECTION: (contentHtml) => `
         <section class="bg-slate-800/30 border-b border-slate-800 py-3">
             <div class="container mx-auto px-6">
@@ -49,6 +50,7 @@ export const UI = {
             </div>
         </section>`,
 
+    // LIVELLO 3: SERIE (In attesa di consolidamento)
     SERIE_SECTION: (contentHtml) => `
         <section class="max-w-7xl mx-auto px-4 mt-6">
             <div id="serie-showcase" class="flex gap-4 overflow-x-auto pb-4 no-scrollbar items-center">
@@ -59,7 +61,7 @@ export const UI = {
     MAIN_GRID_CONTAINER: () => `
         <main class="max-w-7xl mx-auto p-4 md:p-6">
             <div id="main-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                <div class="col-span-full text-center py-20 text-slate-600 italic">Seleziona una serie per iniziare</div>
+                <div class="col-span-full text-center py-20 text-slate-600 italic uppercase text-[10px] tracking-widest">Seleziona una serie per iniziare</div>
             </div>
         </main>`,
 
@@ -90,7 +92,7 @@ export const UI = {
         const activeClass = isActive 
             ? 'border-yellow-500 bg-yellow-500 text-black' 
             : 'border-slate-800 bg-slate-900/40 text-slate-500 hover:text-white hover:border-slate-600';
-        return `<div class="flex-none ${activeClass} border rounded-full w-14 h-14 md:w-16 md:h-16 flex items-center justify-center transition-all duration-300 cursor-pointer text-[10px] font-black uppercase tracking-tighter" id="reset-brand-filter">Tutti</div>`;
+        return `<div class="flex-none ${activeClass} border rounded-full w-14 h-14 md:w-16 md:h-16 flex items-center justify-center transition-all duration-300 cursor-pointer text-[10px] font-black uppercase tracking-tighter shadow-lg" id="reset-brand-filter">Tutti</div>`;
     },
 
     SERIE_ITEM: (serie) => `
