@@ -1,6 +1,5 @@
 /**
- * VERSION: 8.4.5
- * SCOPO: Gestione Render con Showcase Serie v7.5 (h-16 + object-contain)
+ * VERSION: 8.4.6
  */
 import { api } from './api.js';
 import { store } from './store.js';
@@ -18,9 +17,7 @@ export const render = {
     async refreshShowcases() {
         const pubSlot = document.getElementById('ui-publisher-bar');
         const serieSlot = document.getElementById('ui-serie-section');
-
         try {
-            // 1. Editori
             const { data: publishers } = await window.supabaseClient.from('codice_editore').select('*').order('nome');
             if (publishers && pubSlot) {
                 const pills = publishers.map(p => components.publisherPill(p)).join('');
@@ -28,11 +25,8 @@ export const render = {
                 pubSlot.innerHTML = UI.PUBLISHER_SECTION(allBtn + pills);
                 this.attachPublisherEvents();
             }
-
-            // 2. Serie (v7.5)
             let query = window.supabaseClient.from('serie').select(`id, nome, immagine_url, issue!inner ( editore!inner ( codice_editore_id ) )`);
             if (store.state.selectedBrand) query = query.eq('issue.editore.codice_editore_id', store.state.selectedBrand);
-
             const { data: series } = await query.order('nome');
             if (series && serieSlot) {
                 const uniqueSeries = Array.from(new Set(series.map(s => s.id))).map(id => series.find(s => s.id === id));
@@ -40,12 +34,16 @@ export const render = {
                 serieSlot.innerHTML = UI.SERIE_SECTION(items);
                 this.attachSerieEvents();
             }
-        } catch (e) { console.error("Showcase error:", e); }
+        } catch (e) { console.error(e); }
     },
 
     attachHeaderEvents() {
         const logo = document.getElementById('logo-reset');
         if (logo) logo.onclick = () => location.reload();
+
+        // Tasto NUOVO ALBO
+        const addBtn = document.getElementById('btn-add-albo');
+        if (addBtn) addBtn.onclick = () => this.openFormModal();
 
         const searchInput = document.getElementById('serie-search');
         if (searchInput) {
@@ -57,16 +55,54 @@ export const render = {
 
         document.querySelectorAll('[data-filter]').forEach(btn => {
             btn.onclick = () => {
-                document.querySelectorAll('[data-filter]').forEach(b => {
-                    b.classList.remove('active', 'bg-yellow-500', 'text-black');
-                    b.classList.add('bg-slate-800');
-                });
+                document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active', 'bg-yellow-500', 'text-black'));
                 btn.classList.add('active', 'bg-yellow-500', 'text-black');
-                btn.classList.remove('bg-slate-800');
                 store.state.filter = btn.dataset.filter;
                 this.refreshGrid();
             };
         });
+    },
+
+    async openIssueModal(id) {
+        const modal = document.getElementById('issue-modal');
+        const content = document.getElementById('modal-body');
+        const issue = store.state.issues.find(i => i.id == id);
+        if (!issue) return;
+        
+        content.innerHTML = components.renderModalContent(issue);
+        modal.classList.replace('hidden', 'flex');
+
+        // Evento tasto ✏️ dentro il modale
+        const editBtn = document.getElementById('edit-this-issue');
+        if (editBtn) editBtn.onclick = () => this.openFormModal(issue);
+
+        const closeBtn = document.getElementById('close-modal');
+        if (closeBtn) closeBtn.onclick = () => modal.classList.replace('flex', 'hidden');
+    },
+
+    // FUNZIONE PER APRIRE IL FORM (Sia Nuovo che Edit)
+    openFormModal(issue = null) {
+        const modal = document.getElementById('issue-modal');
+        const content = document.getElementById('modal-body');
+        
+        content.innerHTML = UI.ISSUE_FORM(issue || {});
+        modal.classList.replace('hidden', 'flex');
+
+        const cancelBtn = document.getElementById('cancel-form');
+        if (cancelBtn) cancelBtn.onclick = () => modal.classList.replace('flex', 'hidden');
+
+        const form = document.getElementById('form-albo');
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const payload = Object.fromEntries(formData.entries());
+            
+            // Logica placeholder per salvataggio
+            console.log("Salvataggio Albo:", payload);
+            alert("Salvataggio in corso... (Implementazione Supabase nel prossimo step)");
+            modal.classList.replace('flex', 'hidden');
+            await this.refreshGrid();
+        };
     },
 
     attachPublisherEvents() {
@@ -77,7 +113,6 @@ export const render = {
             await this.refreshShowcases();
             await this.refreshGrid();
         };
-
         document.querySelectorAll('[data-brand-id]').forEach(el => {
             el.onclick = async () => {
                 const bId = el.dataset.brandId;
@@ -90,55 +125,28 @@ export const render = {
     },
 
     attachSerieEvents() {
-        // Selezione Serie
         document.querySelectorAll('[data-serie-id]').forEach(el => {
             el.onclick = (e) => {
-                // Se clicco l'edit non seleziono la serie
                 if (e.target.closest('.btn-edit-serie')) return;
                 store.state.selectedSerie = { id: el.dataset.serieId };
                 this.refreshGrid();
-            };
-        });
-
-        // Tasto Edit Serie (✏️)
-        document.querySelectorAll('.btn-edit-serie').forEach(btn => {
-            btn.onclick = (e) => {
-                e.stopPropagation();
-                alert("Edit Serie ID: " + btn.dataset.editId);
             };
         });
     },
 
     async refreshGrid() {
         const container = document.getElementById('main-grid');
-        if (!container) return;
-        if (!store.state.selectedSerie) {
-            container.innerHTML = `<div class="col-span-full text-center py-20 text-slate-600 italic uppercase text-[10px] tracking-widest">Seleziona una serie per visualizzare gli albi</div>`;
-            return;
-        }
-
+        if (!container || !store.state.selectedSerie) return;
         try {
             store.state.issues = await api.getIssuesBySerie(store.state.selectedSerie.id);
             const filtered = store.state.issues.filter(i => {
                 const mF = store.state.filter === 'all' || i.possesso === store.state.filter;
                 const sQ = (store.state.searchQuery || "").toLowerCase();
-                return mF && ((i.nome || "").toLowerCase().includes(sQ) || (i.numero || "").toString().includes(sQ));
+                return mF && (i.nome.toLowerCase().includes(sQ) || i.numero.toString().includes(sQ));
             });
-
-            container.innerHTML = filtered.length ? filtered.map(i => components.issueCard(i)).join('') : `<div class="col-span-full text-center py-10 text-slate-500 uppercase text-[10px]">Nessun albo trovato.</div>`;
+            container.innerHTML = filtered.map(i => components.issueCard(i)).join('');
             this.attachCardEvents();
-        } catch (e) { console.error("Grid error:", e); }
-    },
-
-    async openIssueModal(id) {
-        const modal = document.getElementById('issue-modal');
-        const content = document.getElementById('modal-body');
-        const issue = store.state.issues.find(i => i.id == id);
-        if (!issue) return;
-        content.innerHTML = components.renderModalContent(issue);
-        modal.classList.replace('hidden', 'flex');
-        const closeBtn = document.getElementById('close-modal');
-        if (closeBtn) closeBtn.onclick = () => modal.classList.replace('flex', 'hidden');
+        } catch (e) { console.error(e); }
     },
 
     attachCardEvents() {
