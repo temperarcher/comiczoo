@@ -1,5 +1,6 @@
 /**
- * VERSION: 1.5.0 (Header v7.4 Consolidato)
+ * VERSION: 1.5.0 (Header v7.4 Consolidato + Atomizzazione)
+ * SCOPO: Custode unico del design per evitare modifiche accidentali in index.html
  */
 export const UI = {
     // Ripristino esatto Header v7.4
@@ -21,10 +22,10 @@ export const UI = {
                         </button>
                         
                         <div class="flex bg-slate-900 p-1 rounded-full border border-slate-700 mr-1">
-                            <button id="view-grid" class="view-btn active px-3 py-1.5 rounded-full transition-all" title="Vista Griglia">
+                            <button id="view-grid" class="view-btn active px-3 py-1.5 rounded-full transition-all text-slate-400 hover:text-white" title="Vista Griglia">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
                             </button>
-                            <button id="view-list" class="view-btn px-3 py-1.5 rounded-full transition-all" title="Vista Lista">
+                            <button id="view-list" class="view-btn px-3 py-1.5 rounded-full transition-all text-slate-400 hover:text-white" title="Vista Lista">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
                             </button>
                         </div>
@@ -38,7 +39,7 @@ export const UI = {
                 </div>
             </div>
         </header>`,
-    // PUBLISHER: Barra codici editori (v7.4)
+
     PUBLISHER_SECTION: (contentHtml) => `
         <section class="bg-slate-800/30 border-b border-slate-800 py-3">
             <div class="container mx-auto px-6">
@@ -48,7 +49,6 @@ export const UI = {
             </div>
         </section>`,
 
-    // SERIE: Showcase orizzontale
     SERIE_SECTION: (contentHtml) => `
         <section class="max-w-7xl mx-auto px-4 mt-6">
             <div id="serie-showcase" class="flex gap-4 overflow-x-auto pb-4 no-scrollbar items-center">
@@ -56,7 +56,6 @@ export const UI = {
             </div>
         </section>`,
 
-    // MAIN: Griglia principale
     MAIN_GRID_CONTAINER: () => `
         <main class="max-w-7xl mx-auto p-4 md:p-6">
             <div id="main-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
@@ -64,7 +63,6 @@ export const UI = {
             </div>
         </main>`,
 
-    // MODAL: Struttura fissa del modale
     MODAL_WRAPPER: () => `
         <div id="issue-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
             <div class="bg-slate-900 border border-slate-700 w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl relative custom-scrollbar">
@@ -77,14 +75,15 @@ export const UI = {
             </div>
         </div>`,
 
-    // Elementi atomici (già consolidati)
     PUBLISHER_PILL: (data, isActive) => {
         const activeClass = isActive 
             ? 'border-yellow-500 bg-yellow-500/10 shadow-[0_0_15px_rgba(234,179,8,0.2)] opacity-100 grayscale-0' 
             : 'border-slate-800 bg-slate-900/40 grayscale opacity-50 hover:opacity-100 hover:grayscale-0';
-        return `<div class="flex-none ${activeClass} border rounded-full w-14 h-14 md:w-16 md:h-16 flex items-center justify-center transition-all duration-300 cursor-pointer" data-brand-id="${data.id}" title="${data.nome}">
-                    <img src="${data.immagine_url}" class="w-8 md:w-10 h-8 md:h-10 object-contain">
-                </div>`;
+        return `
+            <div class="flex-none ${activeClass} border rounded-full w-14 h-14 md:w-16 md:h-16 flex items-center justify-center transition-all duration-300 cursor-pointer" 
+                 data-brand-id="${data.id}" title="${data.nome}">
+                <img src="${data.immagine_url}" class="w-8 md:w-10 h-8 md:h-10 object-contain">
+            </div>`;
     },
 
     ALL_PUBLISHERS_BUTTON: (isActive) => {
