@@ -1,6 +1,6 @@
 /**
- * VERSION: 8.4.4
- * SCOPO: Gestione Render con Item Codici Quadrati v7.5
+ * VERSION: 8.4.5
+ * SCOPO: Gestione Render con Showcase Serie v7.5 (h-16 + object-contain)
  */
 import { api } from './api.js';
 import { store } from './store.js';
@@ -20,6 +20,7 @@ export const render = {
         const serieSlot = document.getElementById('ui-serie-section');
 
         try {
+            // 1. Editori
             const { data: publishers } = await window.supabaseClient.from('codice_editore').select('*').order('nome');
             if (publishers && pubSlot) {
                 const pills = publishers.map(p => components.publisherPill(p)).join('');
@@ -28,6 +29,7 @@ export const render = {
                 this.attachPublisherEvents();
             }
 
+            // 2. Serie (v7.5)
             let query = window.supabaseClient.from('serie').select(`id, nome, immagine_url, issue!inner ( editore!inner ( codice_editore_id ) )`);
             if (store.state.selectedBrand) query = query.eq('issue.editore.codice_editore_id', store.state.selectedBrand);
 
@@ -88,10 +90,21 @@ export const render = {
     },
 
     attachSerieEvents() {
+        // Selezione Serie
         document.querySelectorAll('[data-serie-id]').forEach(el => {
-            el.onclick = () => {
+            el.onclick = (e) => {
+                // Se clicco l'edit non seleziono la serie
+                if (e.target.closest('.btn-edit-serie')) return;
                 store.state.selectedSerie = { id: el.dataset.serieId };
                 this.refreshGrid();
+            };
+        });
+
+        // Tasto Edit Serie (✏️)
+        document.querySelectorAll('.btn-edit-serie').forEach(btn => {
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                alert("Edit Serie ID: " + btn.dataset.editId);
             };
         });
     },
