@@ -1,6 +1,6 @@
 /**
- * VERSION: 8.4.2
- * SCOPO: Gestione Render, Eventi e Iniezione Atomica
+ * VERSION: 8.4.3
+ * SCOPO: Gestione Render con Livello 1 e 2 Consolidati.
  */
 import { api } from './api.js';
 import { store } from './store.js';
@@ -21,11 +21,12 @@ export const render = {
         const serieSlot = document.getElementById('ui-serie-section');
 
         try {
-            // 1. Showcase Editori
+            // 1. Showcase Editori (Livello 2 Consolidato)
             const { data: publishers } = await window.supabaseClient.from('codice_editore').select('*').order('nome');
             if (publishers && pubSlot) {
                 const pills = publishers.map(p => components.publisherPill(p)).join('');
                 const allBtn = UI.ALL_PUBLISHERS_BUTTON(!store.state.selectedBrand);
+                // Iniezione atomica della section v7.5
                 pubSlot.innerHTML = UI.PUBLISHER_SECTION(allBtn + pills);
                 this.attachPublisherEvents();
             }
@@ -45,11 +46,9 @@ export const render = {
     },
 
     attachHeaderEvents() {
-        // Logo Reset
         const logo = document.getElementById('logo-reset');
         if (logo) logo.onclick = () => location.reload();
 
-        // Ricerca Serie
         const searchInput = document.getElementById('serie-search');
         if (searchInput) {
             searchInput.oninput = (e) => {
@@ -58,7 +57,6 @@ export const render = {
             };
         }
 
-        // Filtri Celo/Manca
         document.querySelectorAll('[data-filter]').forEach(btn => {
             btn.onclick = () => {
                 document.querySelectorAll('[data-filter]').forEach(b => {
@@ -72,15 +70,8 @@ export const render = {
             };
         });
 
-        // Tasto Nuovo Albo
         const addBtn = document.getElementById('btn-add-albo');
-        if (addBtn) addBtn.onclick = () => alert("Funzionalità Nuovo Albo v7.4 in arrivo!");
-
-        // Switch Vista
-        const vGrid = document.getElementById('view-grid');
-        const vList = document.getElementById('view-list');
-        if (vGrid) vGrid.onclick = () => console.log("Vista Griglia");
-        if (vList) vList.onclick = () => console.log("Vista Lista");
+        if (addBtn) addBtn.onclick = () => alert("Nuovo Albo!");
     },
 
     attachPublisherEvents() {
@@ -128,7 +119,7 @@ export const render = {
                 return mF && ((i.nome || "").toLowerCase().includes(sQ) || (i.numero || "").toString().includes(sQ));
             });
 
-            container.innerHTML = filtered.length ? filtered.map(i => components.issueCard(i)).join('') : `<div class="col-span-full text-center py-10 text-slate-500 uppercase text-[10px]">Nessun albo trovato in questa serie.</div>`;
+            container.innerHTML = filtered.length ? filtered.map(i => components.issueCard(i)).join('') : `<div class="col-span-full text-center py-10 text-slate-500 uppercase text-[10px]">Nessun albo trovato.</div>`;
             this.attachCardEvents();
         } catch (e) { console.error("Grid error:", e); }
     },
