@@ -1,16 +1,6 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
+| js/ui.js      | 1.2.0 | Ripristino esatto pillole circolari (w-16 h-16) e tasto "Tutti" integrato nello showcase editori (v7.4). |
+| js/render.js  | 8.3.2 | Modifica refreshShowcases per includere UI.ALL_PUBLISHERS_BUTTON come primo elemento. |
+| index.html    | 8.3.1 | Rimozione filtri testuali header per favorire lo showcase grafico v7.4. |
 | js/components.js | 8.3.1 | Fix mappatura storie e personaggi per iniezione modale. |
 | js/render.js     | 8.3.3 | Fix apertura modale e aggiornamento automatico griglia al cambio brand. |
 | js/api.js        | 8.3.4 | Correzione ISSUE_DETAILS_QUERY per includere correttamente storia_in_issue. |
@@ -18,3 +8,7 @@
 | js/render.js     | 8.3.4 | Aggiunto console.log di debug e fix evento click sulle card. |
 | js/components.js | 8.3.3 | Risolto TypeError: assicurata presenza e export di renderModalContent. |
 | js/render.js     | 8.3.5 | Aggiunto check typeof per prevenire crash su chiamate a funzioni mancanti. |
+| index.html    | 8.4.0 | Atomizzazione completa. Il file contiene solo gli "slot" ID di iniezione. |
+| js/ui.js      | 1.4.0 | Blindati tutti i layout (Header, Main, Modal, Sections) della v7.4. |
+| js/render.js  | 8.4.1 | Aggiunta funzione initLayout() per il montaggio dinamico dell'interfaccia. |
+| js/main.js    | 8.4.0 | Orchestrazione del montaggio UI seguito dal caricamento dati Supabase. |
