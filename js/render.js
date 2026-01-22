@@ -1,5 +1,6 @@
 /**
- * VERSION: 8.4.1 
+ * VERSION: 8.4.2
+ * SCOPO: Gestione Render, Eventi e Iniezione Atomica
  */
 import { api } from './api.js';
 import { store } from './store.js';
@@ -20,6 +21,7 @@ export const render = {
         const serieSlot = document.getElementById('ui-serie-section');
 
         try {
+            // 1. Showcase Editori
             const { data: publishers } = await window.supabaseClient.from('codice_editore').select('*').order('nome');
             if (publishers && pubSlot) {
                 const pills = publishers.map(p => components.publisherPill(p)).join('');
@@ -28,6 +30,7 @@ export const render = {
                 this.attachPublisherEvents();
             }
 
+            // 2. Showcase Serie
             let query = window.supabaseClient.from('serie').select(`id, nome, immagine_url, issue!inner ( editore!inner ( codice_editore_id ) )`);
             if (store.state.selectedBrand) query = query.eq('issue.editore.codice_editore_id', store.state.selectedBrand);
 
@@ -38,11 +41,16 @@ export const render = {
                 serieSlot.innerHTML = UI.SERIE_SECTION(items);
                 this.attachSerieEvents();
             }
-        } catch (e) { console.error(e); }
+        } catch (e) { console.error("Showcase error:", e); }
     },
 
     attachHeaderEvents() {
-        const searchInput = document.getElementById('search-input');
+        // Logo Reset
+        const logo = document.getElementById('logo-reset');
+        if (logo) logo.onclick = () => location.reload();
+
+        // Ricerca Serie
+        const searchInput = document.getElementById('serie-search');
         if (searchInput) {
             searchInput.oninput = (e) => {
                 store.state.searchQuery = e.target.value;
@@ -50,12 +58,29 @@ export const render = {
             };
         }
 
+        // Filtri Celo/Manca
         document.querySelectorAll('[data-filter]').forEach(btn => {
             btn.onclick = () => {
+                document.querySelectorAll('[data-filter]').forEach(b => {
+                    b.classList.remove('active', 'bg-yellow-500', 'text-black');
+                    b.classList.add('bg-slate-800');
+                });
+                btn.classList.add('active', 'bg-yellow-500', 'text-black');
+                btn.classList.remove('bg-slate-800');
                 store.state.filter = btn.dataset.filter;
                 this.refreshGrid();
             };
         });
+
+        // Tasto Nuovo Albo
+        const addBtn = document.getElementById('btn-add-albo');
+        if (addBtn) addBtn.onclick = () => alert("Funzionalità Nuovo Albo v7.4 in arrivo!");
+
+        // Switch Vista
+        const vGrid = document.getElementById('view-grid');
+        const vList = document.getElementById('view-list');
+        if (vGrid) vGrid.onclick = () => console.log("Vista Griglia");
+        if (vList) vList.onclick = () => console.log("Vista Lista");
     },
 
     attachPublisherEvents() {
@@ -89,7 +114,11 @@ export const render = {
 
     async refreshGrid() {
         const container = document.getElementById('main-grid');
-        if (!container || !store.state.selectedSerie) return;
+        if (!container) return;
+        if (!store.state.selectedSerie) {
+            container.innerHTML = `<div class="col-span-full text-center py-20 text-slate-600 italic uppercase text-[10px] tracking-widest">Seleziona una serie per visualizzare gli albi</div>`;
+            return;
+        }
 
         try {
             store.state.issues = await api.getIssuesBySerie(store.state.selectedSerie.id);
@@ -99,9 +128,9 @@ export const render = {
                 return mF && ((i.nome || "").toLowerCase().includes(sQ) || (i.numero || "").toString().includes(sQ));
             });
 
-            container.innerHTML = filtered.length ? filtered.map(i => components.issueCard(i)).join('') : `<div class="col-span-full text-center py-10 text-slate-500">Nessun albo trovato.</div>`;
+            container.innerHTML = filtered.length ? filtered.map(i => components.issueCard(i)).join('') : `<div class="col-span-full text-center py-10 text-slate-500 uppercase text-[10px]">Nessun albo trovato in questa serie.</div>`;
             this.attachCardEvents();
-        } catch (e) { console.error(e); }
+        } catch (e) { console.error("Grid error:", e); }
     },
 
     async openIssueModal(id) {
