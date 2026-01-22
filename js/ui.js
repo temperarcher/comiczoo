@@ -1,6 +1,5 @@
 /**
- * VERSION: 1.5.2 (Affinamento Livello 2: Item Codici Bar v7.5)
- * SCOPO: Design blindato. Header v7.4 + Item Codici Bar Quadrati v7.5.
+ * VERSION: 1.6.0 (Consolidamento Livello 3: Showcase Serie v7.5)
  */
 export const UI = {
     // LIVELLO 1: HEADER (Consolidato v7.4)
@@ -50,48 +49,41 @@ export const UI = {
             </div>
         </section>`,
 
-    // LIVELLO 2 AFFINATO: ITEM CODICE (Quadrato v7.5)
     PUBLISHER_PILL: (data, isActive) => {
-        const activeState = isActive 
-            ? 'border-yellow-500 grayscale-0 ring-2 ring-yellow-500/20' 
-            : 'border-slate-700 grayscale hover:grayscale-0';
-        
+        const activeState = isActive ? 'border-yellow-500 grayscale-0 ring-2 ring-yellow-500/20' : 'border-slate-700 grayscale hover:grayscale-0';
         return `
             <div id="codice-${data.id}" data-brand-id="${data.id}" 
                  class="codice-item codice-item-square flex-none w-14 h-14 md:w-16 md:h-16 bg-slate-800 border ${activeState} rounded-lg overflow-hidden flex items-center justify-center p-0 cursor-pointer transition-all duration-300">
-                 <img src="${data.immagine_url}" alt="${data.nome}" title="${data.nome}" class="w-full h-full object-cover transition-all">
+                 <img src="${data.immagine_url}" alt="${data.nome}" title="${data.nome}" class="w-full h-full object-cover">
             </div>`;
     },
 
     ALL_PUBLISHERS_BUTTON: (isActive) => {
-        const activeClass = isActive 
-            ? 'border-yellow-500 bg-yellow-500 text-black shadow-lg shadow-yellow-500/20' 
-            : 'border-slate-700 bg-slate-900/40 text-slate-500 hover:text-white hover:border-slate-600';
-        return `
-            <div id="reset-brand-filter" 
-                 class="flex-none w-14 h-14 md:w-16 md:h-16 border ${activeClass} rounded-lg flex items-center justify-center transition-all duration-300 cursor-pointer text-[10px] font-black uppercase tracking-tighter">
-                 Tutti
-            </div>`;
+        const activeClass = isActive ? 'border-yellow-500 bg-yellow-500 text-black shadow-lg shadow-yellow-500/20' : 'border-slate-700 bg-slate-900/40 text-slate-500 hover:text-white hover:border-slate-600';
+        return `<div id="reset-brand-filter" class="flex-none w-14 h-14 md:w-16 md:h-16 border ${activeClass} rounded-lg flex items-center justify-center transition-all duration-300 cursor-pointer text-[10px] font-black uppercase tracking-tighter">Tutti</div>`;
     },
 
-    // LIVELLO 3: SERIE
+    // LIVELLO 3: SEZIONE SERIE (Ripristino integrale v7.5)
     SERIE_SECTION: (contentHtml) => `
-        <section class="max-w-7xl mx-auto px-4 mt-6">
-            <div id="serie-showcase" class="flex gap-4 overflow-x-auto pb-4 no-scrollbar items-center">
-                ${contentHtml}
+        <section class="bg-slate-900/50 border-b border-slate-800 py-4 overflow-hidden">
+            <div class="container mx-auto px-6">
+                <div id="serie-showcase" class="flex gap-4 overflow-x-auto pb-2 custom-scrollbar items-center">
+                    ${contentHtml}
+                </div>
             </div>
         </section>`,
 
     SERIE_ITEM: (serie) => `
-        <div class="flex-none group cursor-pointer" data-serie-id="${serie.id}" title="${serie.nome}">
-            <div class="relative overflow-hidden rounded-lg border border-slate-800 group-hover:border-yellow-500 transition-all shadow-lg">
-                <img src="${serie.immagine_url}" class="h-40 md:h-48 w-auto object-cover transition-transform group-hover:scale-105">
-                <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
-                    <p class="text-[8px] font-bold text-white truncate uppercase tracking-widest">${serie.nome}</p>
-                </div>
+        <div class="serie-showcase-item shrink-0 h-16 bg-slate-800 border border-slate-700 rounded-lg overflow-hidden cursor-pointer shadow-lg relative group" data-serie-id="${serie.id}">
+            <div class="h-full">
+                <img src="${serie.immagine_url}" title="${serie.nome}" class="h-full w-auto object-contain transition-transform group-hover:scale-105">
             </div>
+            <button class="btn-edit-serie absolute top-1 right-1 bg-yellow-500 text-slate-900 p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity text-[10px] z-10" data-edit-id="${serie.id}">
+                ✏️
+            </button>
         </div>`,
 
+    // MAIN E MODALI
     MAIN_GRID_CONTAINER: () => `
         <main class="max-w-7xl mx-auto p-4 md:p-6">
             <div id="main-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"></div>
@@ -117,9 +109,7 @@ export const UI = {
         <div id="issue-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
             <div class="bg-slate-900 border border-slate-700 w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl relative custom-scrollbar">
                 <button id="close-modal" class="absolute top-4 right-4 text-slate-400 hover:text-white z-10 transition-all hover:rotate-90">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
                 <div id="modal-body" class="p-6"></div>
             </div>
