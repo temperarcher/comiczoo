@@ -1,6 +1,6 @@
 /**
- * VERSION: 8.4.3
- * SCOPO: Gestione Render con Livello 1 e 2 Consolidati.
+ * VERSION: 8.4.4
+ * SCOPO: Gestione Render con Item Codici Quadrati v7.5
  */
 import { api } from './api.js';
 import { store } from './store.js';
@@ -8,7 +8,6 @@ import { components } from './components.js';
 import { UI } from './ui.js';
 
 export const render = {
-    // Inizializza i componenti statici dell'interfaccia
     initLayout() {
         document.getElementById('ui-header').innerHTML = UI.HEADER();
         document.getElementById('ui-main-content').innerHTML = UI.MAIN_GRID_CONTAINER();
@@ -21,17 +20,14 @@ export const render = {
         const serieSlot = document.getElementById('ui-serie-section');
 
         try {
-            // 1. Showcase Editori (Livello 2 Consolidato)
             const { data: publishers } = await window.supabaseClient.from('codice_editore').select('*').order('nome');
             if (publishers && pubSlot) {
                 const pills = publishers.map(p => components.publisherPill(p)).join('');
                 const allBtn = UI.ALL_PUBLISHERS_BUTTON(!store.state.selectedBrand);
-                // Iniezione atomica della section v7.5
                 pubSlot.innerHTML = UI.PUBLISHER_SECTION(allBtn + pills);
                 this.attachPublisherEvents();
             }
 
-            // 2. Showcase Serie
             let query = window.supabaseClient.from('serie').select(`id, nome, immagine_url, issue!inner ( editore!inner ( codice_editore_id ) )`);
             if (store.state.selectedBrand) query = query.eq('issue.editore.codice_editore_id', store.state.selectedBrand);
 
@@ -69,9 +65,6 @@ export const render = {
                 this.refreshGrid();
             };
         });
-
-        const addBtn = document.getElementById('btn-add-albo');
-        if (addBtn) addBtn.onclick = () => alert("Nuovo Albo!");
     },
 
     attachPublisherEvents() {
