@@ -1,6 +1,6 @@
 /**
- * VERSION: 8.4.7
- * FIX: Ripristino logica filtri Celo/Manca e caricamento albi per serie.
+ * VERSION: 8.4.8
+ * FIX: Logica di filtraggio blindata e caricamento forzato griglia.
  */
 import { api } from './api.js';
 import { store } from './store.js';
@@ -19,7 +19,6 @@ export const render = {
         const pubSlot = document.getElementById('ui-publisher-bar');
         const serieSlot = document.getElementById('ui-serie-section');
         try {
-            // 1. Showcase Editori
             const { data: publishers } = await window.supabaseClient.from('codice_editore').select('*').order('nome');
             if (publishers && pubSlot) {
                 const pills = publishers.map(p => components.publisherPill(p)).join('');
@@ -28,15 +27,11 @@ export const render = {
                 this.attachPublisherEvents();
             }
 
-            // 2. Showcase Serie
             let query = window.supabaseClient.from('serie').select(`id, nome, immagine_url, issue!inner ( editore!inner ( codice_editore_id ) )`);
-            if (store.state.selectedBrand) {
-                query = query.eq('issue.editore.codice_editore_id', store.state.selectedBrand);
-            }
+            if (store.state.selectedBrand) query = query.eq('issue.editore.codice_editore_id', store.state.selectedBrand);
 
             const { data: series } = await query.order('nome');
             if (series && serieSlot) {
-                // Rimuovo duplicati derivanti dalla join con issue
                 const uniqueSeries = Array.from(new Set(series.map(s => s.id))).map(id => series.find(s => s.id === id));
                 const items = uniqueSeries.map(s => components.serieShowcaseItem(s)).join('');
                 serieSlot.innerHTML = UI.SERIE_SECTION(items);
@@ -46,31 +41,21 @@ export const render = {
     },
 
     attachHeaderEvents() {
-        const logo = document.getElementById('logo-reset');
-        if (logo) logo.onclick = () => location.reload();
-
-        // Cerca Serie (Filtro testuale sulla griglia)
         const searchInput = document.getElementById('serie-search');
         if (searchInput) {
             searchInput.oninput = (e) => {
                 store.state.searchQuery = e.target.value;
-                this.refreshGrid(); // Riesegue il filtro sui dati in memoria
+                this.refreshGrid(); // Riesegue il filtro sui dati
             };
         }
 
-        // Gestione Filtri Celo/Manca/Tutti
+        // Selezione filtri Celo/Manca
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.onclick = () => {
-                // UI Update
-                document.querySelectorAll('.filter-btn').forEach(b => {
-                    b.classList.remove('active', 'bg-yellow-500', 'text-black');
-                    b.classList.add('text-slate-400'); // Stato inattivo
-                });
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active', 'bg-yellow-500', 'text-black'));
                 btn.classList.add('active', 'bg-yellow-500', 'text-black');
-                btn.classList.remove('text-slate-400');
-
-                // State Update & Render
                 store.state.filter = btn.dataset.filter;
+                console.log("Filtro impostato a:", store.state.filter);
                 this.refreshGrid();
             };
         });
@@ -83,16 +68,15 @@ export const render = {
         const resetBtn = document.getElementById('reset-brand-filter');
         if (resetBtn) resetBtn.onclick = async () => {
             store.state.selectedBrand = null;
-            store.state.selectedSerie = null; // Reset serie quando cambio editore
+            store.state.selectedSerie = null;
             await this.refreshShowcases();
             await this.refreshGrid();
         };
 
         document.querySelectorAll('[data-brand-id]').forEach(el => {
             el.onclick = async () => {
-                const bId = el.dataset.brandId;
-                store.state.selectedBrand = (store.state.selectedBrand == bId) ? null : bId;
-                store.state.selectedSerie = null; // Reset serie quando cambio editore
+                store.state.selectedBrand = el.dataset.brandId;
+                store.state.selectedSerie = null;
                 await this.refreshShowcases();
                 await this.refreshGrid();
             };
@@ -104,61 +88,68 @@ export const render = {
             el.onclick = async (e) => {
                 if (e.target.closest('.btn-edit-serie')) return;
                 
-                // Evidenzia visivamente la serie selezionata (opzionale, ma utile)
-                document.querySelectorAll('.serie-showcase-item').forEach(s => s.classList.remove('ring-2', 'ring-yellow-500'));
+                // Feedback visivo selezione
+                document.querySelectorAll('.serie-showcase-item').forEach(i => i.classList.remove('ring-2', 'ring-yellow-500'));
                 el.classList.add('ring-2', 'ring-yellow-500');
 
                 store.state.selectedSerie = { id: el.dataset.serieId };
-                await this.refreshGrid(); // Carica gli albi della serie
+                console.log("Serie selezionata:", store.state.selectedSerie.id);
+                
+                // Carico i dati e forzo il render
+                store.state.issues = await api.getIssuesBySerie(store.state.selectedSerie.id);
+                this.refreshGrid();
             };
         });
     },
 
-    async refreshGrid() {
+    refreshGrid() {
         const container = document.getElementById('main-grid');
         if (!container) return;
 
-        // Se nessuna serie è selezionata, mostra messaggio placeholder
         if (!store.state.selectedSerie) {
             container.innerHTML = `<div class="col-span-full text-center py-20 text-slate-600 italic uppercase text-[10px] tracking-widest">Seleziona una serie per visualizzare gli albi</div>`;
             return;
         }
 
-        try {
-            // Fetch dati se non presenti o se la serie è cambiata
-            // Nota: per semplicità ricarichiamo sempre al click della serie
-            store.state.issues = await api.getIssuesBySerie(store.state.selectedSerie.id);
+        // 1. Prendo i dati correnti dallo store
+        const allIssues = store.state.issues || [];
+        
+        // 2. Applico i filtri in cascata
+        const filtered = allIssues.filter(issue => {
+            // Filtro Celo/Manca
+            const matchStatus = store.state.filter === 'all' || issue.possesso === store.state.filter;
+            
+            // Filtro Ricerca (Nome o Numero)
+            const searchStr = (store.state.searchQuery || "").toLowerCase();
+            const matchSearch = issue.nome.toLowerCase().includes(searchStr) || 
+                                issue.numero.toString().includes(searchStr);
+            
+            return matchStatus && matchSearch;
+        });
 
-            // Logica di Filtraggio (Filtro + Search)
-            const filtered = store.state.issues.filter(i => {
-                const matchesFilter = store.state.filter === 'all' || i.possesso === store.state.filter;
-                const matchesSearch = i.nome.toLowerCase().includes((store.state.searchQuery || "").toLowerCase()) || 
-                                      i.numero.toString().includes(store.state.searchQuery || "");
-                return matchesFilter && matchesSearch;
-            });
+        console.log(`Grid Refresh: ${filtered.length} albi trovati su ${allIssues.length}`);
 
-            if (filtered.length === 0) {
-                container.innerHTML = `<div class="col-span-full text-center py-10 text-slate-500 uppercase text-[10px]">Nessun albo trovato con questi filtri.</div>`;
-            } else {
-                container.innerHTML = filtered.map(i => components.issueCard(i)).join('');
-                this.attachCardEvents();
-            }
-        } catch (e) { 
-            console.error("Errore caricamento griglia:", e);
-            container.innerHTML = `<div class="col-span-full text-center text-red-500">Errore nel caricamento degli albi.</div>`;
+        // 3. Render
+        if (filtered.length === 0) {
+            container.innerHTML = `<div class="col-span-full text-center py-10 text-slate-500 uppercase text-[10px]">Nessun albo trovato.</div>`;
+        } else {
+            container.innerHTML = filtered.map(i => components.issueCard(i)).join('');
+            this.attachCardEvents();
         }
     },
 
-    // ... (restanti metodi openIssueModal, openFormModal, attachCardEvents rimangono invariati)
     async openIssueModal(id) {
         const modal = document.getElementById('issue-modal');
         const content = document.getElementById('modal-body');
         const issue = store.state.issues.find(i => i.id == id);
         if (!issue) return;
+        
         content.innerHTML = components.renderModalContent(issue);
         modal.classList.replace('hidden', 'flex');
+
         const editBtn = document.getElementById('edit-this-issue');
         if (editBtn) editBtn.onclick = () => this.openFormModal(issue);
+
         const closeBtn = document.getElementById('close-modal');
         if (closeBtn) closeBtn.onclick = () => modal.classList.replace('flex', 'hidden');
     },
@@ -168,14 +159,17 @@ export const render = {
         const content = document.getElementById('modal-body');
         content.innerHTML = UI.ISSUE_FORM(issue || {});
         modal.classList.replace('hidden', 'flex');
-        const cancelBtn = document.getElementById('cancel-form');
-        if (cancelBtn) cancelBtn.onclick = () => modal.classList.replace('flex', 'hidden');
+        
+        document.getElementById('cancel-form').onclick = () => modal.classList.replace('flex', 'hidden');
+        
         const form = document.getElementById('form-albo');
         form.onsubmit = async (e) => {
             e.preventDefault();
-            alert("Salvataggio... implementare api.saveIssue");
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+            console.log("Dati inviati:", data);
+            alert("Salvataggio simulato!");
             modal.classList.replace('flex', 'hidden');
-            await this.refreshGrid();
         };
     },
 
