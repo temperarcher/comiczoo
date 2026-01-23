@@ -1,7 +1,7 @@
 /**
- * VERSION: 8.6.7 (Integrale - Supplemento filtrato e ordinato A-Z)
+ * VERSION: 8.6.8 (Chirurgica - Menu Condizione 1-5 e recupero valore)
  * NOTA: Gestisce la dipendenza gerarchica completa e il recupero albi per supplemento.
- * MODIFICHE CHIRURGICHE: Copiare e incollare le parti non modificate.
+ * MODIFICHE CHIRURGICHE: Sostituzione input condizione con select e recupero valore in Edit.
  * MANTENERE I COMMENTI SEZIONALI: Aggiornarli se necessario ma lasciarli sempre presenti.
  */
 import { api } from './api.js';
@@ -156,6 +156,15 @@ export const render = {
                 ${listaOrdinata.map(a => `<option value="${a.id}" data-codice="${a.codice}">${a.label}</option>`).join('')}
             </select>`;
 
+        // --- INIEZIONE CONDIZIONE ---
+        const condWrapper = content.querySelector('input[name="condizione"]').parentElement;
+        const labelStati = ["Lettura", "Discreto", "Buono", "Ottimo", "Edicola"];
+        condWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Condizione</label>
+            <select name="condizione" id="select-condizione" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
+                <option value="">Nessuna (null)</option>
+                ${labelStati.map((s, idx) => `<option value="${idx + 1}">${s}</option>`).join('')}
+            </select>`;
+
         // Iniezione Annata e Testata
         const annataWrapper = content.querySelector('input[name="annata"]').parentElement;
         annataWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Annata</label>
@@ -179,6 +188,7 @@ export const render = {
         const selectAnnata = document.getElementById('select-annata');
         const selectTestata = document.getElementById('select-testata');
         const selectSupplemento = document.getElementById('select-supplemento');
+        const selectCondizione = document.getElementById('select-condizione');
 
         // --- LOGICA FILTRAGGIO DINAMICO ---
         const syncEditoriESupplementi = (codiceId, targetEditoreId = null) => {
@@ -223,6 +233,8 @@ export const render = {
                 syncSerieDependents(issue.serie_id, issue.annata_id, issue.testata_id);
             }
             if (issue.supplemento_id) selectSupplemento.value = issue.supplemento_id;
+            // Recupero valore condizione
+            if (issue.condizione) selectCondizione.value = issue.condizione;
         }
 
         document.getElementById('cancel-form').onclick = () => modal.classList.replace('flex', 'hidden');
