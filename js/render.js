@@ -1,6 +1,6 @@
 /**
- * VERSION: 8.6.4 (Integrale - Ripristino 8.6.1 con Fix Annata in Supplemento)
- * NOTA: Risolto l'errore di riferimento this e aggiunta Annata nella stringa supplemento.
+ * VERSION: 8.6.5 (Integrale - Base 8.6.0 + Logica Supplemento con Annata)
+ * NOTA: Gestisce la dipendenza gerarchica completa e il recupero albi per supplemento.
  */
 import { api } from './api.js';
 import { store } from './store.js';
@@ -15,7 +15,6 @@ export const render = {
         this.attachHeaderEvents();
     },
 
-    // --- SEZIONE SHOWCASE (v7.5) ---
     async refreshShowcases() {
         const pubSlot = document.getElementById('ui-publisher-bar');
         const serieSlot = document.getElementById('ui-serie-section');
@@ -27,10 +26,8 @@ export const render = {
                 pubSlot.innerHTML = UI.PUBLISHER_SECTION(allBtn + pills);
                 this.attachPublisherEvents();
             }
-
             let query = window.supabaseClient.from('serie').select(`id, nome, immagine_url, issue!inner ( editore!inner ( codice_editore_id ) )`);
             if (store.state.selectedBrand) query = query.eq('issue.editore.codice_editore_id', store.state.selectedBrand);
-
             const { data: series } = await query.order('nome');
             if (series && serieSlot) {
                 const uniqueSeries = Array.from(new Set(series.map(s => s.id))).map(id => series.find(s => s.id === id));
@@ -38,10 +35,9 @@ export const render = {
                 serieSlot.innerHTML = UI.SERIE_SECTION(items);
                 this.attachSerieEvents();
             }
-        } catch (e) { console.error("Errore Showcases:", e); }
+        } catch (e) { console.error(e); }
     },
 
-    // --- SEZIONE EVENTI HEADER ---
     attachHeaderEvents() {
         const logo = document.getElementById('logo-reset');
         if (logo) logo.onclick = () => location.reload();
@@ -49,42 +45,27 @@ export const render = {
         if (searchInput) searchInput.oninput = (e) => { store.state.searchQuery = e.target.value; this.refreshGrid(); };
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.onclick = () => {
-                document.querySelectorAll('.filter-btn').forEach(b => {
-                    b.classList.remove('active', 'bg-yellow-500', 'text-black');
-                    b.classList.add('text-slate-400');
-                });
-                btn.classList.add('active', 'bg-yellow-500', 'text-black');
-                btn.classList.remove('text-slate-400');
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.replace('bg-yellow-500', 'text-slate-400'));
+                btn.classList.replace('text-slate-400', 'bg-yellow-500');
                 store.state.filter = btn.dataset.filter;
                 this.refreshGrid();
             };
         });
-        const addBtn = document.getElementById('btn-add-albo');
-        if (addBtn) addBtn.onclick = () => this.openFormModal();
+        document.getElementById('btn-add-albo').onclick = () => this.openFormModal();
     },
 
-    // --- SEZIONE EVENTI PUBLISHER ---
     attachPublisherEvents() {
         const resetBtn = document.getElementById('reset-brand-filter');
-        if (resetBtn) resetBtn.onclick = async () => {
-            store.state.selectedBrand = null; store.state.selectedSerie = null;
-            await this.refreshShowcases(); await this.refreshGrid();
-        };
+        if (resetBtn) resetBtn.onclick = async () => { store.state.selectedBrand = null; await this.refreshShowcases(); this.refreshGrid(); };
         document.querySelectorAll('[data-brand-id]').forEach(el => {
-            el.onclick = async () => {
-                store.state.selectedBrand = el.dataset.brandId; store.state.selectedSerie = null;
-                await this.refreshShowcases(); await this.refreshGrid();
-            };
+            el.onclick = async () => { store.state.selectedBrand = el.dataset.brandId; await this.refreshShowcases(); this.refreshGrid(); };
         });
     },
 
-    // --- SEZIONE EVENTI SERIE ---
     attachSerieEvents() {
         document.querySelectorAll('[data-serie-id]').forEach(el => {
             el.onclick = async (e) => {
                 if (e.target.closest('.btn-edit-serie')) return;
-                document.querySelectorAll('.serie-showcase-item').forEach(i => i.classList.remove('ring-2', 'ring-yellow-500'));
-                el.classList.add('ring-2', 'ring-yellow-500');
                 store.state.selectedSerie = { id: el.dataset.serieId };
                 store.state.issues = await api.getIssuesBySerie(store.state.selectedSerie.id);
                 this.refreshGrid();
@@ -92,36 +73,22 @@ export const render = {
         });
     },
 
-    // --- SEZIONE RENDER GRIGLIA ---
     refreshGrid() {
         const container = document.getElementById('main-grid');
-        if (!container) return;
-        if (!store.state.selectedSerie) {
-            container.innerHTML = `<div class="col-span-full text-center py-20 text-slate-600 italic uppercase text-[10px] tracking-widest">Seleziona una serie per visualizzare gli albi</div>`;
-            return;
-        }
-        const filtered = (store.state.issues || []).filter(issue => {
-            const matchStatus = store.state.filter === 'all' || issue.possesso === store.state.filter;
-            const matchSearch = (issue.nome || "").toLowerCase().includes((store.state.searchQuery || "").toLowerCase()) || 
-                               (issue.numero || "").toString().toLowerCase().includes((store.state.searchQuery || "").toLowerCase());
-            return matchStatus && matchSearch;
-        });
-        container.innerHTML = filtered.length === 0 ? `<div class="col-span-full text-center py-10 text-slate-500 uppercase text-[10px]">Nessun albo trovato.</div>` : filtered.map(i => components.issueCard(i)).join('');
+        if (!container || !store.state.selectedSerie) return;
+        const filtered = (store.state.issues || []).filter(i => (store.state.filter === 'all' || i.possesso === store.state.filter));
+        container.innerHTML = filtered.map(i => components.issueCard(i)).join('');
         this.attachCardEvents();
     },
 
-    // --- SEZIONE MODALE VISUALIZZAZIONE ---
     async openIssueModal(id) {
         const modal = document.getElementById('issue-modal');
-        const content = document.getElementById('modal-body');
         const issue = store.state.issues.find(i => i.id == id);
         if (!issue) return;
-        content.innerHTML = components.renderModalContent(issue);
+        document.getElementById('modal-body').innerHTML = components.renderModalContent(issue);
         modal.classList.replace('hidden', 'flex');
-        const editBtn = document.getElementById('edit-this-issue');
-        if (editBtn) editBtn.onclick = () => this.openFormModal(issue);
-        const closeBtn = document.getElementById('close-modal');
-        if (closeBtn) closeBtn.onclick = () => modal.classList.replace('flex', 'hidden');
+        document.getElementById('edit-this-issue').onclick = () => this.openFormModal(issue);
+        document.getElementById('close-modal').onclick = () => modal.classList.replace('flex', 'hidden');
     },
 
     // --- SEZIONE MODALE FORM (NUOVO/EDIT) ---
@@ -129,6 +96,7 @@ export const render = {
         const modal = document.getElementById('issue-modal');
         const content = document.getElementById('modal-body');
         
+        // 1. Fetch Dati Completo (Modificato per includere Albi per Supplemento)
         const promises = [
             window.supabaseClient.from('codice_editore').select('*').order('nome'),
             window.supabaseClient.from('editore').select('*').order('nome'),
@@ -136,6 +104,7 @@ export const render = {
             window.supabaseClient.from('tipo_pubblicazione').select('*').order('nome'),
             window.supabaseClient.from('testata').select('*').order('nome'),
             window.supabaseClient.from('annata').select('*').order('nome'),
+            // Query per supplemento con join relazionali
             window.supabaseClient.from('issue').select(`id, numero, data_pubblicazione, serie(nome), testata(nome), annata(nome)`).order('numero')
         ];
 
@@ -152,9 +121,10 @@ export const render = {
         
         const issue = (issueData && results[7]) ? results[7].data : (issueData || {});
 
+        // 2. Rendering HTML e Iniezione Selettori Dinamici
         content.innerHTML = UI.ISSUE_FORM(issue, dropdowns);
         
-        // -- MODIFICA CHIRURGICA SUPPLEMENTO --
+        // -- LOGICA CHIRURGICA SUPPLEMENTO --
         const formatSupplementoLabel = (albo) => {
             const s = albo.serie?.nome ? `${albo.serie.nome} ` : '';
             const t = albo.testata?.nome ? `${albo.testata.nome} ` : '';
@@ -164,23 +134,24 @@ export const render = {
             return (s + t + a + n + d).trim();
         };
 
-        const suppWrap = content.querySelector('input[name="supplemento"]').parentElement;
-        suppWrap.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Supplemento a...</label>
+        const supplementoWrapper = content.querySelector('input[name="supplemento"]').parentElement;
+        supplementoWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Supplemento a...</label>
             <select name="supplemento_id" id="select-supplemento" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
                 <option value="">Nessuno (Albo autonomo)</option>
                 ${dropdowns.albiPerSupplemento.filter(a => a.id !== issue.id).map(a => `<option value="${a.id}">${formatSupplementoLabel(a)}</option>`).join('')}
             </select>`;
 
-        // -- MODIFICA CHIRURGICA ANNATA & TESTATA --
-        const annataWrap = content.querySelector('input[name="annata"]').parentElement;
-        annataWrap.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Annata</label>
+        // Preparazione Select Dinamiche (Annata e Testata)
+        const annataWrapper = content.querySelector('input[name="annata"]').parentElement;
+        const testataWrapper = content.querySelector('select[name="testata_id"]').parentElement;
+
+        annataWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Annata</label>
             <select name="annata_id" id="select-annata" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
                 <option value="">Seleziona Annata...</option>
                 ${dropdowns.annate.map(a => `<option value="${a.id}" data-serie="${a.serie_id}">${a.nome}</option>`).join('')}
             </select>`;
 
-        const testataWrap = content.querySelector('select[name="testata_id"]').parentElement;
-        testataWrap.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Testata</label>
+        testataWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Testata</label>
             <select name="testata_id" id="select-testata" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
                 <option value="">Seleziona Testata...</option>
                 ${dropdowns.testate.map(t => `<option value="${t.id}" data-serie="${t.serie_id}">${t.nome}</option>`).join('')}
@@ -188,36 +159,75 @@ export const render = {
 
         modal.classList.replace('hidden', 'flex');
 
-        // -- LOGICA SYNC --
-        const selSerie = document.getElementById('select-serie');
-        const selAnnata = document.getElementById('select-annata');
-        const selTestata = document.getElementById('select-testata');
+        // 3. Selettori DOM
+        const selectCodice = document.getElementById('select-codice-editore');
+        const selectEditore = document.getElementById('select-editore-name');
+        const selectSerie = document.getElementById('select-serie');
+        const selectAnnata = document.getElementById('select-annata');
+        const selectTestata = document.getElementById('select-testata');
+        const selectSupplemento = document.getElementById('select-supplemento');
+        const previewEditoreImg = document.querySelector('#preview-editore img');
 
-        const syncSerieDeps = (serieId, targetAnnataId = null, targetTestataId = null) => {
-            [selAnnata, selTestata].forEach(sel => {
-                Array.from(sel.options).forEach(opt => {
-                    if (!opt.dataset.serie) return;
-                    const match = opt.dataset.serie == serieId;
-                    opt.hidden = !match; opt.disabled = !match;
-                });
+        // 4. Logica Filtraggio Editori
+        const syncEditori = (codiceId, targetEditoreId = null) => {
+            Array.from(selectEditore.options).forEach(opt => {
+                if (!opt.dataset.parent) return;
+                const match = (opt.dataset.parent == codiceId);
+                opt.hidden = !match; opt.disabled = !match;
             });
-            selAnnata.value = targetAnnataId || "";
-            selTestata.value = targetTestataId || "";
+            selectEditore.value = targetEditoreId || "";
+            selectEditore.dispatchEvent(new Event('change'));
         };
 
-        selSerie.onchange = () => syncSerieDeps(selSerie.value);
+        // 5. Logica Filtraggio Dipendenti da Serie (Annata & Testata)
+        const syncSerieDependents = (serieId, targetAnnataId = null, targetTestataId = null) => {
+            Array.from(selectAnnata.options).forEach(opt => {
+                if (!opt.dataset.serie) return;
+                const match = (opt.dataset.serie == serieId);
+                opt.hidden = !match; opt.disabled = !match;
+            });
+            selectAnnata.value = targetAnnataId || "";
 
-        // -- POPOLAMENTO EDIT --
+            Array.from(selectTestata.options).forEach(opt => {
+                if (!opt.dataset.serie) return;
+                const match = (opt.dataset.serie == serieId);
+                opt.hidden = !match; opt.disabled = !match;
+            });
+            selectTestata.value = targetTestataId || "";
+        };
+
+        // 6. Eventi
+        selectCodice.onchange = () => syncEditori(selectCodice.value);
+        selectEditore.onchange = () => {
+            const opt = selectEditore.options[selectEditore.selectedIndex];
+            if (opt?.dataset.img) {
+                previewEditoreImg.src = opt.dataset.img;
+                previewEditoreImg.classList.remove('hidden');
+            } else { previewEditoreImg.classList.add('hidden'); }
+        };
+        selectSerie.onchange = () => syncSerieDependents(selectSerie.value);
+
+        // 7. POPOLAMENTO EDIT (Sincronizzazione finale)
         if (issue.id) {
-            if (issue.serie_id) {
-                selSerie.value = issue.serie_id;
-                syncSerieDeps(issue.serie_id, issue.annata_id, issue.testata_id);
+            const cId = issue.editore?.codice_editore_id || issue.codice_editore_id;
+            if (cId) {
+                selectCodice.value = cId;
+                syncEditori(cId, issue.editore_id);
             }
-            if (issue.supplemento_id) document.getElementById('select-supplemento').value = issue.supplemento_id;
+            if (issue.serie_id) {
+                selectSerie.value = issue.serie_id;
+                syncSerieDependents(issue.serie_id, issue.annata_id, issue.testata_id);
+            }
+            // Popolamento Supplemento
+            if (issue.supplemento_id) selectSupplemento.value = issue.supplemento_id;
         }
 
         document.getElementById('cancel-form').onclick = () => modal.classList.replace('flex', 'hidden');
-        document.getElementById('form-albo').onsubmit = (e) => { e.preventDefault(); console.log("Salvataggio..."); };
+        document.getElementById('form-albo').onsubmit = (e) => { 
+            e.preventDefault(); 
+            const formData = new FormData(e.target);
+            console.log("Dati pronti per il salvataggio:", Object.fromEntries(formData));
+        };
     },
 
     attachCardEvents() {
