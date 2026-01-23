@@ -1,6 +1,5 @@
 /**
- * VERSION: 8.4.9
- * FIX: Null-safe check per evitare TypeError su toLowerCase()
+ * VERSION: 8.5.1 (Integrale - Filtri Blindati + Edit Avanzato)
  */
 import { api } from './api.js';
 import { store } from './store.js';
@@ -19,6 +18,7 @@ export const render = {
         const pubSlot = document.getElementById('ui-publisher-bar');
         const serieSlot = document.getElementById('ui-serie-section');
         try {
+            // 1. Editori (Codici Bar)
             const { data: publishers } = await window.supabaseClient.from('codice_editore').select('*').order('nome');
             if (publishers && pubSlot) {
                 const pills = publishers.map(p => components.publisherPill(p)).join('');
@@ -27,6 +27,7 @@ export const render = {
                 this.attachPublisherEvents();
             }
 
+            // 2. Serie (v7.5)
             let query = window.supabaseClient.from('serie').select(`id, nome, immagine_url, issue!inner ( editore!inner ( codice_editore_id ) )`);
             if (store.state.selectedBrand) query = query.eq('issue.editore.codice_editore_id', store.state.selectedBrand);
 
@@ -37,10 +38,13 @@ export const render = {
                 serieSlot.innerHTML = UI.SERIE_SECTION(items);
                 this.attachSerieEvents();
             }
-        } catch (e) { console.error("Errore Showcase:", e); }
+        } catch (e) { console.error("Errore Showcases:", e); }
     },
 
     attachHeaderEvents() {
+        const logo = document.getElementById('logo-reset');
+        if (logo) logo.onclick = () => location.reload();
+
         const searchInput = document.getElementById('serie-search');
         if (searchInput) {
             searchInput.oninput = (e) => {
@@ -51,8 +55,12 @@ export const render = {
 
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.onclick = () => {
-                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active', 'bg-yellow-500', 'text-black'));
+                document.querySelectorAll('.filter-btn').forEach(b => {
+                    b.classList.remove('active', 'bg-yellow-500', 'text-black');
+                    b.classList.add('text-slate-400');
+                });
                 btn.classList.add('active', 'bg-yellow-500', 'text-black');
+                btn.classList.remove('text-slate-400');
                 store.state.filter = btn.dataset.filter;
                 this.refreshGrid();
             };
@@ -85,20 +93,23 @@ export const render = {
         document.querySelectorAll('[data-serie-id]').forEach(el => {
             el.onclick = async (e) => {
                 if (e.target.closest('.btn-edit-serie')) return;
-                
                 document.querySelectorAll('.serie-showcase-item').forEach(i => i.classList.remove('ring-2', 'ring-yellow-500'));
                 el.classList.add('ring-2', 'ring-yellow-500');
 
                 store.state.selectedSerie = { id: el.dataset.serieId };
-                
-                // Carico i dati e forzo il render
                 store.state.issues = await api.getIssuesBySerie(store.state.selectedSerie.id);
                 this.refreshGrid();
             };
         });
+
+        document.querySelectorAll('.btn-edit-serie').forEach(btn => {
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                alert("Edit Serie: " + btn.dataset.editId);
+            };
+        });
     },
 
-    // LA FUNZIONE CORRETTA E PROTETTA
     refreshGrid() {
         const container = document.getElementById('main-grid');
         if (!container) return;
@@ -112,15 +123,10 @@ export const render = {
         const searchStr = (store.state.searchQuery || "").toLowerCase();
 
         const filtered = allIssues.filter(issue => {
-            // 1. Check Filtro Celo/Manca
             const matchStatus = store.state.filter === 'all' || issue.possesso === store.state.filter;
-            
-            // 2. Check Ricerca con protezione NULL (?? "")
             const nomeAlbo = (issue.nome || "").toLowerCase();
-            const numeroAlbo = (issue.numero || "").toString().toLowerCase();
-            
-            const matchSearch = nomeAlbo.includes(searchStr) || numeroAlbo.includes(searchStr);
-            
+            const numAlbo = (issue.numero || "").toString().toLowerCase();
+            const matchSearch = nomeAlbo.includes(searchStr) || numAlbo.includes(searchStr);
             return matchStatus && matchSearch;
         });
 
@@ -148,19 +154,75 @@ export const render = {
         if (closeBtn) closeBtn.onclick = () => modal.classList.replace('flex', 'hidden');
     },
 
-    openFormModal(issue = null) {
+    async openFormModal(issue = null) {
         const modal = document.getElementById('issue-modal');
         const content = document.getElementById('modal-body');
-        content.innerHTML = UI.ISSUE_FORM(issue || {});
+
+        // Caricamento dropdown per Edit/Nuovo
+        const [resEditori, resSerie, resTipi, resTestate] = await Promise.all([
+            window.supabaseClient.from('codice_editore').select('*').order('nome'),
+            window.supabaseClient.from('serie').select('*').order('nome'),
+            window.supabaseClient.from('tipo_pubblicazione').select('*').order('nome'),
+            window.supabaseClient.from('editore').select('*').order('nome')
+        ]);
+
+        const dropdowns = {
+            editori: resEditori.data || [],
+            serie: resSerie.data || [],
+            tipi: resTipi.data || [],
+            testate: resTestate.data || []
+        };
+
+        content.innerHTML = UI.ISSUE_FORM(issue || {}, dropdowns);
         modal.classList.replace('hidden', 'flex');
-        
-        const cancelBtn = document.getElementById('cancel-form');
-        if (cancelBtn) cancelBtn.onclick = () => modal.classList.replace('flex', 'hidden');
-        
+
+        // Logic Anteprime Real-time
+        const inputCover = document.getElementById('input-cover-url');
+        const imgCover = document.getElementById('preview-cover');
+        const placeholderCover = document.getElementById('placeholder-cover');
+        const selectEditore = document.getElementById('select-editore');
+        const previewEditoreImg = document.querySelector('#preview-editore img');
+
+        if (inputCover) {
+            inputCover.oninput = () => {
+                if (inputCover.value) {
+                    imgCover.src = inputCover.value;
+                    imgCover.classList.remove('hidden');
+                    placeholderCover.classList.add('hidden');
+                } else {
+                    imgCover.classList.add('hidden');
+                    placeholderCover.classList.remove('hidden');
+                }
+            };
+        }
+
+        if (selectEditore) {
+            selectEditore.onchange = () => {
+                const opt = selectEditore.options[selectEditore.selectedIndex];
+                const url = opt.dataset.img;
+                if (url) {
+                    previewEditoreImg.src = url;
+                    previewEditoreImg.classList.remove('hidden');
+                } else {
+                    previewEditoreImg.classList.add('hidden');
+                }
+            };
+        }
+
+        document.getElementById('cancel-form').onclick = () => modal.classList.replace('flex', 'hidden');
+
         const form = document.getElementById('form-albo');
         form.onsubmit = async (e) => {
             e.preventDefault();
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+            console.log("Salvataggio Albo:", data);
+            alert("Dati pronti per il salvataggio!");
             modal.classList.replace('flex', 'hidden');
+            if (store.state.selectedSerie) {
+                store.state.issues = await api.getIssuesBySerie(store.state.selectedSerie.id);
+                this.refreshGrid();
+            }
         };
     },
 
