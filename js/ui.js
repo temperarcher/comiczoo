@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.8.4 (Integrale - Form con ID precisi per sincronizzazione Edit)
+ * VERSION: 1.8.4  (Integrale - Form con ID precisi per sincronizzazione Edit)
  * NOTA: Non rimuovere i commenti identificativi delle sezioni.
  */
 export const UI = {
