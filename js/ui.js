@@ -1,5 +1,6 @@
 /**
- * VERSION: 1.8.1 (Integrale - Layout Form Ristrutturato)
+ * VERSION: 1.8.2 (Integrale - Form con Codice Editore e Editore affiancati)
+ * NOTA: Non rimuovere i commenti identificativi delle sezioni (LIVELLO 1, 2, 3, etc.)
  */
 export const UI = {
     // LIVELLO 1: HEADER (v7.4)
@@ -38,6 +39,7 @@ export const UI = {
             </div>
         </header>`,
 
+    // LIVELLO 2: SEZIONE CODICI BAR (v7.5)
     PUBLISHER_SECTION: (contentHtml) => `
         <section class="bg-slate-800/30 border-b border-slate-800 py-3">
             <div class="container mx-auto px-6">
@@ -61,6 +63,7 @@ export const UI = {
         return `<div id="reset-brand-filter" class="flex-none w-14 h-14 md:w-16 md:h-16 border ${activeClass} rounded-lg flex items-center justify-center transition-all duration-300 cursor-pointer text-[10px] font-black uppercase tracking-tighter">Tutti</div>`;
     },
 
+    // LIVELLO 3: SEZIONE SERIE (v7.5)
     SERIE_SECTION: (contentHtml) => `
         <section class="bg-slate-900/50 border-b border-slate-800 py-4 overflow-hidden">
             <div class="container mx-auto px-6">
@@ -80,6 +83,7 @@ export const UI = {
             </button>
         </div>`,
 
+    // CONTENITORI PRINCIPALI
     MAIN_GRID_CONTAINER: () => `
         <main class="max-w-7xl mx-auto p-4 md:p-6">
             <div id="main-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"></div>
@@ -111,6 +115,7 @@ export const UI = {
             </div>
         </div>`,
 
+    // MODALE VISUALIZZAZIONE
     MODAL_LAYOUT: (issue, storiesHtml) => `
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8 relative">
             <button id="edit-this-issue" data-id="${issue.id}" class="absolute top-0 left-0 bg-yellow-500 text-slate-900 p-2 rounded-full shadow-xl hover:scale-110 transition-transform z-10" title="Modifica Albo">✏️</button>
@@ -135,6 +140,7 @@ export const UI = {
             </div>
         </div>`,
 
+    // MODALE EDIT AVANZATO
     ISSUE_FORM: (issue, dropdowns) => `
         <div class="p-2">
             <h2 class="text-xl font-black text-white uppercase mb-6 tracking-tighter flex items-center gap-2">
@@ -153,14 +159,24 @@ export const UI = {
                 </div>
 
                 <div class="md:col-span-8 space-y-4">
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Editore</label>
-                        <div class="flex items-center gap-3">
-                            <select name="codice_editore_id" id="select-editore" class="flex-1 bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
-                                <option value="">Seleziona Editore...</option>
-                                ${dropdowns.editori.map(e => `<option value="${e.id}" data-img="${e.immagine_url}" ${issue.codice_editore_id === e.id ? 'selected' : ''}>${e.nome}</option>`).join('')}
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                        <div class="md:col-span-5">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Codice Editore</label>
+                            <select name="codice_editore_id" id="select-codice-editore" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
+                                <option value="">Seleziona...</option>
+                                ${dropdowns.codici.map(c => `<option value="${c.id}" data-img="${c.immagine_url}" ${issue.codice_editore_id === c.id ? 'selected' : ''}>${c.nome}</option>`).join('')}
                             </select>
-                            <div id="preview-editore" class="w-10 h-10 bg-slate-900 rounded border border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
+                        </div>
+                        <div class="md:col-span-5">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Editore</label>
+                            <select name="editore_id_linked" id="select-editore-name" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
+                                <option value="">Seleziona Editore...</option>
+                                ${dropdowns.editori.map(e => `<option value="${e.codice_editore_id}" ${issue.codice_editore_id === e.codice_editore_id ? 'selected' : ''}>${e.nome}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <div id="preview-editore" class="w-full h-[42px] bg-slate-900 rounded border border-slate-700 flex items-center justify-center overflow-hidden">
                                 <img src="${issue.brand_logo || ''}" class="w-full h-full object-contain ${!issue.brand_logo ? 'hidden' : ''}">
                             </div>
                         </div>
@@ -255,6 +271,7 @@ export const UI = {
             </form>
         </div>`,
 
+    // LIVELLO 4: GESTIONE STORIE (v7.0)
     STORY_ROW: (storia, si, charsHtml) => `
         <div class="py-3 border-l-2 border-yellow-600 pl-4 mb-3 bg-slate-800/30 rounded-r-lg">
             <div class="flex justify-between items-center mb-2">
