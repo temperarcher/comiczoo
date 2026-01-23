@@ -1,8 +1,8 @@
 /**
- * VERSION: 8.6.8 (Integrale - Supplemento A-Z + Condizione a Stelle 1-5)
+ * VERSION: 8.7.0 (Integrale - Ripristino logica completa + Stelle + Supplementi A-Z)
  * NOTA: Gestisce la dipendenza gerarchica completa e il recupero albi per supplemento.
  * MODIFICHE CHIRURGICHE: Copiare e incollare le parti non modificate.
- * MANTENERE I COMMENTI SEZIONALI: Aggiornarli se necessario ma lasciarli sempre presenti.
+ * MANTENERE I COMMENTI SEZIONALI: Presenti e aggiornati.
  */
 import { api } from './api.js';
 import { store } from './store.js';
@@ -38,7 +38,7 @@ export const render = {
                 serieSlot.innerHTML = UI.SERIE_SECTION(items);
                 this.attachSerieEvents();
             }
-        } catch (e) { console.error(e); }
+        } catch (e) { console.error("Errore Showcases:", e); }
     },
 
     // --- SEZIONE EVENTI HEADER ---
@@ -49,21 +49,36 @@ export const render = {
         if (searchInput) searchInput.oninput = (e) => { store.state.searchQuery = e.target.value; this.refreshGrid(); };
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.onclick = () => {
-                document.querySelectorAll('.filter-btn').forEach(b => b.classList.replace('bg-yellow-500', 'text-slate-400'));
-                btn.classList.replace('text-slate-400', 'bg-yellow-500');
+                document.querySelectorAll('.filter-btn').forEach(b => {
+                    b.classList.remove('active', 'bg-yellow-500', 'text-black');
+                    b.classList.add('text-slate-400');
+                });
+                btn.classList.add('active', 'bg-yellow-500', 'text-black');
+                btn.classList.remove('text-slate-400');
                 store.state.filter = btn.dataset.filter;
                 this.refreshGrid();
             };
         });
-        document.getElementById('btn-add-albo').onclick = () => this.openFormModal();
+        const addBtn = document.getElementById('btn-add-albo');
+        if (addBtn) addBtn.onclick = () => this.openFormModal();
     },
 
     // --- SEZIONE EVENTI PUBLISHER ---
     attachPublisherEvents() {
         const resetBtn = document.getElementById('reset-brand-filter');
-        if (resetBtn) resetBtn.onclick = async () => { store.state.selectedBrand = null; await this.refreshShowcases(); this.refreshGrid(); };
+        if (resetBtn) resetBtn.onclick = async () => { 
+            store.state.selectedBrand = null; 
+            store.state.selectedSerie = null;
+            await this.refreshShowcases(); 
+            this.refreshGrid(); 
+        };
         document.querySelectorAll('[data-brand-id]').forEach(el => {
-            el.onclick = async () => { store.state.selectedBrand = el.dataset.brandId; await this.refreshShowcases(); this.refreshGrid(); };
+            el.onclick = async () => { 
+                store.state.selectedBrand = el.dataset.brandId; 
+                store.state.selectedSerie = null;
+                await this.refreshShowcases(); 
+                this.refreshGrid(); 
+            };
         });
     },
 
@@ -72,6 +87,8 @@ export const render = {
         document.querySelectorAll('[data-serie-id]').forEach(el => {
             el.onclick = async (e) => {
                 if (e.target.closest('.btn-edit-serie')) return;
+                document.querySelectorAll('.serie-showcase-item').forEach(i => i.classList.remove('ring-2', 'ring-yellow-500'));
+                el.classList.add('ring-2', 'ring-yellow-500');
                 store.state.selectedSerie = { id: el.dataset.serieId };
                 store.state.issues = await api.getIssuesBySerie(store.state.selectedSerie.id);
                 this.refreshGrid();
@@ -82,21 +99,33 @@ export const render = {
     // --- SEZIONE RENDER GRIGLIA ---
     refreshGrid() {
         const container = document.getElementById('main-grid');
-        if (!container || !store.state.selectedSerie) return;
-        const filtered = (store.state.issues || []).filter(i => (store.state.filter === 'all' || i.possesso === store.state.filter));
-        container.innerHTML = filtered.map(i => components.issueCard(i)).join('');
+        if (!container) return;
+        if (!store.state.selectedSerie) {
+            container.innerHTML = `<div class="col-span-full text-center py-20 text-slate-600 italic uppercase text-[10px] tracking-widest">Seleziona una serie per visualizzare gli albi</div>`;
+            return;
+        }
+        const filtered = (store.state.issues || []).filter(issue => {
+            const matchStatus = store.state.filter === 'all' || issue.possesso === store.state.filter;
+            const matchSearch = (issue.nome || "").toLowerCase().includes((store.state.searchQuery || "").toLowerCase()) || 
+                               (issue.numero || "").toString().toLowerCase().includes((store.state.searchQuery || "").toLowerCase());
+            return matchStatus && matchSearch;
+        });
+        container.innerHTML = filtered.length === 0 ? `<div class="col-span-full text-center py-10 text-slate-500 uppercase text-[10px]">Nessun albo trovato.</div>` : filtered.map(i => components.issueCard(i)).join('');
         this.attachCardEvents();
     },
 
     // --- SEZIONE MODALE VISUALIZZAZIONE ---
     async openIssueModal(id) {
         const modal = document.getElementById('issue-modal');
+        const content = document.getElementById('modal-body');
         const issue = store.state.issues.find(i => i.id == id);
         if (!issue) return;
-        document.getElementById('modal-body').innerHTML = components.renderModalContent(issue);
+        content.innerHTML = components.renderModalContent(issue);
         modal.classList.replace('hidden', 'flex');
-        document.getElementById('edit-this-issue').onclick = () => this.openFormModal(issue);
-        document.getElementById('close-modal').onclick = () => modal.classList.replace('flex', 'hidden');
+        const editBtn = document.getElementById('edit-this-issue');
+        if (editBtn) editBtn.onclick = () => this.openFormModal(issue);
+        const closeBtn = document.getElementById('close-modal');
+        if (closeBtn) closeBtn.onclick = () => modal.classList.replace('flex', 'hidden');
     },
 
     // --- SEZIONE MODALE FORM (NUOVO/EDIT) ---
@@ -111,11 +140,7 @@ export const render = {
             window.supabaseClient.from('tipo_pubblicazione').select('*').order('nome'),
             window.supabaseClient.from('testata').select('*').order('nome'),
             window.supabaseClient.from('annata').select('*').order('nome'),
-            window.supabaseClient.from('issue').select(`
-                id, numero, data_pubblicazione, 
-                serie(nome), testata(nome), annata(nome),
-                editore!inner(codice_editore_id)
-            `)
+            window.supabaseClient.from('issue').select(`id, numero, data_pubblicazione, serie(nome), testata(nome), annata(nome), editore!inner(codice_editore_id)`)
         ];
 
         if (issueData && issueData.id) {
@@ -130,54 +155,45 @@ export const render = {
         };
         
         const issue = (issueData && results[7]) ? results[7].data : (issueData || {});
-
         content.innerHTML = UI.ISSUE_FORM(issue, dropdowns);
+
+        // --- INIEZIONI CHIRURGICHE ---
         
-        // --- HELPER STRINGA E INIEZIONE SUPPLEMENTO ---
-        const formatSupplementoLabel = (albo) => {
-            const s = albo.serie?.nome ? `${albo.serie.nome} ` : '';
-            const t = albo.testata?.nome ? `${albo.testata.nome} ` : '';
-            const a = albo.annata?.nome ? `${albo.annata.nome} ` : '';
-            const n = albo.numero ? `#${albo.numero} ` : '';
-            const d = albo.data_pubblicazione ? `del ${albo.data_pubblicazione}` : '';
-            return (s + t + a + n + d).trim();
-        };
+        // 1. Supplemento (Ordinato A-Z)
+        const formatSuppLabel = (a) => `${a.serie?.nome || ''} ${a.testata?.nome || ''} ${a.annata?.nome || ''} #${a.numero || ''} ${a.data_pubblicazione || ''}`.trim();
+        const suppList = dropdowns.albiPerSupplemento
+            .map(a => ({ id: a.id, cod: a.editore?.codice_editore_id, label: formatSuppLabel(a) }))
+            .sort((a, b) => a.label.localeCompare(b.label));
 
-        const supplementoWrapper = content.querySelector('input[name="supplemento"]').parentElement;
-        const listaOrdinata = dropdowns.albiPerSupplemento
-            .map(a => ({ id: a.id, codice: a.editore?.codice_editore_id, label: formatSupplementoLabel(a) }))
-            .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
-
-        supplementoWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Supplemento a...</label>
+        const suppWrap = content.querySelector('input[name="supplemento"]').parentElement;
+        suppWrap.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Supplemento a...</label>
             <select name="supplemento_id" id="select-supplemento" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
                 <option value="">Nessuno (Albo autonomo)</option>
-                ${listaOrdinata.map(a => `<option value="${a.id}" data-codice="${a.codice}">${a.label}</option>`).join('')}
+                ${suppList.map(a => `<option value="${a.id}" data-codice="${a.cod}">${a.label}</option>`).join('')}
             </select>`;
 
-        // --- INIEZIONE CONDIZIONE A STELLE ---
-        const condizioneWrapper = content.querySelector('input[name="condizione"]').parentElement;
+        // 2. Condizione a Stelle
         const labelStati = ["Lettura", "Discreto", "Buono", "Ottimo", "Edicola"];
-        
-        condizioneWrapper.innerHTML = `
-            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Condizione</label>
+        const condWrap = content.querySelector('input[name="condizione"]').parentElement;
+        condWrap.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Condizione</label>
             <div class="flex flex-col gap-2">
                 <div id="star-rating" class="flex gap-1 text-2xl cursor-pointer">
-                    ${[1,2,3,4,5].map(v => `<span class="star text-slate-600 hover:text-yellow-400 transition-colors" data-value="${v}">★</span>`).join('')}
+                    ${[1,2,3,4,5].map(v => `<span class="star text-slate-600" data-value="${v}">★</span>`).join('')}
                 </div>
                 <div id="star-label" class="text-[10px] uppercase tracking-widest text-slate-400 italic h-4">Nessuna selezione</div>
                 <input type="hidden" name="condizione" id="input-condizione" value="${issue.condizione || ''}">
             </div>`;
 
-        // Iniezione Annata e Testata
-        const annataWrapper = content.querySelector('input[name="annata"]').parentElement;
-        annataWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Annata</label>
+        // 3. Annata & Testata
+        const annWrap = content.querySelector('input[name="annata"]').parentElement;
+        annWrap.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Annata</label>
             <select name="annata_id" id="select-annata" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
                 <option value="">Seleziona Annata...</option>
                 ${dropdowns.annate.map(a => `<option value="${a.id}" data-serie="${a.serie_id}">${a.nome}</option>`).join('')}
             </select>`;
 
-        const testataWrapper = content.querySelector('select[name="testata_id"]').parentElement;
-        testataWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Testata</label>
+        const testWrap = content.querySelector('select[name="testata_id"]').parentElement;
+        testWrap.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Testata</label>
             <select name="testata_id" id="select-testata" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
                 <option value="">Seleziona Testata...</option>
                 ${dropdowns.testate.map(t => `<option value="${t.id}" data-serie="${t.serie_id}">${t.nome}</option>`).join('')}
@@ -185,83 +201,65 @@ export const render = {
 
         modal.classList.replace('hidden', 'flex');
 
-        const selectCodice = document.getElementById('select-codice-editore');
-        const selectEditore = document.getElementById('select-editore-name');
-        const selectSerie = document.getElementById('select-serie');
-        const selectAnnata = document.getElementById('select-annata');
-        const selectTestata = document.getElementById('select-testata');
-        const selectSupplemento = document.getElementById('select-supplemento');
-        const inputCondizione = document.getElementById('input-condizione');
-        const starLabel = document.getElementById('star-label');
+        // --- SELETTORI E LOGICA EVENTI ---
+        const selCodice = document.getElementById('select-codice-editore');
+        const selEditore = document.getElementById('select-editore-name');
+        const selSerie = document.getElementById('select-serie');
+        const selAnnata = document.getElementById('select-annata');
+        const selTestata = document.getElementById('select-testata');
+        const selSupp = document.getElementById('select-supplemento');
+        const previewImg = document.querySelector('#preview-editore img');
         const stars = document.querySelectorAll('#star-rating .star');
+        const starLabel = document.getElementById('star-label');
+        const inputCondizione = document.getElementById('input-condizione');
 
-        // --- LOGICA STELLE ---
         const updateStars = (val) => {
             inputCondizione.value = val || "";
-            stars.forEach(s => {
-                const sVal = parseInt(s.dataset.value);
-                s.classList.toggle('text-yellow-500', val && sVal <= val);
-                s.classList.toggle('text-slate-600', !val || sVal > val);
-            });
+            stars.forEach(s => s.classList.toggle('text-yellow-500', val && parseInt(s.dataset.value) <= val));
             starLabel.innerText = val ? labelStati[val - 1] : "Nessuna selezione";
         };
 
-        stars.forEach(s => {
-            s.onclick = () => {
-                const clickedVal = parseInt(s.dataset.value);
-                // Se clicco la stella già selezionata, resetto a null
-                updateStars(inputCondizione.value == clickedVal ? null : clickedVal);
-            };
-        });
+        stars.forEach(s => s.onclick = () => updateStars(inputCondizione.value == s.dataset.value ? null : s.dataset.value));
 
-        // --- LOGICA FILTRAGGIO DINAMICO ---
-        const syncEditoriESupplementi = (codiceId, targetEditoreId = null) => {
-            Array.from(selectEditore.options).forEach(opt => {
-                if (!opt.dataset.parent) return;
-                const match = (opt.dataset.parent == codiceId);
-                opt.hidden = !match; opt.disabled = !match;
-            });
-            selectEditore.value = targetEditoreId || "";
-            
-            Array.from(selectSupplemento.options).forEach(opt => {
-                if (!opt.dataset.codice) return;
-                const match = (opt.dataset.codice == codiceId);
-                opt.hidden = !match; opt.disabled = !match;
-            });
-            if (selectSupplemento.options[selectSupplemento.selectedIndex]?.hidden) selectSupplemento.value = "";
+        const syncAll = () => {
+            const cId = selCodice.value;
+            const sId = selSerie.value;
+            // Sync Editori
+            Array.from(selEditore.options).forEach(o => { o.hidden = o.dataset.parent != cId; o.disabled = o.dataset.parent != cId; });
+            // Sync Supplementi
+            Array.from(selSupp.options).forEach(o => { o.hidden = o.dataset.codice && o.dataset.codice != cId; o.disabled = o.dataset.codice && o.dataset.codice != cId; });
+            // Sync Serie Dependents
+            [selAnnata, selTestata].forEach(sel => Array.from(sel.options).forEach(o => { o.hidden = o.dataset.serie && o.dataset.serie != sId; o.disabled = o.dataset.serie && o.dataset.serie != sId; }));
         };
 
-        const syncSerieDependents = (serieId, targetAnnataId = null, targetTestataId = null) => {
-            [selectAnnata, selectTestata].forEach(sel => {
-                Array.from(sel.options).forEach(opt => {
-                    if (!opt.dataset.serie) return;
-                    const match = (opt.dataset.serie == serieId);
-                    opt.hidden = !match; opt.disabled = !match;
-                });
-            });
-            selectAnnata.value = targetAnnataId || "";
-            selectTestata.value = targetTestataId || "";
+        selCodice.onchange = () => { syncAll(); selEditore.value = ""; previewImg.classList.add('hidden'); };
+        selSerie.onchange = syncAll;
+        selEditore.onchange = () => {
+            const opt = selEditore.options[selEditore.selectedIndex];
+            if (opt?.dataset.img) { previewImg.src = opt.dataset.img; previewImg.classList.remove('hidden'); }
+            else { previewImg.classList.add('hidden'); }
         };
-
-        selectCodice.onchange = () => syncEditoriESupplementi(selectCodice.value);
-        selectSerie.onchange = () => syncSerieDependents(selectSerie.value);
 
         if (issue.id) {
-            const cId = issue.editore?.codice_editore_id || issue.codice_editore_id;
-            if (cId) {
-                selectCodice.value = cId;
-                syncEditoriESupplementi(cId, issue.editore_id);
-            }
-            if (issue.serie_id) {
-                selectSerie.value = issue.serie_id;
-                syncSerieDependents(issue.serie_id, issue.annata_id, issue.testata_id);
-            }
-            if (issue.supplemento_id) selectSupplemento.value = issue.supplemento_id;
+            selCodice.value = issue.editore?.codice_editore_id || "";
+            selSerie.value = issue.serie_id || "";
+            syncAll();
+            selEditore.value = issue.editore_id || "";
+            selAnnata.value = issue.annata_id || "";
+            selTestata.value = issue.testata_id || "";
+            selSupp.value = issue.supplemento_id || "";
             if (issue.condizione) updateStars(issue.condizione);
+            selEditore.dispatchEvent(new Event('change'));
         }
 
         document.getElementById('cancel-form').onclick = () => modal.classList.replace('flex', 'hidden');
-        document.getElementById('form-albo').onsubmit = (e) => { e.preventDefault(); console.log("Salvataggio..."); };
+        document.getElementById('form-albo').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
+            console.log("Salvataggio:", data);
+            alert("Dati pronti per Supabase!");
+        };
     },
 
     // --- SEZIONE EVENTI CARD ---
