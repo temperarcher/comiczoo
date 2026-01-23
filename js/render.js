@@ -1,5 +1,5 @@
 /**
- * VERSION: 8.5.1 (Integrale - Filtri Blindati + Edit Avanzato)
+ * VERSION: 8.5.2 (Integrale - Filtri Blindati + Logica Form v1.8.1)
  */
 import { api } from './api.js';
 import { store } from './store.js';
@@ -18,7 +18,6 @@ export const render = {
         const pubSlot = document.getElementById('ui-publisher-bar');
         const serieSlot = document.getElementById('ui-serie-section');
         try {
-            // 1. Editori (Codici Bar)
             const { data: publishers } = await window.supabaseClient.from('codice_editore').select('*').order('nome');
             if (publishers && pubSlot) {
                 const pills = publishers.map(p => components.publisherPill(p)).join('');
@@ -27,7 +26,6 @@ export const render = {
                 this.attachPublisherEvents();
             }
 
-            // 2. Serie (v7.5)
             let query = window.supabaseClient.from('serie').select(`id, nome, immagine_url, issue!inner ( editore!inner ( codice_editore_id ) )`);
             if (store.state.selectedBrand) query = query.eq('issue.editore.codice_editore_id', store.state.selectedBrand);
 
