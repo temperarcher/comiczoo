@@ -1,6 +1,6 @@
 /**
- * VERSION: 8.5.6 (Integrale - Fix Definitivo Edit e Sincronizzazione Immagine)
- * NOTA: Mantenere i commenti di sezione. Risoluzione ID editore forzata.
+ * VERSION: 8.5.7 (Integrale - Fix Lookup ID per popolamento Edit)
+ * NOTA: Risolve il problema dei campi vuoti in Edit cercando gli ID dai nomi se necessario.
  */
 import { api } from './api.js';
 import { store } from './store.js';
@@ -129,7 +129,7 @@ export const render = {
         const modal = document.getElementById('issue-modal');
         const content = document.getElementById('modal-body');
 
-        // Caricamento Dati
+        // 1. Caricamento massivo dei dati per i dropdown
         const [resCodici, resEditori, resSerie, resTipi, resTestate] = await Promise.all([
             window.supabaseClient.from('codice_editore').select('*').order('nome'),
             window.supabaseClient.from('editore').select('*').order('nome'),
@@ -139,10 +139,14 @@ export const render = {
         ]);
 
         const dropdowns = {
-            codici: resCodici.data || [], editori: resEditori.data || [],
-            serie: resSerie.data || [], tipi: resTipi.data || [], testate: resTestate.data || []
+            codici: resCodici.data || [], 
+            editori: resEditori.data || [],
+            serie: resSerie.data || [], 
+            tipi: resTipi.data || [], 
+            testate: resTestate.data || []
         };
 
+        // 2. Rendering del form
         content.innerHTML = UI.ISSUE_FORM(issue || {}, dropdowns);
         modal.classList.replace('hidden', 'flex');
 
@@ -150,66 +154,72 @@ export const render = {
         const selectEditore = document.getElementById('select-editore-name');
         const previewEditoreImg = document.querySelector('#preview-editore img');
 
-        /**
-         * FILTRAGGIO DINAMICO EDITORIE
-         */
-        const filterEditori = (codiceId, preselectEditoreId = null) => {
-            let optionsFound = 0;
+        // 3. Funzione di filtraggio e selezione
+        const syncEditori = (codiceId, targetEditoreId = null) => {
+            let firstMatchId = null;
             Array.from(selectEditore.options).forEach(opt => {
-                const parent = opt.dataset.parent;
-                if (!parent) return; // Salta il placeholder
-
-                if (parent == codiceId) {
+                if (!opt.dataset.parent) return; 
+                if (opt.dataset.parent == codiceId) {
                     opt.hidden = false;
                     opt.disabled = false;
-                    optionsFound++;
+                    if (!firstMatchId) firstMatchId = opt.value;
                 } else {
                     opt.hidden = true;
                     opt.disabled = true;
                 }
             });
-
-            // Se stiamo editando, forziamo il valore
-            if (preselectEditoreId) {
-                selectEditore.value = preselectEditoreId;
-            } else {
-                selectEditore.value = "";
-            }
-            
-            // Forza l'aggiornamento dell'immagine
+            // Seleziona l'ID fornito, altrimenti il primo disponibile, altrimenti vuoto
+            selectEditore.value = targetEditoreId || firstMatchId || "";
             selectEditore.dispatchEvent(new Event('change'));
         };
 
-        // EVENTI
-        selectCodice.onchange = () => filterEditori(selectCodice.value);
-        
+        // 4. Gestione Eventi
+        selectCodice.onchange = () => syncEditori(selectCodice.value);
         selectEditore.onchange = () => {
             const opt = selectEditore.options[selectEditore.selectedIndex];
-            const url = opt ? opt.dataset.img : null;
-            if (url && url !== "undefined") {
-                previewEditoreImg.src = url;
+            const img = opt ? opt.dataset.img : '';
+            if (img && img !== 'undefined') {
+                previewEditoreImg.src = img;
                 previewEditoreImg.classList.remove('hidden');
             } else {
                 previewEditoreImg.classList.add('hidden');
             }
         };
 
-        // --- FIX EDIT: POPOLAMENTO DATI ---
+        // 5. LOGICA CHIRURGICA PER EDIT
         if (issue && issue.id) {
-            // Se l'issue non ha gli ID diretti, proviamo a cercarli tramite le relazioni salvate nello store
-            // (Assumiamo che issue.codice_editore_id e issue.editore_id siano presenti nell'oggetto issue)
-            
-            if (issue.codice_editore_id) {
-                selectCodice.value = issue.codice_editore_id;
-                // Aspettiamo un attimo per assicurarci che il DOM abbia recepito il valore del primo select
-                setTimeout(() => {
-                    filterEditori(issue.codice_editore_id, issue.editore_id);
-                }, 10);
+            console.log("Dati Issue ricevuti:", issue);
+
+            // Trova l'ID Codice Editore se non presente (tramite nome editore o join)
+            let cId = issue.codice_editore_id;
+            let eId = issue.editore_id;
+
+            // Se mancano gli ID ma abbiamo l'oggetto editore correlato (tipico di Supabase join)
+            if (!cId && issue.editore) cId = issue.editore.codice_editore_id;
+            if (!eId && issue.editore_id_linked) eId = issue.editore_id_linked;
+
+            // Fallback estremo: cerca l'ID corrispondente al nome testata/editore nei dropdown
+            if (!cId) {
+                const foundCodice = dropdowns.codici.find(c => c.nome === issue.codice_editore);
+                if (foundCodice) cId = foundCodice.id;
+            }
+            if (!eId) {
+                const foundEditore = dropdowns.editori.find(e => e.nome === issue.testata || e.nome === issue.editore);
+                if (foundEditore) eId = foundEditore.id;
+            }
+
+            // Applica le selezioni
+            if (cId) {
+                selectCodice.value = cId;
+                syncEditori(cId, eId);
             }
         }
 
         document.getElementById('cancel-form').onclick = () => modal.classList.replace('flex', 'hidden');
-        document.getElementById('form-albo').onsubmit = (e) => { e.preventDefault(); alert("Salvataggio in arrivo..."); };
+        document.getElementById('form-albo').onsubmit = (e) => { 
+            e.preventDefault(); 
+            alert("Pronto al salvataggio!"); 
+        };
     },
 
     attachCardEvents() {
