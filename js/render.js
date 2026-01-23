@@ -1,6 +1,8 @@
 /**
- * VERSION: 8.6.6 (Integrale - Supplemento filtrato per Codice Editore + Ordine A-Z)
- * NOTA: Il menu supplementi ora reagisce alla scelta dell'editore.
+ * VERSION: 8.6.7 (Integrale - Supplemento filtrato e ordinato A-Z)
+ * NOTA: Gestisce la dipendenza gerarchica completa e il recupero albi per supplemento.
+ * MODIFICHE CHIRURGICHE: Copiare e incollare le parti non modificate.
+ * MANTENERE I COMMENTI SEZIONALI: Aggiornarli se necessario ma lasciarli sempre presenti.
  */
 import { api } from './api.js';
 import { store } from './store.js';
@@ -15,7 +17,7 @@ export const render = {
         this.attachHeaderEvents();
     },
 
-    // ... (refreshShowcases, attachHeaderEvents, attachPublisherEvents, attachSerieEvents, refreshGrid, openIssueModal invariati)
+    // --- SEZIONE SHOWCASE (v7.5) ---
     async refreshShowcases() {
         const pubSlot = document.getElementById('ui-publisher-bar');
         const serieSlot = document.getElementById('ui-serie-section');
@@ -39,6 +41,7 @@ export const render = {
         } catch (e) { console.error(e); }
     },
 
+    // --- SEZIONE EVENTI HEADER ---
     attachHeaderEvents() {
         const logo = document.getElementById('logo-reset');
         if (logo) logo.onclick = () => location.reload();
@@ -55,6 +58,7 @@ export const render = {
         document.getElementById('btn-add-albo').onclick = () => this.openFormModal();
     },
 
+    // --- SEZIONE EVENTI PUBLISHER ---
     attachPublisherEvents() {
         const resetBtn = document.getElementById('reset-brand-filter');
         if (resetBtn) resetBtn.onclick = async () => { store.state.selectedBrand = null; await this.refreshShowcases(); this.refreshGrid(); };
@@ -63,6 +67,7 @@ export const render = {
         });
     },
 
+    // --- SEZIONE EVENTI SERIE ---
     attachSerieEvents() {
         document.querySelectorAll('[data-serie-id]').forEach(el => {
             el.onclick = async (e) => {
@@ -74,6 +79,7 @@ export const render = {
         });
     },
 
+    // --- SEZIONE RENDER GRIGLIA ---
     refreshGrid() {
         const container = document.getElementById('main-grid');
         if (!container || !store.state.selectedSerie) return;
@@ -82,6 +88,7 @@ export const render = {
         this.attachCardEvents();
     },
 
+    // --- SEZIONE MODALE VISUALIZZAZIONE ---
     async openIssueModal(id) {
         const modal = document.getElementById('issue-modal');
         const issue = store.state.issues.find(i => i.id == id);
@@ -92,6 +99,7 @@ export const render = {
         document.getElementById('close-modal').onclick = () => modal.classList.replace('flex', 'hidden');
     },
 
+    // --- SEZIONE MODALE FORM (NUOVO/EDIT) ---
     async openFormModal(issueData = null) {
         const modal = document.getElementById('issue-modal');
         const content = document.getElementById('modal-body');
@@ -103,7 +111,6 @@ export const render = {
             window.supabaseClient.from('tipo_pubblicazione').select('*').order('nome'),
             window.supabaseClient.from('testata').select('*').order('nome'),
             window.supabaseClient.from('annata').select('*').order('nome'),
-            // Recupero albi per supplemento con codice_editore_id tramite join editore
             window.supabaseClient.from('issue').select(`
                 id, numero, data_pubblicazione, 
                 serie(nome), testata(nome), annata(nome),
@@ -137,13 +144,16 @@ export const render = {
         };
 
         const supplementoWrapper = content.querySelector('input[name="supplemento"]').parentElement;
+        
+        // Mappatura con etichetta e ordinamento alfabetico reale
+        const listaOrdinata = dropdowns.albiPerSupplemento
+            .map(a => ({ id: a.id, codice: a.editore?.codice_editore_id, label: formatSupplementoLabel(a) }))
+            .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+
         supplementoWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Supplemento a...</label>
             <select name="supplemento_id" id="select-supplemento" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
                 <option value="">Nessuno (Albo autonomo)</option>
-                ${dropdowns.albiPerSupplemento
-                    .map(a => ({ ...a, label: formatSupplementoLabel(a) }))
-                    .sort((a, b) => a.label.localeCompare(b.label))
-                    .map(a => `<option value="${a.id}" data-codice="${a.editore?.codice_editore_id}">${a.label}</option>`).join('')}
+                ${listaOrdinata.map(a => `<option value="${a.id}" data-codice="${a.codice}">${a.label}</option>`).join('')}
             </select>`;
 
         // Iniezione Annata e Testata
@@ -172,7 +182,6 @@ export const render = {
 
         // --- LOGICA FILTRAGGIO DINAMICO ---
         const syncEditoriESupplementi = (codiceId, targetEditoreId = null) => {
-            // Filtro Editori
             Array.from(selectEditore.options).forEach(opt => {
                 if (!opt.dataset.parent) return;
                 const match = (opt.dataset.parent == codiceId);
@@ -180,13 +189,11 @@ export const render = {
             });
             selectEditore.value = targetEditoreId || "";
             
-            // Filtro Supplementi per Codice Editore
             Array.from(selectSupplemento.options).forEach(opt => {
                 if (!opt.dataset.codice) return;
                 const match = (opt.dataset.codice == codiceId);
                 opt.hidden = !match; opt.disabled = !match;
             });
-            // Se il supplemento attualmente selezionato viene nascosto, resetta il campo
             if (selectSupplemento.options[selectSupplemento.selectedIndex]?.hidden) selectSupplemento.value = "";
         };
 
@@ -222,6 +229,7 @@ export const render = {
         document.getElementById('form-albo').onsubmit = (e) => { e.preventDefault(); console.log("Salvataggio..."); };
     },
 
+    // --- SEZIONE EVENTI CARD ---
     attachCardEvents() {
         document.querySelectorAll('[data-id]').forEach(c => { c.onclick = () => this.openIssueModal(c.dataset.id); });
     }
