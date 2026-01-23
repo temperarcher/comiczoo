@@ -1,5 +1,6 @@
 /**
- * VERSION: 8.5.2 (Integrale - Filtri Blindati + Logica Form v1.8.1)
+ * VERSION: 8.5.3 (Integrale - Logica Doppio Selettore Editore + Ripristino Commenti)
+ * NOTA: Mantenere i commenti di sezione per la tracciabilità delle modifiche.
  */
 import { api } from './api.js';
 import { store } from './store.js';
@@ -14,6 +15,7 @@ export const render = {
         this.attachHeaderEvents();
     },
 
+    // --- SEZIONE SHOWCASE (v7.5) ---
     async refreshShowcases() {
         const pubSlot = document.getElementById('ui-publisher-bar');
         const serieSlot = document.getElementById('ui-serie-section');
@@ -39,6 +41,7 @@ export const render = {
         } catch (e) { console.error("Errore Showcases:", e); }
     },
 
+    // --- SEZIONE EVENTI HEADER ---
     attachHeaderEvents() {
         const logo = document.getElementById('logo-reset');
         if (logo) logo.onclick = () => location.reload();
@@ -68,6 +71,7 @@ export const render = {
         if (addBtn) addBtn.onclick = () => this.openFormModal();
     },
 
+    // --- SEZIONE EVENTI PUBLISHER ---
     attachPublisherEvents() {
         const resetBtn = document.getElementById('reset-brand-filter');
         if (resetBtn) resetBtn.onclick = async () => {
@@ -87,6 +91,7 @@ export const render = {
         });
     },
 
+    // --- SEZIONE EVENTI SERIE ---
     attachSerieEvents() {
         document.querySelectorAll('[data-serie-id]').forEach(el => {
             el.onclick = async (e) => {
@@ -99,15 +104,9 @@ export const render = {
                 this.refreshGrid();
             };
         });
-
-        document.querySelectorAll('.btn-edit-serie').forEach(btn => {
-            btn.onclick = (e) => {
-                e.stopPropagation();
-                alert("Edit Serie: " + btn.dataset.editId);
-            };
-        });
     },
 
+    // --- SEZIONE RENDER GRIGLIA (NULL-SAFE) ---
     refreshGrid() {
         const container = document.getElementById('main-grid');
         if (!container) return;
@@ -136,6 +135,7 @@ export const render = {
         }
     },
 
+    // --- SEZIONE MODALE VISUALIZZAZIONE ---
     async openIssueModal(id) {
         const modal = document.getElementById('issue-modal');
         const content = document.getElementById('modal-body');
@@ -152,19 +152,22 @@ export const render = {
         if (closeBtn) closeBtn.onclick = () => modal.classList.replace('flex', 'hidden');
     },
 
+    // --- SEZIONE MODALE EDIT/NUOVO ---
     async openFormModal(issue = null) {
         const modal = document.getElementById('issue-modal');
         const content = document.getElementById('modal-body');
 
-        // Caricamento dropdown per Edit/Nuovo
-        const [resEditori, resSerie, resTipi, resTestate] = await Promise.all([
+        // Caricamento dati per dropdown (Pulsante Nuovo o Edit)
+        const [resCodici, resEditori, resSerie, resTipi, resTestate] = await Promise.all([
             window.supabaseClient.from('codice_editore').select('*').order('nome'),
+            window.supabaseClient.from('editore').select('*').order('nome'),
             window.supabaseClient.from('serie').select('*').order('nome'),
             window.supabaseClient.from('tipo_pubblicazione').select('*').order('nome'),
-            window.supabaseClient.from('editore').select('*').order('nome')
+            window.supabaseClient.from('testata').select('*').order('nome')
         ]);
 
         const dropdowns = {
+            codici: resCodici.data || [],
             editori: resEditori.data || [],
             serie: resSerie.data || [],
             tipi: resTipi.data || [],
@@ -174,13 +177,15 @@ export const render = {
         content.innerHTML = UI.ISSUE_FORM(issue || {}, dropdowns);
         modal.classList.replace('hidden', 'flex');
 
-        // Logic Anteprime Real-time
+        // Logic Anteprime Real-time & Sincronizzazione Selettori
         const inputCover = document.getElementById('input-cover-url');
         const imgCover = document.getElementById('preview-cover');
         const placeholderCover = document.getElementById('placeholder-cover');
-        const selectEditore = document.getElementById('select-editore');
+        const selectCodice = document.getElementById('select-codice-editore');
+        const selectEditoreName = document.getElementById('select-editore-name');
         const previewEditoreImg = document.querySelector('#preview-editore img');
 
+        // 1. Anteprima Immagine Albo
         if (inputCover) {
             inputCover.oninput = () => {
                 if (inputCover.value) {
@@ -194,16 +199,31 @@ export const render = {
             };
         }
 
-        if (selectEditore) {
-            selectEditore.onchange = () => {
-                const opt = selectEditore.options[selectEditore.selectedIndex];
+        // 2. Sincronizzazione Codice Editore -> Nome Editore + Anteprima
+        if (selectCodice) {
+            selectCodice.onchange = () => {
+                const opt = selectCodice.options[selectCodice.selectedIndex];
+                const val = selectCodice.value;
                 const url = opt.dataset.img;
+                
+                // Aggiorno Nome Editore
+                selectEditoreName.value = val;
+                
+                // Aggiorno Anteprima Logo
                 if (url) {
                     previewEditoreImg.src = url;
                     previewEditoreImg.classList.remove('hidden');
                 } else {
                     previewEditoreImg.classList.add('hidden');
                 }
+            };
+        }
+
+        // 3. Sincronizzazione Nome Editore -> Codice Editore
+        if (selectEditoreName) {
+            selectEditoreName.onchange = () => {
+                selectCodice.value = selectEditoreName.value;
+                selectCodice.dispatchEvent(new Event('change')); // Forza l'anteprima logo
             };
         }
 
@@ -214,13 +234,9 @@ export const render = {
             e.preventDefault();
             const formData = new FormData(form);
             const data = Object.fromEntries(formData.entries());
-            console.log("Salvataggio Albo:", data);
-            alert("Dati pronti per il salvataggio!");
+            console.log("Submit Dati:", data);
+            alert("Salvataggio in fase di implementazione!");
             modal.classList.replace('flex', 'hidden');
-            if (store.state.selectedSerie) {
-                store.state.issues = await api.getIssuesBySerie(store.state.selectedSerie.id);
-                this.refreshGrid();
-            }
         };
     },
 
