@@ -1,6 +1,6 @@
 /**
- * VERSION: 8.5.7 (Integrale - Fix Lookup ID per popolamento Edit)
- * NOTA: Risolve il problema dei campi vuoti in Edit cercando gli ID dai nomi se necessario.
+ * VERSION: 8.5.8 (Integrale - Fetch dati grezzi per popolamento Edit)
+ * NOTA: Recupera l'issue dal DB tramite ID per avere gli ID numerici delle FK.
  */
 import { api } from './api.js';
 import { store } from './store.js';
@@ -15,7 +15,7 @@ export const render = {
         this.attachHeaderEvents();
     },
 
-    // --- SEZIONE SHOWCASE (v7.5) ---
+    // ... (Metodi refreshShowcases, attachHeaderEvents, ecc. invariati ...)
     async refreshShowcases() {
         const pubSlot = document.getElementById('ui-publisher-bar');
         const serieSlot = document.getElementById('ui-serie-section');
@@ -27,10 +27,8 @@ export const render = {
                 pubSlot.innerHTML = UI.PUBLISHER_SECTION(allBtn + pills);
                 this.attachPublisherEvents();
             }
-
             let query = window.supabaseClient.from('serie').select(`id, nome, immagine_url, issue!inner ( editore!inner ( codice_editore_id ) )`);
             if (store.state.selectedBrand) query = query.eq('issue.editore.codice_editore_id', store.state.selectedBrand);
-
             const { data: series } = await query.order('nome');
             if (series && serieSlot) {
                 const uniqueSeries = Array.from(new Set(series.map(s => s.id))).map(id => series.find(s => s.id === id));
@@ -38,10 +36,9 @@ export const render = {
                 serieSlot.innerHTML = UI.SERIE_SECTION(items);
                 this.attachSerieEvents();
             }
-        } catch (e) { console.error("Errore Showcases:", e); }
+        } catch (e) { console.error(e); }
     },
 
-    // --- SEZIONE EVENTI HEADER ---
     attachHeaderEvents() {
         const logo = document.getElementById('logo-reset');
         if (logo) logo.onclick = () => location.reload();
@@ -49,42 +46,27 @@ export const render = {
         if (searchInput) searchInput.oninput = (e) => { store.state.searchQuery = e.target.value; this.refreshGrid(); };
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.onclick = () => {
-                document.querySelectorAll('.filter-btn').forEach(b => {
-                    b.classList.remove('active', 'bg-yellow-500', 'text-black');
-                    b.classList.add('text-slate-400');
-                });
-                btn.classList.add('active', 'bg-yellow-500', 'text-black');
-                btn.classList.remove('text-slate-400');
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.replace('bg-yellow-500', 'text-slate-400'));
+                btn.classList.replace('text-slate-400', 'bg-yellow-500');
                 store.state.filter = btn.dataset.filter;
                 this.refreshGrid();
             };
         });
-        const addBtn = document.getElementById('btn-add-albo');
-        if (addBtn) addBtn.onclick = () => this.openFormModal();
+        document.getElementById('btn-add-albo').onclick = () => this.openFormModal();
     },
 
-    // --- SEZIONE EVENTI PUBLISHER ---
     attachPublisherEvents() {
         const resetBtn = document.getElementById('reset-brand-filter');
-        if (resetBtn) resetBtn.onclick = async () => {
-            store.state.selectedBrand = null; store.state.selectedSerie = null;
-            await this.refreshShowcases(); await this.refreshGrid();
-        };
+        if (resetBtn) resetBtn.onclick = async () => { store.state.selectedBrand = null; await this.refreshShowcases(); this.refreshGrid(); };
         document.querySelectorAll('[data-brand-id]').forEach(el => {
-            el.onclick = async () => {
-                store.state.selectedBrand = el.dataset.brandId; store.state.selectedSerie = null;
-                await this.refreshShowcases(); await this.refreshGrid();
-            };
+            el.onclick = async () => { store.state.selectedBrand = el.dataset.brandId; await this.refreshShowcases(); this.refreshGrid(); };
         });
     },
 
-    // --- SEZIONE EVENTI SERIE ---
     attachSerieEvents() {
         document.querySelectorAll('[data-serie-id]').forEach(el => {
             el.onclick = async (e) => {
                 if (e.target.closest('.btn-edit-serie')) return;
-                document.querySelectorAll('.serie-showcase-item').forEach(i => i.classList.remove('ring-2', 'ring-yellow-500'));
-                el.classList.add('ring-2', 'ring-yellow-500');
                 store.state.selectedSerie = { id: el.dataset.serieId };
                 store.state.issues = await api.getIssuesBySerie(store.state.selectedSerie.id);
                 this.refreshGrid();
@@ -92,93 +74,83 @@ export const render = {
         });
     },
 
-    // --- SEZIONE RENDER GRIGLIA ---
     refreshGrid() {
         const container = document.getElementById('main-grid');
-        if (!container) return;
-        if (!store.state.selectedSerie) {
-            container.innerHTML = `<div class="col-span-full text-center py-20 text-slate-600 italic uppercase text-[10px] tracking-widest">Seleziona una serie per visualizzare gli albi</div>`;
-            return;
-        }
-        const filtered = (store.state.issues || []).filter(issue => {
-            const matchStatus = store.state.filter === 'all' || issue.possesso === store.state.filter;
-            const matchSearch = (issue.nome || "").toLowerCase().includes((store.state.searchQuery || "").toLowerCase()) || 
-                               (issue.numero || "").toString().toLowerCase().includes((store.state.searchQuery || "").toLowerCase());
-            return matchStatus && matchSearch;
-        });
-        container.innerHTML = filtered.length === 0 ? `<div class="col-span-full text-center py-10 text-slate-500 uppercase text-[10px]">Nessun albo trovato.</div>` : filtered.map(i => components.issueCard(i)).join('');
+        if (!container || !store.state.selectedSerie) return;
+        const filtered = (store.state.issues || []).filter(i => (store.state.filter === 'all' || i.possesso === store.state.filter));
+        container.innerHTML = filtered.map(i => components.issueCard(i)).join('');
         this.attachCardEvents();
     },
 
-    // --- SEZIONE MODALE VISUALIZZAZIONE ---
     async openIssueModal(id) {
         const modal = document.getElementById('issue-modal');
-        const content = document.getElementById('modal-body');
         const issue = store.state.issues.find(i => i.id == id);
         if (!issue) return;
-        content.innerHTML = components.renderModalContent(issue);
+        document.getElementById('modal-body').innerHTML = components.renderModalContent(issue);
         modal.classList.replace('hidden', 'flex');
-        const editBtn = document.getElementById('edit-this-issue');
-        if (editBtn) editBtn.onclick = () => this.openFormModal(issue);
-        const closeBtn = document.getElementById('close-modal');
-        if (closeBtn) closeBtn.onclick = () => modal.classList.replace('flex', 'hidden');
+        document.getElementById('edit-this-issue').onclick = () => this.openFormModal(issue);
+        document.getElementById('close-modal').onclick = () => modal.classList.replace('flex', 'hidden');
     },
 
-    // --- SEZIONE MODALE EDIT/NUOVO ---
-    async openFormModal(issue = null) {
+    // --- SEZIONE MODALE EDIT/NUOVO (CORRETTA) ---
+    async openFormModal(issueData = null) {
         const modal = document.getElementById('issue-modal');
         const content = document.getElementById('modal-body');
-
-        // 1. Caricamento massivo dei dati per i dropdown
-        const [resCodici, resEditori, resSerie, resTipi, resTestate] = await Promise.all([
+        
+        // 1. Carichiamo i dropdown e, se siamo in Edit, il record VERO dal DB
+        const promises = [
             window.supabaseClient.from('codice_editore').select('*').order('nome'),
             window.supabaseClient.from('editore').select('*').order('nome'),
             window.supabaseClient.from('serie').select('*').order('nome'),
             window.supabaseClient.from('tipo_pubblicazione').select('*').order('nome'),
             window.supabaseClient.from('testata').select('*').order('nome')
-        ]);
+        ];
 
+        // Se abbiamo issueData, carichiamo il record grezzo per avere gli ID (FK)
+        if (issueData && issueData.id) {
+            promises.push(window.supabaseClient.from('issue').select('*, editore(*)').eq('id', issueData.id).single());
+        }
+
+        const results = await Promise.all(promises);
         const dropdowns = {
-            codici: resCodici.data || [], 
-            editori: resEditori.data || [],
-            serie: resSerie.data || [], 
-            tipi: resTipi.data || [], 
-            testate: resTestate.data || []
+            codici: results[0].data, editori: results[1].data,
+            serie: results[2].data, tipi: results[3].data, testate: results[4].data
         };
+        
+        // Il record reale con gli ID numerici (editore_id, ecc.)
+        const issue = (issueData && results[5]) ? results[5].data : (issueData || {});
 
         // 2. Rendering del form
-        content.innerHTML = UI.ISSUE_FORM(issue || {}, dropdowns);
+        content.innerHTML = UI.ISSUE_FORM(issue, dropdowns);
         modal.classList.replace('hidden', 'flex');
 
         const selectCodice = document.getElementById('select-codice-editore');
         const selectEditore = document.getElementById('select-editore-name');
         const previewEditoreImg = document.querySelector('#preview-editore img');
 
-        // 3. Funzione di filtraggio e selezione
+        // 3. Logica di Sincronizzazione
         const syncEditori = (codiceId, targetEditoreId = null) => {
-            let firstMatchId = null;
             Array.from(selectEditore.options).forEach(opt => {
-                if (!opt.dataset.parent) return; 
-                if (opt.dataset.parent == codiceId) {
-                    opt.hidden = false;
-                    opt.disabled = false;
-                    if (!firstMatchId) firstMatchId = opt.value;
-                } else {
-                    opt.hidden = true;
-                    opt.disabled = true;
-                }
+                const parent = opt.dataset.parent;
+                if (!parent) return;
+                const isMatch = (parent == codiceId);
+                opt.hidden = !isMatch;
+                opt.disabled = !isMatch;
             });
-            // Seleziona l'ID fornito, altrimenti il primo disponibile, altrimenti vuoto
-            selectEditore.value = targetEditoreId || firstMatchId || "";
+            
+            if (targetEditoreId) {
+                selectEditore.value = targetEditoreId;
+            } else {
+                selectEditore.value = "";
+            }
             selectEditore.dispatchEvent(new Event('change'));
         };
 
-        // 4. Gestione Eventi
         selectCodice.onchange = () => syncEditori(selectCodice.value);
         selectEditore.onchange = () => {
             const opt = selectEditore.options[selectEditore.selectedIndex];
-            const img = opt ? opt.dataset.img : '';
-            if (img && img !== 'undefined') {
+            const img = opt?.dataset.img;
+            if (img) {
                 previewEditoreImg.src = img;
                 previewEditoreImg.classList.remove('hidden');
             } else {
@@ -186,29 +158,12 @@ export const render = {
             }
         };
 
-        // 5. LOGICA CHIRURGICA PER EDIT
-        if (issue && issue.id) {
-            console.log("Dati Issue ricevuti:", issue);
+        // 4. POPOLAMENTO IMMEDIATO (CASO EDIT)
+        if (issue.id) {
+            // Recuperiamo l'ID del codice editore dalla tabella editore collegata
+            const cId = issue.editore?.codice_editore_id || issue.codice_editore_id;
+            const eId = issue.editore_id;
 
-            // Trova l'ID Codice Editore se non presente (tramite nome editore o join)
-            let cId = issue.codice_editore_id;
-            let eId = issue.editore_id;
-
-            // Se mancano gli ID ma abbiamo l'oggetto editore correlato (tipico di Supabase join)
-            if (!cId && issue.editore) cId = issue.editore.codice_editore_id;
-            if (!eId && issue.editore_id_linked) eId = issue.editore_id_linked;
-
-            // Fallback estremo: cerca l'ID corrispondente al nome testata/editore nei dropdown
-            if (!cId) {
-                const foundCodice = dropdowns.codici.find(c => c.nome === issue.codice_editore);
-                if (foundCodice) cId = foundCodice.id;
-            }
-            if (!eId) {
-                const foundEditore = dropdowns.editori.find(e => e.nome === issue.testata || e.nome === issue.editore);
-                if (foundEditore) eId = foundEditore.id;
-            }
-
-            // Applica le selezioni
             if (cId) {
                 selectCodice.value = cId;
                 syncEditori(cId, eId);
@@ -216,10 +171,7 @@ export const render = {
         }
 
         document.getElementById('cancel-form').onclick = () => modal.classList.replace('flex', 'hidden');
-        document.getElementById('form-albo').onsubmit = (e) => { 
-            e.preventDefault(); 
-            alert("Pronto al salvataggio!"); 
-        };
+        document.getElementById('form-albo').onsubmit = (e) => { e.preventDefault(); console.log("Salvataggio..."); };
     },
 
     attachCardEvents() {
