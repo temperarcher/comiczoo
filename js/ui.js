@@ -1,6 +1,6 @@
 /**
- * VERSION: 1.8.2 (Integrale - Form con Codice Editore e Editore affiancati)
- * NOTA: Non rimuovere i commenti identificativi delle sezioni (LIVELLO 1, 2, 3, etc.)
+ * VERSION: 1.8.3 (Integrale - Dipendenza dinamica Codice/Editore + Anteprima da Tabella Editore)
+ * NOTA: Non rimuovere i commenti identificativi delle sezioni.
  */
 export const UI = {
     // LIVELLO 1: HEADER (v7.4)
@@ -163,16 +163,16 @@ export const UI = {
                     <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                         <div class="md:col-span-5">
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Codice Editore</label>
-                            <select name="codice_editore_id" id="select-codice-editore" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
+                            <select id="select-codice-editore" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
                                 <option value="">Seleziona...</option>
-                                ${dropdowns.codici.map(c => `<option value="${c.id}" data-img="${c.immagine_url}" ${issue.codice_editore_id === c.id ? 'selected' : ''}>${c.nome}</option>`).join('')}
+                                ${dropdowns.codici.map(c => `<option value="${c.id}" ${issue.codice_editore_id === c.id ? 'selected' : ''}>${c.nome}</option>`).join('')}
                             </select>
                         </div>
                         <div class="md:col-span-5">
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Editore</label>
                             <select name="editore_id_linked" id="select-editore-name" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
-                                <option value="">Seleziona Editore...</option>
-                                ${dropdowns.editori.map(e => `<option value="${e.codice_editore_id}" ${issue.codice_editore_id === e.codice_editore_id ? 'selected' : ''}>${e.nome}</option>`).join('')}
+                                <option value="">-- Seleziona Codice --</option>
+                                ${dropdowns.editori.map(e => `<option value="${e.id}" data-parent="${e.codice_editore_id}" data-img="${e.immagine_url}" ${issue.codice_editore_id === e.codice_editore_id ? '' : 'class="hidden"'}>${e.nome}</option>`).join('')}
                             </select>
                         </div>
                         <div class="md:col-span-2">
@@ -208,9 +208,9 @@ export const UI = {
 
                     <div>
                         <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Testata</label>
-                        <select name="editore_id" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
+                        <select name="testata_id" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
                              <option value="">Seleziona Testata...</option>
-                             ${dropdowns.testate.map(t => `<option value="${t.id}" ${issue.editore_id === t.id ? 'selected' : ''}>${t.nome}</option>`).join('')}
+                             ${dropdowns.testate.map(t => `<option value="${t.id}" ${issue.testata_id === t.id ? 'selected' : ''}>${t.nome}</option>`).join('')}
                         </select>
                     </div>
 
@@ -257,7 +257,7 @@ export const UI = {
                                 <div class="text-[10px] uppercase font-black py-2 rounded-md peer-checked:bg-green-600 peer-checked:text-white text-slate-500 transition-all">Celo</div>
                             </label>
                             <label class="flex-1 text-center cursor-pointer">
-                                <input type="radio" name="possesso" value="manca" class="hidden peer" ${issue.possesso !== 'celo' ? 'checked' : 'checked'}>
+                                <input type="radio" name="possesso" value="manca" class="hidden peer" ${issue.possesso !== 'celo' ? 'checked' : ''}>
                                 <div class="text-[10px] uppercase font-black py-2 rounded-md peer-checked:bg-red-600 peer-checked:text-white text-slate-500 transition-all">Manca</div>
                             </label>
                         </div>
