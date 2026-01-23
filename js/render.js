@@ -1,6 +1,6 @@
 /**
- * VERSION: 8.6.5 (Integrale - Base 8.6.0 + Logica Supplemento con Annata)
- * NOTA: Gestisce la dipendenza gerarchica completa e il recupero albi per supplemento.
+ * VERSION: 8.6.6 (Integrale - Supplemento filtrato per Codice Editore + Ordine A-Z)
+ * NOTA: Il menu supplementi ora reagisce alla scelta dell'editore.
  */
 import { api } from './api.js';
 import { store } from './store.js';
@@ -15,6 +15,7 @@ export const render = {
         this.attachHeaderEvents();
     },
 
+    // ... (refreshShowcases, attachHeaderEvents, attachPublisherEvents, attachSerieEvents, refreshGrid, openIssueModal invariati)
     async refreshShowcases() {
         const pubSlot = document.getElementById('ui-publisher-bar');
         const serieSlot = document.getElementById('ui-serie-section');
@@ -91,12 +92,10 @@ export const render = {
         document.getElementById('close-modal').onclick = () => modal.classList.replace('flex', 'hidden');
     },
 
-    // --- SEZIONE MODALE FORM (NUOVO/EDIT) ---
     async openFormModal(issueData = null) {
         const modal = document.getElementById('issue-modal');
         const content = document.getElementById('modal-body');
         
-        // 1. Fetch Dati Completo (Modificato per includere Albi per Supplemento)
         const promises = [
             window.supabaseClient.from('codice_editore').select('*').order('nome'),
             window.supabaseClient.from('editore').select('*').order('nome'),
@@ -104,8 +103,12 @@ export const render = {
             window.supabaseClient.from('tipo_pubblicazione').select('*').order('nome'),
             window.supabaseClient.from('testata').select('*').order('nome'),
             window.supabaseClient.from('annata').select('*').order('nome'),
-            // Query per supplemento con join relazionali
-            window.supabaseClient.from('issue').select(`id, numero, data_pubblicazione, serie(nome), testata(nome), annata(nome)`).order('numero')
+            // Recupero albi per supplemento con codice_editore_id tramite join editore
+            window.supabaseClient.from('issue').select(`
+                id, numero, data_pubblicazione, 
+                serie(nome), testata(nome), annata(nome),
+                editore!inner(codice_editore_id)
+            `)
         ];
 
         if (issueData && issueData.id) {
@@ -121,10 +124,9 @@ export const render = {
         
         const issue = (issueData && results[7]) ? results[7].data : (issueData || {});
 
-        // 2. Rendering HTML e Iniezione Selettori Dinamici
         content.innerHTML = UI.ISSUE_FORM(issue, dropdowns);
         
-        // -- LOGICA CHIRURGICA SUPPLEMENTO --
+        // --- HELPER STRINGA E INIEZIONE SUPPLEMENTO ---
         const formatSupplementoLabel = (albo) => {
             const s = albo.serie?.nome ? `${albo.serie.nome} ` : '';
             const t = albo.testata?.nome ? `${albo.testata.nome} ` : '';
@@ -138,19 +140,21 @@ export const render = {
         supplementoWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Supplemento a...</label>
             <select name="supplemento_id" id="select-supplemento" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
                 <option value="">Nessuno (Albo autonomo)</option>
-                ${dropdowns.albiPerSupplemento.filter(a => a.id !== issue.id).map(a => `<option value="${a.id}">${formatSupplementoLabel(a)}</option>`).join('')}
+                ${dropdowns.albiPerSupplemento
+                    .map(a => ({ ...a, label: formatSupplementoLabel(a) }))
+                    .sort((a, b) => a.label.localeCompare(b.label))
+                    .map(a => `<option value="${a.id}" data-codice="${a.editore?.codice_editore_id}">${a.label}</option>`).join('')}
             </select>`;
 
-        // Preparazione Select Dinamiche (Annata e Testata)
+        // Iniezione Annata e Testata
         const annataWrapper = content.querySelector('input[name="annata"]').parentElement;
-        const testataWrapper = content.querySelector('select[name="testata_id"]').parentElement;
-
         annataWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Annata</label>
             <select name="annata_id" id="select-annata" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
                 <option value="">Seleziona Annata...</option>
                 ${dropdowns.annate.map(a => `<option value="${a.id}" data-serie="${a.serie_id}">${a.nome}</option>`).join('')}
             </select>`;
 
+        const testataWrapper = content.querySelector('select[name="testata_id"]').parentElement;
         testataWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Testata</label>
             <select name="testata_id" id="select-testata" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
                 <option value="">Seleziona Testata...</option>
@@ -159,75 +163,63 @@ export const render = {
 
         modal.classList.replace('hidden', 'flex');
 
-        // 3. Selettori DOM
         const selectCodice = document.getElementById('select-codice-editore');
         const selectEditore = document.getElementById('select-editore-name');
         const selectSerie = document.getElementById('select-serie');
         const selectAnnata = document.getElementById('select-annata');
         const selectTestata = document.getElementById('select-testata');
         const selectSupplemento = document.getElementById('select-supplemento');
-        const previewEditoreImg = document.querySelector('#preview-editore img');
 
-        // 4. Logica Filtraggio Editori
-        const syncEditori = (codiceId, targetEditoreId = null) => {
+        // --- LOGICA FILTRAGGIO DINAMICO ---
+        const syncEditoriESupplementi = (codiceId, targetEditoreId = null) => {
+            // Filtro Editori
             Array.from(selectEditore.options).forEach(opt => {
                 if (!opt.dataset.parent) return;
                 const match = (opt.dataset.parent == codiceId);
                 opt.hidden = !match; opt.disabled = !match;
             });
             selectEditore.value = targetEditoreId || "";
-            selectEditore.dispatchEvent(new Event('change'));
+            
+            // Filtro Supplementi per Codice Editore
+            Array.from(selectSupplemento.options).forEach(opt => {
+                if (!opt.dataset.codice) return;
+                const match = (opt.dataset.codice == codiceId);
+                opt.hidden = !match; opt.disabled = !match;
+            });
+            // Se il supplemento attualmente selezionato viene nascosto, resetta il campo
+            if (selectSupplemento.options[selectSupplemento.selectedIndex]?.hidden) selectSupplemento.value = "";
         };
 
-        // 5. Logica Filtraggio Dipendenti da Serie (Annata & Testata)
         const syncSerieDependents = (serieId, targetAnnataId = null, targetTestataId = null) => {
-            Array.from(selectAnnata.options).forEach(opt => {
-                if (!opt.dataset.serie) return;
-                const match = (opt.dataset.serie == serieId);
-                opt.hidden = !match; opt.disabled = !match;
+            [selectAnnata, selectTestata].forEach(sel => {
+                Array.from(sel.options).forEach(opt => {
+                    if (!opt.dataset.serie) return;
+                    const match = (opt.dataset.serie == serieId);
+                    opt.hidden = !match; opt.disabled = !match;
+                });
             });
             selectAnnata.value = targetAnnataId || "";
-
-            Array.from(selectTestata.options).forEach(opt => {
-                if (!opt.dataset.serie) return;
-                const match = (opt.dataset.serie == serieId);
-                opt.hidden = !match; opt.disabled = !match;
-            });
             selectTestata.value = targetTestataId || "";
         };
 
-        // 6. Eventi
-        selectCodice.onchange = () => syncEditori(selectCodice.value);
-        selectEditore.onchange = () => {
-            const opt = selectEditore.options[selectEditore.selectedIndex];
-            if (opt?.dataset.img) {
-                previewEditoreImg.src = opt.dataset.img;
-                previewEditoreImg.classList.remove('hidden');
-            } else { previewEditoreImg.classList.add('hidden'); }
-        };
+        selectCodice.onchange = () => syncEditoriESupplementi(selectCodice.value);
         selectSerie.onchange = () => syncSerieDependents(selectSerie.value);
 
-        // 7. POPOLAMENTO EDIT (Sincronizzazione finale)
         if (issue.id) {
             const cId = issue.editore?.codice_editore_id || issue.codice_editore_id;
             if (cId) {
                 selectCodice.value = cId;
-                syncEditori(cId, issue.editore_id);
+                syncEditoriESupplementi(cId, issue.editore_id);
             }
             if (issue.serie_id) {
                 selectSerie.value = issue.serie_id;
                 syncSerieDependents(issue.serie_id, issue.annata_id, issue.testata_id);
             }
-            // Popolamento Supplemento
             if (issue.supplemento_id) selectSupplemento.value = issue.supplemento_id;
         }
 
         document.getElementById('cancel-form').onclick = () => modal.classList.replace('flex', 'hidden');
-        document.getElementById('form-albo').onsubmit = (e) => { 
-            e.preventDefault(); 
-            const formData = new FormData(e.target);
-            console.log("Dati pronti per il salvataggio:", Object.fromEntries(formData));
-        };
+        document.getElementById('form-albo').onsubmit = (e) => { e.preventDefault(); console.log("Salvataggio..."); };
     },
 
     attachCardEvents() {
