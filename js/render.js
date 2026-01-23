@@ -1,6 +1,6 @@
 /**
- * VERSION: 8.5.3 (Integrale - Logica Doppio Selettore Editore + Ripristino Commenti)
- * NOTA: Mantenere i commenti di sezione per la tracciabilità delle modifiche.
+ * VERSION: 8.5.5 (Integrale - Fix Sincronizzazione Edit/Nuovo e Immagine Editore)
+ * NOTA: Mantenere i commenti di sezione. Non rimuovere la logica di pre-caricamento Edit.
  */
 import { api } from './api.js';
 import { store } from './store.js';
@@ -45,15 +45,8 @@ export const render = {
     attachHeaderEvents() {
         const logo = document.getElementById('logo-reset');
         if (logo) logo.onclick = () => location.reload();
-
         const searchInput = document.getElementById('serie-search');
-        if (searchInput) {
-            searchInput.oninput = (e) => {
-                store.state.searchQuery = e.target.value;
-                this.refreshGrid();
-            };
-        }
-
+        if (searchInput) searchInput.oninput = (e) => { store.state.searchQuery = e.target.value; this.refreshGrid(); };
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.onclick = () => {
                 document.querySelectorAll('.filter-btn').forEach(b => {
@@ -66,7 +59,6 @@ export const render = {
                 this.refreshGrid();
             };
         });
-
         const addBtn = document.getElementById('btn-add-albo');
         if (addBtn) addBtn.onclick = () => this.openFormModal();
     },
@@ -75,18 +67,13 @@ export const render = {
     attachPublisherEvents() {
         const resetBtn = document.getElementById('reset-brand-filter');
         if (resetBtn) resetBtn.onclick = async () => {
-            store.state.selectedBrand = null;
-            store.state.selectedSerie = null;
-            await this.refreshShowcases();
-            await this.refreshGrid();
+            store.state.selectedBrand = null; store.state.selectedSerie = null;
+            await this.refreshShowcases(); await this.refreshGrid();
         };
-
         document.querySelectorAll('[data-brand-id]').forEach(el => {
             el.onclick = async () => {
-                store.state.selectedBrand = el.dataset.brandId;
-                store.state.selectedSerie = null;
-                await this.refreshShowcases();
-                await this.refreshGrid();
+                store.state.selectedBrand = el.dataset.brandId; store.state.selectedSerie = null;
+                await this.refreshShowcases(); await this.refreshGrid();
             };
         });
     },
@@ -98,7 +85,6 @@ export const render = {
                 if (e.target.closest('.btn-edit-serie')) return;
                 document.querySelectorAll('.serie-showcase-item').forEach(i => i.classList.remove('ring-2', 'ring-yellow-500'));
                 el.classList.add('ring-2', 'ring-yellow-500');
-
                 store.state.selectedSerie = { id: el.dataset.serieId };
                 store.state.issues = await api.getIssuesBySerie(store.state.selectedSerie.id);
                 this.refreshGrid();
@@ -106,33 +92,22 @@ export const render = {
         });
     },
 
-    // --- SEZIONE RENDER GRIGLIA (NULL-SAFE) ---
+    // --- SEZIONE RENDER GRIGLIA ---
     refreshGrid() {
         const container = document.getElementById('main-grid');
         if (!container) return;
-
         if (!store.state.selectedSerie) {
             container.innerHTML = `<div class="col-span-full text-center py-20 text-slate-600 italic uppercase text-[10px] tracking-widest">Seleziona una serie per visualizzare gli albi</div>`;
             return;
         }
-
-        const allIssues = store.state.issues || [];
-        const searchStr = (store.state.searchQuery || "").toLowerCase();
-
-        const filtered = allIssues.filter(issue => {
+        const filtered = (store.state.issues || []).filter(issue => {
             const matchStatus = store.state.filter === 'all' || issue.possesso === store.state.filter;
-            const nomeAlbo = (issue.nome || "").toLowerCase();
-            const numAlbo = (issue.numero || "").toString().toLowerCase();
-            const matchSearch = nomeAlbo.includes(searchStr) || numAlbo.includes(searchStr);
+            const matchSearch = (issue.nome || "").toLowerCase().includes((store.state.searchQuery || "").toLowerCase()) || 
+                               (issue.numero || "").toString().toLowerCase().includes((store.state.searchQuery || "").toLowerCase());
             return matchStatus && matchSearch;
         });
-
-        if (filtered.length === 0) {
-            container.innerHTML = `<div class="col-span-full text-center py-10 text-slate-500 uppercase text-[10px]">Nessun albo trovato.</div>`;
-        } else {
-            container.innerHTML = filtered.map(i => components.issueCard(i)).join('');
-            this.attachCardEvents();
-        }
+        container.innerHTML = filtered.length === 0 ? `<div class="col-span-full text-center py-10 text-slate-500 uppercase text-[10px]">Nessun albo trovato.</div>` : filtered.map(i => components.issueCard(i)).join('');
+        this.attachCardEvents();
     },
 
     // --- SEZIONE MODALE VISUALIZZAZIONE ---
@@ -141,13 +116,10 @@ export const render = {
         const content = document.getElementById('modal-body');
         const issue = store.state.issues.find(i => i.id == id);
         if (!issue) return;
-        
         content.innerHTML = components.renderModalContent(issue);
         modal.classList.replace('hidden', 'flex');
-
         const editBtn = document.getElementById('edit-this-issue');
         if (editBtn) editBtn.onclick = () => this.openFormModal(issue);
-
         const closeBtn = document.getElementById('close-modal');
         if (closeBtn) closeBtn.onclick = () => modal.classList.replace('flex', 'hidden');
     },
@@ -157,7 +129,7 @@ export const render = {
         const modal = document.getElementById('issue-modal');
         const content = document.getElementById('modal-body');
 
-        // Caricamento dati per dropdown (Pulsante Nuovo o Edit)
+        // Recupero di tutti i dati necessari per i dropdown
         const [resCodici, resEditori, resSerie, resTipi, resTestate] = await Promise.all([
             window.supabaseClient.from('codice_editore').select('*').order('nome'),
             window.supabaseClient.from('editore').select('*').order('nome'),
@@ -167,82 +139,94 @@ export const render = {
         ]);
 
         const dropdowns = {
-            codici: resCodici.data || [],
+            codici: resCodici.data || [], 
             editori: resEditori.data || [],
-            serie: resSerie.data || [],
-            tipi: resTipi.data || [],
+            serie: resSerie.data || [], 
+            tipi: resTipi.data || [], 
             testate: resTestate.data || []
         };
 
         content.innerHTML = UI.ISSUE_FORM(issue || {}, dropdowns);
         modal.classList.replace('hidden', 'flex');
 
-        // Logic Anteprime Real-time & Sincronizzazione Selettori
-        const inputCover = document.getElementById('input-cover-url');
-        const imgCover = document.getElementById('preview-cover');
-        const placeholderCover = document.getElementById('placeholder-cover');
         const selectCodice = document.getElementById('select-codice-editore');
-        const selectEditoreName = document.getElementById('select-editore-name');
+        const selectEditore = document.getElementById('select-editore-name');
         const previewEditoreImg = document.querySelector('#preview-editore img');
 
-        // 1. Anteprima Immagine Albo
-        if (inputCover) {
-            inputCover.oninput = () => {
-                if (inputCover.value) {
-                    imgCover.src = inputCover.value;
-                    imgCover.classList.remove('hidden');
-                    placeholderCover.classList.add('hidden');
-                } else {
-                    imgCover.classList.add('hidden');
-                    placeholderCover.classList.remove('hidden');
+        /**
+         * FUNZIONE CHIRURGICA: aggiorna la lista editori basandosi sul Codice Editore selezionato
+         */
+        const updateEditoriDropdown = (codiceId, preselectEditoreId = null) => {
+            let foundMatch = false;
+            
+            // Ciclo sulle opzioni del campo Editore
+            Array.from(selectEditore.options).forEach(opt => {
+                const parentId = opt.dataset.parent;
+                if (!parentId) { // Opzione "Seleziona..."
+                    opt.disabled = false;
+                    return;
                 }
-            };
-        }
 
-        // 2. Sincronizzazione Codice Editore -> Nome Editore + Anteprima
-        if (selectCodice) {
-            selectCodice.onchange = () => {
-                const opt = selectCodice.options[selectCodice.selectedIndex];
-                const val = selectCodice.value;
-                const url = opt.dataset.img;
-                
-                // Aggiorno Nome Editore
-                selectEditoreName.value = val;
-                
-                // Aggiorno Anteprima Logo
-                if (url) {
-                    previewEditoreImg.src = url;
-                    previewEditoreImg.classList.remove('hidden');
+                if (parentId == codiceId) {
+                    opt.classList.remove('hidden');
+                    opt.disabled = false;
+                    if (preselectEditoreId && opt.value == preselectEditoreId) {
+                        opt.selected = true;
+                        foundMatch = true;
+                    }
                 } else {
-                    previewEditoreImg.classList.add('hidden');
+                    opt.classList.add('hidden');
+                    opt.disabled = true;
                 }
-            };
+            });
+
+            // Se non c'è una pre-selezione o non è stata trovata, resetta al primo disponibile
+            if (!foundMatch) {
+                selectEditore.value = "";
+            }
+
+            // Trigger manuale del cambio per aggiornare l'immagine
+            selectEditore.dispatchEvent(new Event('change'));
+        };
+
+        // EVENTO 1: Cambio Codice Editore -> Filtra Editori
+        selectCodice.onchange = () => {
+            updateEditoriDropdown(selectCodice.value);
+        };
+        
+        // EVENTO 2: Cambio Editore -> Aggiorna Anteprima Immagine (dalla tabella Editore)
+        selectEditore.onchange = () => {
+            const selectedOpt = selectEditore.options[selectEditore.selectedIndex];
+            const imgUrl = selectedOpt ? selectedOpt.dataset.img : null;
+            
+            if (imgUrl && imgUrl !== "undefined") {
+                previewEditoreImg.src = imgUrl;
+                previewEditoreImg.classList.remove('hidden');
+            } else {
+                previewEditoreImg.classList.add('hidden');
+            }
+        };
+
+        // --- GESTIONE STATO INIZIALE (CASO EDIT) ---
+        if (issue && issue.codice_editore_id) {
+            // Seleziono il codice corretto nel primo dropdown
+            selectCodice.value = issue.codice_editore_id;
+            // Filtro e seleziono l'editore specifico (usando editore_id salvato nell'issue)
+            updateEditoriDropdown(issue.codice_editore_id, issue.editore_id);
         }
 
-        // 3. Sincronizzazione Nome Editore -> Codice Editore
-        if (selectEditoreName) {
-            selectEditoreName.onchange = () => {
-                selectCodice.value = selectEditoreName.value;
-                selectCodice.dispatchEvent(new Event('change')); // Forza l'anteprima logo
-            };
-        }
-
+        // Chiusura e Submit
         document.getElementById('cancel-form').onclick = () => modal.classList.replace('flex', 'hidden');
-
-        const form = document.getElementById('form-albo');
-        form.onsubmit = async (e) => {
-            e.preventDefault();
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData.entries());
-            console.log("Submit Dati:", data);
-            alert("Salvataggio in fase di implementazione!");
-            modal.classList.replace('flex', 'hidden');
+        document.getElementById('form-albo').onsubmit = (e) => { 
+            e.preventDefault(); 
+            const formData = new FormData(e.target);
+            console.log("Dati da salvare:", Object.fromEntries(formData.entries()));
+            alert("Dati pronti per il database!"); 
+            modal.classList.replace('flex', 'hidden'); 
         };
     },
 
     attachCardEvents() {
-        document.querySelectorAll('[data-id]').forEach(c => {
-            c.onclick = () => this.openIssueModal(c.dataset.id);
-        });
+        document.querySelectorAll('[data-id]').forEach(c => { c.onclick = () => this.openIssueModal(c.dataset.id); });
     }
 };
