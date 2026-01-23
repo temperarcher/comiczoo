@@ -1,6 +1,6 @@
 /**
- * VERSION: 8.5.8 (Integrale - Fetch dati grezzi per popolamento Edit)
- * NOTA: Recupera l'issue dal DB tramite ID per avere gli ID numerici delle FK.
+ * VERSION: 8.5.9 (Integrale - Dipendenza dinamica Serie/Annata + Popolamento Edit)
+ * NOTA: Gestisce il filtraggio delle annate in base alla serie selezionata.
  */
 import { api } from './api.js';
 import { store } from './store.js';
@@ -15,7 +15,7 @@ export const render = {
         this.attachHeaderEvents();
     },
 
-    // ... (Metodi refreshShowcases, attachHeaderEvents, ecc. invariati ...)
+    // ... (refreshShowcases, attachHeaderEvents, attachPublisherEvents, attachSerieEvents, refreshGrid, openIssueModal invariati)
     async refreshShowcases() {
         const pubSlot = document.getElementById('ui-publisher-bar');
         const serieSlot = document.getElementById('ui-serie-section');
@@ -92,81 +92,100 @@ export const render = {
         document.getElementById('close-modal').onclick = () => modal.classList.replace('flex', 'hidden');
     },
 
-    // --- SEZIONE MODALE EDIT/NUOVO (CORRETTA) ---
+    // --- SEZIONE MODALE FORM (NUOVO/EDIT) ---
     async openFormModal(issueData = null) {
         const modal = document.getElementById('issue-modal');
         const content = document.getElementById('modal-body');
         
-        // 1. Carichiamo i dropdown e, se siamo in Edit, il record VERO dal DB
+        // 1. Fetch Dati con inclusione ANNATA
         const promises = [
             window.supabaseClient.from('codice_editore').select('*').order('nome'),
             window.supabaseClient.from('editore').select('*').order('nome'),
             window.supabaseClient.from('serie').select('*').order('nome'),
             window.supabaseClient.from('tipo_pubblicazione').select('*').order('nome'),
-            window.supabaseClient.from('testata').select('*').order('nome')
+            window.supabaseClient.from('testata').select('*').order('nome'),
+            window.supabaseClient.from('annata').select('*').order('nome') // Tabella annata
         ];
 
-        // Se abbiamo issueData, carichiamo il record grezzo per avere gli ID (FK)
         if (issueData && issueData.id) {
             promises.push(window.supabaseClient.from('issue').select('*, editore(*)').eq('id', issueData.id).single());
         }
 
         const results = await Promise.all(promises);
         const dropdowns = {
-            codici: results[0].data, editori: results[1].data,
-            serie: results[2].data, tipi: results[3].data, testate: results[4].data
+            codici: results[0].data, editori: results[1].data, serie: results[2].data,
+            tipi: results[3].data, testate: results[4].data, annate: results[5].data
         };
         
-        // Il record reale con gli ID numerici (editore_id, ecc.)
-        const issue = (issueData && results[5]) ? results[5].data : (issueData || {});
+        const issue = (issueData && results[6]) ? results[6].data : (issueData || {});
 
-        // 2. Rendering del form
+        // 2. Iniezione HTML (Aggiorniamo la parte Annata nel form UI)
         content.innerHTML = UI.ISSUE_FORM(issue, dropdowns);
+        // Modifica al volo del select annata per gestire i dataset serie_id
+        const selectAnnata = document.createElement('select');
+        selectAnnata.name = "annata_id";
+        selectAnnata.id = "select-annata";
+        selectAnnata.className = "w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none";
+        selectAnnata.innerHTML = `<option value="">Seleziona Annata...</option>` + 
+            dropdowns.annate.map(a => `<option value="${a.id}" data-serie="${a.serie_id}">${a.nome}</option>`).join('');
+        
+        // Sostituiamo l'input testuale dell'annata con il nostro select dinamico
+        const annataWrapper = content.querySelector('input[name="annata"]').parentElement;
+        annataWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Annata</label>`;
+        annataWrapper.appendChild(selectAnnata);
+
         modal.classList.replace('hidden', 'flex');
 
+        // 3. Selettori DOM
         const selectCodice = document.getElementById('select-codice-editore');
         const selectEditore = document.getElementById('select-editore-name');
+        const selectSerie = document.getElementById('select-serie');
         const previewEditoreImg = document.querySelector('#preview-editore img');
 
-        // 3. Logica di Sincronizzazione
+        // 4. Logica Filtraggio Editori
         const syncEditori = (codiceId, targetEditoreId = null) => {
             Array.from(selectEditore.options).forEach(opt => {
-                const parent = opt.dataset.parent;
-                if (!parent) return;
-                const isMatch = (parent == codiceId);
-                opt.hidden = !isMatch;
-                opt.disabled = !isMatch;
+                if (!opt.dataset.parent) return;
+                const match = (opt.dataset.parent == codiceId);
+                opt.hidden = !match; opt.disabled = !match;
             });
-            
-            if (targetEditoreId) {
-                selectEditore.value = targetEditoreId;
-            } else {
-                selectEditore.value = "";
-            }
+            selectEditore.value = targetEditoreId || "";
             selectEditore.dispatchEvent(new Event('change'));
         };
 
+        // 5. Logica Filtraggio Annate (Serie -> Annata)
+        const syncAnnate = (serieId, targetAnnataId = null) => {
+            Array.from(selectAnnata.options).forEach(opt => {
+                if (!opt.dataset.serie) return;
+                const match = (opt.dataset.serie == serieId);
+                opt.hidden = !match; opt.disabled = !match;
+            });
+            selectAnnata.value = targetAnnataId || "";
+        };
+
+        // 6. Eventi
         selectCodice.onchange = () => syncEditori(selectCodice.value);
         selectEditore.onchange = () => {
             const opt = selectEditore.options[selectEditore.selectedIndex];
-            const img = opt?.dataset.img;
-            if (img) {
-                previewEditoreImg.src = img;
+            if (opt?.dataset.img) {
+                previewEditoreImg.src = opt.dataset.img;
                 previewEditoreImg.classList.remove('hidden');
-            } else {
-                previewEditoreImg.classList.add('hidden');
-            }
+            } else { previewEditoreImg.classList.add('hidden'); }
         };
+        selectSerie.onchange = () => syncAnnate(selectSerie.value);
 
-        // 4. POPOLAMENTO IMMEDIATO (CASO EDIT)
+        // 7. POPOLAMENTO EDIT (Casistica ID)
         if (issue.id) {
-            // Recuperiamo l'ID del codice editore dalla tabella editore collegata
+            // Editore / Codice
             const cId = issue.editore?.codice_editore_id || issue.codice_editore_id;
-            const eId = issue.editore_id;
-
             if (cId) {
                 selectCodice.value = cId;
-                syncEditori(cId, eId);
+                syncEditori(cId, issue.editore_id);
+            }
+            // Serie / Annata
+            if (issue.serie_id) {
+                selectSerie.value = issue.serie_id;
+                syncAnnate(issue.serie_id, issue.annata_id);
             }
         }
 
