@@ -1,25 +1,22 @@
 /**
- * VERSION: 1.8.3 (Integrale - Dipendenza dinamica Codice/Editore + Anteprima da Tabella Editore)
+ * VERSION: 1.8.4 (Integrale - Form con ID precisi per sincronizzazione Edit)
  * NOTA: Non rimuovere i commenti identificativi delle sezioni.
  */
 export const UI = {
-    // LIVELLO 1: HEADER (v7.4)
+    // LIVELLO 1: HEADER (Invariato)
     HEADER: () => `
         <header class="bg-slate-800 border-b border-slate-700 p-6 sticky top-0 z-50 shadow-2xl">
             <div class="container mx-auto flex flex-col lg:flex-row justify-between items-center gap-6">
                 <h1 id="logo-reset" class="text-3xl font-black text-yellow-500 tracking-tighter uppercase italic cursor-pointer select-none shrink-0">Comic Archive</h1>
-                
                 <div class="flex flex-col md:flex-row w-full gap-4 items-center">
                     <div class="relative w-full">
                         <input type="text" id="serie-search" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-full pl-12 focus:ring-2 focus:ring-yellow-500 outline-none transition-all" placeholder="Cerca una serie...">
                         <span class="absolute left-4 top-3.5 opacity-40">🔍</span>
                     </div>
-
                     <div class="flex gap-3 items-center shrink-0">
                         <button id="btn-add-albo" class="bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-black px-5 py-2.5 rounded-full uppercase text-[10px] tracking-widest transition-all shadow-lg shadow-yellow-500/20">
                             + Nuovo Albo
                         </button>
-                        
                         <div class="flex bg-slate-900 p-1 rounded-full border border-slate-700 mr-1">
                             <button id="view-grid" class="view-btn active px-3 py-1.5 rounded-full transition-all text-slate-400 hover:text-white">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
@@ -28,7 +25,6 @@ export const UI = {
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
                             </button>
                         </div>
-
                         <div class="flex bg-slate-900 p-1 rounded-full border border-slate-700">
                             <button data-filter="all" class="filter-btn active px-4 py-1.5 rounded-full text-xs font-bold uppercase transition-all">Tutti</button>
                             <button data-filter="celo" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold uppercase transition-all text-slate-400">Celo</button>
@@ -39,7 +35,7 @@ export const UI = {
             </div>
         </header>`,
 
-    // LIVELLO 2: SEZIONE CODICI BAR (v7.5)
+    // LIVELLO 2: SEZIONE CODICI BAR (Invariato)
     PUBLISHER_SECTION: (contentHtml) => `
         <section class="bg-slate-800/30 border-b border-slate-800 py-3">
             <div class="container mx-auto px-6">
@@ -63,7 +59,7 @@ export const UI = {
         return `<div id="reset-brand-filter" class="flex-none w-14 h-14 md:w-16 md:h-16 border ${activeClass} rounded-lg flex items-center justify-center transition-all duration-300 cursor-pointer text-[10px] font-black uppercase tracking-tighter">Tutti</div>`;
     },
 
-    // LIVELLO 3: SEZIONE SERIE (v7.5)
+    // LIVELLO 3: SEZIONE SERIE (Invariato)
     SERIE_SECTION: (contentHtml) => `
         <section class="bg-slate-900/50 border-b border-slate-800 py-4 overflow-hidden">
             <div class="container mx-auto px-6">
@@ -83,7 +79,7 @@ export const UI = {
             </button>
         </div>`,
 
-    // CONTENITORI PRINCIPALI
+    // CONTENITORI PRINCIPALI (Invariato)
     MAIN_GRID_CONTAINER: () => `
         <main class="max-w-7xl mx-auto p-4 md:p-6">
             <div id="main-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"></div>
@@ -115,7 +111,7 @@ export const UI = {
             </div>
         </div>`,
 
-    // MODALE VISUALIZZAZIONE
+    // MODALE VISUALIZZAZIONE (Invariato)
     MODAL_LAYOUT: (issue, storiesHtml) => `
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8 relative">
             <button id="edit-this-issue" data-id="${issue.id}" class="absolute top-0 left-0 bg-yellow-500 text-slate-900 p-2 rounded-full shadow-xl hover:scale-110 transition-transform z-10" title="Modifica Albo">✏️</button>
@@ -148,7 +144,6 @@ export const UI = {
             </h2>
             <form id="form-albo" class="grid grid-cols-1 md:grid-cols-12 gap-8">
                 <input type="hidden" name="id" value="${issue.id || ''}">
-                
                 <div class="md:col-span-4 space-y-4">
                     <label class="block text-[10px] font-bold text-slate-500 uppercase">Immagine Albo</label>
                     <div class="aspect-[2/3] w-full bg-slate-800 rounded-xl border-2 border-dashed border-slate-700 flex items-center justify-center overflow-hidden">
@@ -159,32 +154,31 @@ export const UI = {
                 </div>
 
                 <div class="md:col-span-8 space-y-4">
-                    
                     <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                         <div class="md:col-span-5">
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Codice Editore</label>
-                            <select id="select-codice-editore" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
+                            <select name="codice_editore_id" id="select-codice-editore" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
                                 <option value="">Seleziona...</option>
-                                ${dropdowns.codici.map(c => `<option value="${c.id}" ${issue.codice_editore_id === c.id ? 'selected' : ''}>${c.nome}</option>`).join('')}
+                                ${dropdowns.codici.map(c => `<option value="${c.id}">${c.nome}</option>`).join('')}
                             </select>
                         </div>
                         <div class="md:col-span-5">
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Editore</label>
-                            <select name="editore_id_linked" id="select-editore-name" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
+                            <select name="editore_id" id="select-editore-name" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
                                 <option value="">-- Seleziona Codice --</option>
-                                ${dropdowns.editori.map(e => `<option value="${e.id}" data-parent="${e.codice_editore_id}" data-img="${e.immagine_url}" ${issue.codice_editore_id === e.codice_editore_id ? '' : 'class="hidden"'}>${e.nome}</option>`).join('')}
+                                ${dropdowns.editori.map(e => `<option value="${e.id}" data-parent="${e.codice_editore_id}" data-img="${e.immagine_url}">${e.nome}</option>`).join('')}
                             </select>
                         </div>
                         <div class="md:col-span-2">
                             <div id="preview-editore" class="w-full h-[42px] bg-slate-900 rounded border border-slate-700 flex items-center justify-center overflow-hidden">
-                                <img src="${issue.brand_logo || ''}" class="w-full h-full object-contain ${!issue.brand_logo ? 'hidden' : ''}">
+                                <img src="" class="w-full h-full object-contain hidden">
                             </div>
                         </div>
                     </div>
 
                     <div>
                         <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Serie</label>
-                        <select name="serie_id" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
+                        <select name="serie_id" id="select-serie" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
                             <option value="">Seleziona Serie...</option>
                             ${dropdowns.serie.map(s => `<option value="${s.id}" ${issue.serie_id === s.id ? 'selected' : ''}>${s.nome}</option>`).join('')}
                         </select>
@@ -217,7 +211,7 @@ export const UI = {
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Data Pubblicazione</label>
-                            <input type="text" name="data_pubblicazione" value="${issue.data_pubblicazione || ''}" placeholder="es: Gennaio 1970" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
+                            <input type="text" name="data_pubblicazione" value="${issue.data_pubblicazione || ''}" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
                         </div>
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Supplemento</label>
@@ -271,7 +265,7 @@ export const UI = {
             </form>
         </div>`,
 
-    // LIVELLO 4: GESTIONE STORIE (v7.0)
+    // LIVELLO 4: GESTIONE STORIE (Invariato)
     STORY_ROW: (storia, si, charsHtml) => `
         <div class="py-3 border-l-2 border-yellow-600 pl-4 mb-3 bg-slate-800/30 rounded-r-lg">
             <div class="flex justify-between items-center mb-2">
