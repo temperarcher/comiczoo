@@ -1,7 +1,7 @@
 /**
- * VERSION: 8.6.8 (Fix Condizione - Integrale)
- * NOTA: Corretto il mapping del menu condizione (1-5) e il recupero del valore nell'Edit.
- * MODIFICHE CHIRURGICHE: Mapping preciso dei 5 stati e selezione automatica del valore DB.
+ * VERSION: 8.6.9 (Sbroglio Condizione - Integrale)
+ * NOTA: Forza la pulizia del wrapper condizione e mappa i 5 valori numerici corretti.
+ * MODIFICHE CHIRURGICHE: Iniezione forzata della select condizione e mapping 1-5.
  * MANTENERE I COMMENTI SEZIONALI: Presenti e aggiornati.
  */
 import { api } from './api.js';
@@ -112,7 +112,7 @@ export const render = {
             window.supabaseClient.from('testata').select('*').order('nome'),
             window.supabaseClient.from('annata').select('*').order('nome'),
             window.supabaseClient.from('issue').select(`
-                id, numero, data_pubblicazione, 
+                id, numero, data_pubblicazione, condizione,
                 serie(nome), testata(nome), annata(nome),
                 editore!inner(codice_editore_id)
             `)
@@ -154,17 +154,27 @@ export const render = {
                 ${listaOrdinata.map(a => `<option value="${a.id}" data-codice="${a.codice}">${a.label}</option>`).join('')}
             </select>`;
 
-        // --- INIEZIONE CONDIZIONE CORRETTA (FIX) ---
-        // Cerco il campo 'condizione' (potrebbe essere input o select a seconda di UI.js) e lo forzo
-        const condField = content.querySelector('[name="condizione"]');
-        const condWrapper = condField.parentElement;
-        const stati = ["Edicola", "Ottimo", "Buono", "Discreto", "Lettura"]; // I 5 valori
+        // --- SBROGLIO CAMPO CONDIZIONE ---
+        const condInput = content.querySelector('[name="condizione"]');
+        const condWrapper = condInput.parentElement;
+        // Pulisco tutto il contenuto del wrapper per eliminare select vecchie o input
+        condWrapper.innerHTML = ''; 
         
-        condWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Condizione</label>
-            <select name="condizione" id="select-condizione" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
-                <option value="">Nessuna (Default)</option>
-                ${stati.map((s, i) => `<option value="${5 - i}">${s}</option>`).join('')}
-            </select>`;
+        const stati = [
+            { v: 5, l: "Edicola" },
+            { v: 4, l: "Ottimo" },
+            { v: 3, l: "Buono" },
+            { v: 2, l: "Discreto" },
+            { v: 1, l: "Lettura" }
+        ];
+
+        const labelHtml = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Condizione</label>`;
+        const selectHtml = `<select name="condizione" id="select-condizione" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
+            <option value="">Non specificata</option>
+            ${stati.map(s => `<option value="${s.v}">${s.l}</option>`).join('')}
+        </select>`;
+        
+        condWrapper.innerHTML = labelHtml + selectHtml;
 
         // Iniezione Annata e Testata
         const annataWrapper = content.querySelector('input[name="annata"]').parentElement;
@@ -235,9 +245,10 @@ export const render = {
             }
             if (issue.supplemento_id) selectSupplemento.value = issue.supplemento_id;
             
-            // RECUPERO CONDIZIONE: Assicuriamoci che issue.condizione contenga il numero (1-5)
+            // --- RECUPERO CONDIZIONE ---
             if (issue.condizione !== undefined && issue.condizione !== null) {
-                selectCondizione.value = issue.condizione;
+                // Forzo il valore numerico nella select
+                selectCondizione.value = issue.condizione.toString();
             }
         }
 
