@@ -1,6 +1,6 @@
 /**
- * VERSION: 8.5.9 (Integrale - Dipendenza dinamica Serie/Annata + Popolamento Edit)
- * NOTA: Gestisce il filtraggio delle annate in base alla serie selezionata.
+ * VERSION: 8.6.0 (Integrale - Filtro Serie -> Annata & Testata + Popolamento Edit)
+ * NOTA: Gestisce la dipendenza gerarchica completa per la coerenza dei dati.
  */
 import { api } from './api.js';
 import { store } from './store.js';
@@ -97,14 +97,14 @@ export const render = {
         const modal = document.getElementById('issue-modal');
         const content = document.getElementById('modal-body');
         
-        // 1. Fetch Dati con inclusione ANNATA
+        // 1. Fetch Dati Completo
         const promises = [
             window.supabaseClient.from('codice_editore').select('*').order('nome'),
             window.supabaseClient.from('editore').select('*').order('nome'),
             window.supabaseClient.from('serie').select('*').order('nome'),
             window.supabaseClient.from('tipo_pubblicazione').select('*').order('nome'),
             window.supabaseClient.from('testata').select('*').order('nome'),
-            window.supabaseClient.from('annata').select('*').order('nome') // Tabella annata
+            window.supabaseClient.from('annata').select('*').order('nome')
         ];
 
         if (issueData && issueData.id) {
@@ -119,20 +119,24 @@ export const render = {
         
         const issue = (issueData && results[6]) ? results[6].data : (issueData || {});
 
-        // 2. Iniezione HTML (Aggiorniamo la parte Annata nel form UI)
+        // 2. Rendering HTML e Iniezione Selettori Dinamici
         content.innerHTML = UI.ISSUE_FORM(issue, dropdowns);
-        // Modifica al volo del select annata per gestire i dataset serie_id
-        const selectAnnata = document.createElement('select');
-        selectAnnata.name = "annata_id";
-        selectAnnata.id = "select-annata";
-        selectAnnata.className = "w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none";
-        selectAnnata.innerHTML = `<option value="">Seleziona Annata...</option>` + 
-            dropdowns.annate.map(a => `<option value="${a.id}" data-serie="${a.serie_id}">${a.nome}</option>`).join('');
         
-        // Sostituiamo l'input testuale dell'annata con il nostro select dinamico
+        // Preparazione Select Dinamiche (Annata e Testata)
         const annataWrapper = content.querySelector('input[name="annata"]').parentElement;
-        annataWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Annata</label>`;
-        annataWrapper.appendChild(selectAnnata);
+        const testataWrapper = content.querySelector('select[name="testata_id"]').parentElement;
+
+        annataWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Annata</label>
+            <select name="annata_id" id="select-annata" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
+                <option value="">Seleziona Annata...</option>
+                ${dropdowns.annate.map(a => `<option value="${a.id}" data-serie="${a.serie_id}">${a.nome}</option>`).join('')}
+            </select>`;
+
+        testataWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Testata</label>
+            <select name="testata_id" id="select-testata" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
+                <option value="">Seleziona Testata...</option>
+                ${dropdowns.testate.map(t => `<option value="${t.id}" data-serie="${t.serie_id}">${t.nome}</option>`).join('')}
+            </select>`;
 
         modal.classList.replace('hidden', 'flex');
 
@@ -140,6 +144,8 @@ export const render = {
         const selectCodice = document.getElementById('select-codice-editore');
         const selectEditore = document.getElementById('select-editore-name');
         const selectSerie = document.getElementById('select-serie');
+        const selectAnnata = document.getElementById('select-annata');
+        const selectTestata = document.getElementById('select-testata');
         const previewEditoreImg = document.querySelector('#preview-editore img');
 
         // 4. Logica Filtraggio Editori
@@ -153,14 +159,23 @@ export const render = {
             selectEditore.dispatchEvent(new Event('change'));
         };
 
-        // 5. Logica Filtraggio Annate (Serie -> Annata)
-        const syncAnnate = (serieId, targetAnnataId = null) => {
+        // 5. Logica Filtraggio Dipendenti da Serie (Annata & Testata)
+        const syncSerieDependents = (serieId, targetAnnataId = null, targetTestataId = null) => {
+            // Filtro Annate
             Array.from(selectAnnata.options).forEach(opt => {
                 if (!opt.dataset.serie) return;
                 const match = (opt.dataset.serie == serieId);
                 opt.hidden = !match; opt.disabled = !match;
             });
             selectAnnata.value = targetAnnataId || "";
+
+            // Filtro Testate
+            Array.from(selectTestata.options).forEach(opt => {
+                if (!opt.dataset.serie) return;
+                const match = (opt.dataset.serie == serieId);
+                opt.hidden = !match; opt.disabled = !match;
+            });
+            selectTestata.value = targetTestataId || "";
         };
 
         // 6. Eventi
@@ -172,25 +187,30 @@ export const render = {
                 previewEditoreImg.classList.remove('hidden');
             } else { previewEditoreImg.classList.add('hidden'); }
         };
-        selectSerie.onchange = () => syncAnnate(selectSerie.value);
+        selectSerie.onchange = () => syncSerieDependents(selectSerie.value);
 
-        // 7. POPOLAMENTO EDIT (Casistica ID)
+        // 7. POPOLAMENTO EDIT (Sincronizzazione finale)
         if (issue.id) {
-            // Editore / Codice
+            // 7a. Editore / Codice
             const cId = issue.editore?.codice_editore_id || issue.codice_editore_id;
             if (cId) {
                 selectCodice.value = cId;
                 syncEditori(cId, issue.editore_id);
             }
-            // Serie / Annata
+            // 7b. Serie / Annata / Testata
             if (issue.serie_id) {
                 selectSerie.value = issue.serie_id;
-                syncAnnate(issue.serie_id, issue.annata_id);
+                syncSerieDependents(issue.serie_id, issue.annata_id, issue.testata_id);
             }
         }
 
         document.getElementById('cancel-form').onclick = () => modal.classList.replace('flex', 'hidden');
-        document.getElementById('form-albo').onsubmit = (e) => { e.preventDefault(); console.log("Salvataggio..."); };
+        document.getElementById('form-albo').onsubmit = (e) => { 
+            e.preventDefault(); 
+            const formData = new FormData(e.target);
+            console.log("Dati pronti per il salvataggio:", Object.fromEntries(formData));
+            alert("Salvato correttamente (Simulazione)");
+        };
     },
 
     attachCardEvents() {
