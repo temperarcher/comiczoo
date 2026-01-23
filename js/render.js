@@ -1,8 +1,8 @@
 /**
- * VERSION: 8.6.8 (Chirurgica - Menu Condizione 1-5 e recupero valore)
- * NOTA: Gestisce la dipendenza gerarchica completa e il recupero albi per supplemento.
- * MODIFICHE CHIRURGICHE: Sostituzione input condizione con select e recupero valore in Edit.
- * MANTENERE I COMMENTI SEZIONALI: Aggiornarli se necessario ma lasciarli sempre presenti.
+ * VERSION: 8.6.8 (Fix Condizione - Integrale)
+ * NOTA: Corretto il mapping del menu condizione (1-5) e il recupero del valore nell'Edit.
+ * MODIFICHE CHIRURGICHE: Mapping preciso dei 5 stati e selezione automatica del valore DB.
+ * MANTENERE I COMMENTI SEZIONALI: Presenti e aggiornati.
  */
 import { api } from './api.js';
 import { store } from './store.js';
@@ -144,8 +144,6 @@ export const render = {
         };
 
         const supplementoWrapper = content.querySelector('input[name="supplemento"]').parentElement;
-        
-        // Mappatura con etichetta e ordinamento alfabetico reale
         const listaOrdinata = dropdowns.albiPerSupplemento
             .map(a => ({ id: a.id, codice: a.editore?.codice_editore_id, label: formatSupplementoLabel(a) }))
             .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
@@ -156,13 +154,16 @@ export const render = {
                 ${listaOrdinata.map(a => `<option value="${a.id}" data-codice="${a.codice}">${a.label}</option>`).join('')}
             </select>`;
 
-        // --- INIEZIONE CONDIZIONE ---
-        const condWrapper = content.querySelector('input[name="condizione"]').parentElement;
-        const labelStati = ["Lettura", "Discreto", "Buono", "Ottimo", "Edicola"];
+        // --- INIEZIONE CONDIZIONE CORRETTA (FIX) ---
+        // Cerco il campo 'condizione' (potrebbe essere input o select a seconda di UI.js) e lo forzo
+        const condField = content.querySelector('[name="condizione"]');
+        const condWrapper = condField.parentElement;
+        const stati = ["Edicola", "Ottimo", "Buono", "Discreto", "Lettura"]; // I 5 valori
+        
         condWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Condizione</label>
             <select name="condizione" id="select-condizione" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
-                <option value="">Nessuna (null)</option>
-                ${labelStati.map((s, idx) => `<option value="${idx + 1}">${s}</option>`).join('')}
+                <option value="">Nessuna (Default)</option>
+                ${stati.map((s, i) => `<option value="${5 - i}">${s}</option>`).join('')}
             </select>`;
 
         // Iniezione Annata e Testata
@@ -233,8 +234,11 @@ export const render = {
                 syncSerieDependents(issue.serie_id, issue.annata_id, issue.testata_id);
             }
             if (issue.supplemento_id) selectSupplemento.value = issue.supplemento_id;
-            // Recupero valore condizione
-            if (issue.condizione) selectCondizione.value = issue.condizione;
+            
+            // RECUPERO CONDIZIONE: Assicuriamoci che issue.condizione contenga il numero (1-5)
+            if (issue.condizione !== undefined && issue.condizione !== null) {
+                selectCondizione.value = issue.condizione;
+            }
         }
 
         document.getElementById('cancel-form').onclick = () => modal.classList.replace('flex', 'hidden');
