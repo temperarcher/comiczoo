@@ -1,5 +1,5 @@
 /**
- * VERSION: 8.6.8 (Integrale - Condizione a Stelle 1-5 + Supplemento A-Z)
+ * VERSION: 8.6.7 (Integrale - Supplemento filtrato e ordinato A-Z)
  * NOTA: Gestisce la dipendenza gerarchica completa e il recupero albi per supplemento.
  * MODIFICHE CHIRURGICHE: Copiare e incollare le parti non modificate.
  * MANTENERE I COMMENTI SEZIONALI: Aggiornarli se necessario ma lasciarli sempre presenti.
@@ -145,6 +145,7 @@ export const render = {
 
         const supplementoWrapper = content.querySelector('input[name="supplemento"]').parentElement;
         
+        // Mappatura con etichetta e ordinamento alfabetico reale
         const listaOrdinata = dropdowns.albiPerSupplemento
             .map(a => ({ id: a.id, codice: a.editore?.codice_editore_id, label: formatSupplementoLabel(a) }))
             .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
@@ -154,19 +155,6 @@ export const render = {
                 <option value="">Nessuno (Albo autonomo)</option>
                 ${listaOrdinata.map(a => `<option value="${a.id}" data-codice="${a.codice}">${a.label}</option>`).join('')}
             </select>`;
-
-        // --- INIEZIONE CONDIZIONE A STELLE ---
-        const labelStati = ["Lettura", "Discreto", "Buono", "Ottimo", "Edicola"];
-        const condWrapper = content.querySelector('input[name="condizione"]').parentElement;
-        condWrapper.innerHTML = `
-            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Condizione</label>
-            <div class="flex flex-col gap-2">
-                <div id="star-rating" class="flex gap-1 text-2xl cursor-pointer">
-                    ${[1, 2, 3, 4, 5].map(v => `<span class="star text-slate-600 transition-colors" data-value="${v}">★</span>`).join('')}
-                </div>
-                <div id="star-label" class="text-[10px] uppercase tracking-widest text-slate-400 italic h-4">Nessuna selezione</div>
-                <input type="hidden" name="condizione" id="input-condizione" value="${issue.condizione || ''}">
-            </div>`;
 
         // Iniezione Annata e Testata
         const annataWrapper = content.querySelector('input[name="annata"]').parentElement;
@@ -191,27 +179,6 @@ export const render = {
         const selectAnnata = document.getElementById('select-annata');
         const selectTestata = document.getElementById('select-testata');
         const selectSupplemento = document.getElementById('select-supplemento');
-        const inputCondizione = document.getElementById('input-condizione');
-        const starLabel = document.getElementById('star-label');
-        const stars = document.querySelectorAll('#star-rating .star');
-
-        // --- LOGICA STELLE ---
-        const updateStars = (val) => {
-            inputCondizione.value = val || "";
-            stars.forEach(s => {
-                const sVal = parseInt(s.dataset.value);
-                s.classList.toggle('text-yellow-500', val && sVal <= val);
-                s.classList.toggle('text-slate-600', !val || sVal > val);
-            });
-            starLabel.innerText = val ? labelStati[val - 1] : "Nessuna selezione";
-        };
-
-        stars.forEach(s => {
-            s.onclick = () => {
-                const clickedVal = s.dataset.value;
-                updateStars(inputCondizione.value === clickedVal ? null : clickedVal);
-            };
-        });
 
         // --- LOGICA FILTRAGGIO DINAMICO ---
         const syncEditoriESupplementi = (codiceId, targetEditoreId = null) => {
@@ -256,7 +223,6 @@ export const render = {
                 syncSerieDependents(issue.serie_id, issue.annata_id, issue.testata_id);
             }
             if (issue.supplemento_id) selectSupplemento.value = issue.supplemento_id;
-            if (issue.condizione) updateStars(issue.condizione);
         }
 
         document.getElementById('cancel-form').onclick = () => modal.classList.replace('flex', 'hidden');
