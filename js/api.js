@@ -1,6 +1,6 @@
 /**
- * VERSION: 8.4.1
- * SCOPO: Query Supabase e Salvataggio con sanificazione stringhe vuote
+ * VERSION: 8.5.0
+ * SCOPO: Gestione salvataggio Codice Editore
  */
 
 const ISSUE_DETAILS_QUERY = `
@@ -40,10 +40,7 @@ export const api = {
     },
 
     async saveIssue(issueData) {
-        // Clonazione del payload
         const payload = { ...issueData };
-        
-        // 1. RIMOZIONE CAMPI RELAZIONALI (Sola lettura)
         delete payload.editore;
         delete payload.annata;
         delete payload.testata;
@@ -51,30 +48,29 @@ export const api = {
         delete payload.storia_in_issue;
         delete payload.codice_editore_id;
 
-        // 2. SANIFICAZIONE STRINGHE VUOTE -> NULL
-        // Questo evita l'errore "invalid input syntax for type integer"
         Object.keys(payload).forEach(key => {
-            if (payload[key] === "") {
-                payload[key] = null;
-            }
+            if (payload[key] === "") payload[key] = null;
         });
 
-        // 3. CASTING NUMERICI SPECIFICI (Sicurezza extra)
         if (payload.valore !== null) payload.valore = parseFloat(payload.valore);
         if (payload.condizione !== null) payload.condizione = parseInt(payload.condizione);
-        
-        // Se l'ID è nullo o vuoto (nuovo record), lo rimuoviamo per l'upsert
         if (!payload.id) delete payload.id;
 
+        const { data, error } = await window.supabaseClient.from('issue').upsert(payload).select();
+        if (error) throw error;
+        return data;
+    },
+
+    async saveCodiceEditore(codiceData) {
+        const payload = { ...codiceData };
+        if (payload.id === "" || payload.id === null) delete payload.id;
+        
         const { data, error } = await window.supabaseClient
-            .from('issue')
+            .from('codice_editore')
             .upsert(payload)
             .select();
 
-        if (error) {
-            console.error("Errore DB in saveIssue:", error.message);
-            throw error;
-        }
+        if (error) throw error;
         return data;
     }
 };
