@@ -1,6 +1,6 @@
 /**
- * VERSION: 8.5.0
- * SCOPO: Gestione salvataggio Codice Editore
+ * VERSION: 8.5.1
+ * SCOPO: Query Supabase e Salvataggio (Issue + Codice Editore)
  */
 
 const ISSUE_DETAILS_QUERY = `
@@ -63,13 +63,8 @@ export const api = {
 
     async saveCodiceEditore(codiceData) {
         const payload = { ...codiceData };
-        if (payload.id === "" || payload.id === null) delete payload.id;
-        
-        const { data, error } = await window.supabaseClient
-            .from('codice_editore')
-            .upsert(payload)
-            .select();
-
+        if (!payload.id) delete payload.id;
+        const { data, error } = await window.supabaseClient.from('codice_editore').upsert(payload).select();
         if (error) throw error;
         return data;
     }
