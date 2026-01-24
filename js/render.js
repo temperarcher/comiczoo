@@ -1,6 +1,6 @@
 /**
- * VERSION: 8.7.1 (Integrale - Fix Finale Anteprima Editore)
- * NOTA: Rispetta la logica consolidata e forza il trigger iniziale dell'immagine.
+ * VERSION: 8.8.0 (Integrale - Implementazione Salvataggio DB)
+ * NOTA: Rispetta la logica consolidata 8.7.1 e implementa l'invio dati a Supabase.
  */
 import { api } from './api.js';
 import { store } from './store.js';
@@ -109,11 +109,7 @@ export const render = {
             window.supabaseClient.from('tipo_pubblicazione').select('*').order('nome'),
             window.supabaseClient.from('testata').select('*').order('nome'),
             window.supabaseClient.from('annata').select('*').order('nome'),
-            window.supabaseClient.from('issue').select(`
-                id, numero, data_pubblicazione, condizione,
-                serie(nome), testata(nome), annata(nome),
-                editore!inner(codice_editore_id)
-            `)
+            window.supabaseClient.from('issue').select(`id, numero, data_pubblicazione, condizione, serie(nome), testata(nome), annata(nome), editore!inner(codice_editore_id)`)
         ];
 
         if (issueData && issueData.id) {
@@ -131,7 +127,6 @@ export const render = {
 
         content.innerHTML = UI.ISSUE_FORM(issue, dropdowns);
         
-        // --- HELPER STRINGA E INIEZIONE SUPPLEMENTO ---
         const formatSupplementoLabel = (albo) => {
             const s = albo.serie?.nome ? `${albo.serie.nome} ` : '';
             const t = albo.testata?.nome ? `${albo.testata.nome} ` : '';
@@ -141,45 +136,40 @@ export const render = {
             return (s + t + a + n + d).trim();
         };
 
-        const supplementoWrapper = content.querySelector('input[name="supplemento"]').parentElement;
+        const supplementoWrapper = content.querySelector('input[name=\"supplemento\"]').parentElement;
         const listaOrdinata = dropdowns.albiPerSupplemento
             .map(a => ({ id: a.id, codice: a.editore?.codice_editore_id, label: formatSupplementoLabel(a) }))
             .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
 
-        supplementoWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Supplemento a...</label>
-            <select name="supplemento_id" id="select-supplemento" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
-                <option value="">Nessuno (Albo autonomo)</option>
-                ${listaOrdinata.map(a => `<option value="${a.id}" data-codice="${a.codice}">${a.label}</option>`).join('')}
+        supplementoWrapper.innerHTML = `<label class=\"block text-[10px] font-bold text-slate-500 uppercase mb-1\">Supplemento a...</label>
+            <select name=\"supplemento_id\" id=\"select-supplemento\" class=\"w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none\">
+                <option value=\"\">Nessuno (Albo autonomo)</option>
+                ${listaOrdinata.map(a => `<option value=\"${a.id}\" data-codice=\"${a.codice}\">${a.label}</option>`).join('')}
             </select>`;
 
-        // --- SBROGLIO CAMPO CONDIZIONE ---
-        const oldCondField = content.querySelector('[name="condizione"]');
+        const oldCondField = content.querySelector('[name=\"condizione\"]');
         if (oldCondField) {
             const condWrapper = oldCondField.parentElement;
-            const stati = [
-                { v: 5, l: "Edicola" }, { v: 4, l: "Ottimo" }, { v: 3, l: "Buono" },
-                { v: 2, l: "Discreto" }, { v: 1, l: "Lettura" }
-            ];
-            condWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Condizione</label>
-                <select name="condizione" id="select-condizione" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
-                    <option value="">Non specificata</option>
-                    ${stati.map(s => `<option value="${s.v}">${s.l}</option>`).join('')}
+            const stati = [{ v: 5, l: \"Edicola\" }, { v: 4, l: \"Ottimo\" }, { v: 3, l: \"Buono\" }, { v: 2, l: \"Discreto\" }, { v: 1, l: \"Lettura\" }];
+            condWrapper.innerHTML = `<label class=\"block text-[10px] font-bold text-slate-500 uppercase mb-1\">Condizione</label>
+                <select name=\"condizione\" id=\"select-condizione\" class=\"w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none\">
+                    <option value=\"\">Non specificata</option>
+                    ${stati.map(s => `<option value=\"${s.v}\">${s.l}</option>`).join('')}
                 </select>`;
         }
 
-        // --- INIEZIONE ANNATA E TESTATA ---
-        const annataWrapper = content.querySelector('input[name="annata"]').parentElement;
-        annataWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Annata</label>
-            <select name="annata_id" id="select-annata" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
-                <option value="">Seleziona Annata...</option>
-                ${dropdowns.annate.map(a => `<option value="${a.id}" data-serie="${a.serie_id}">${a.nome}</option>`).join('')}
+        const annataWrapper = content.querySelector('input[name=\"annata\"]').parentElement;
+        annataWrapper.innerHTML = `<label class=\"block text-[10px] font-bold text-slate-500 uppercase mb-1\">Annata</label>
+            <select name=\"annata_id\" id=\"select-annata\" class=\"w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none\">
+                <option value=\"\">Seleziona Annata...</option>
+                ${dropdowns.annate.map(a => `<option value=\"${a.id}\" data-serie=\"${a.serie_id}\">${a.nome}</option>`).join('')}
             </select>`;
 
-        const testataWrapper = content.querySelector('select[name="testata_id"]').parentElement;
-        testataWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Testata</label>
-            <select name="testata_id" id="select-testata" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
-                <option value="">Seleziona Testata...</option>
-                ${dropdowns.testate.map(t => `<option value="${t.id}" data-serie="${t.serie_id}">${t.nome}</option>`).join('')}
+        const testataWrapper = content.querySelector('select[name=\"testata_id\"]').parentElement;
+        testataWrapper.innerHTML = `<label class=\"block text-[10px] font-bold text-slate-500 uppercase mb-1\">Testata</label>
+            <select name=\"testata_id\" id=\"select-testata\" class=\"w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none\">
+                <option value=\"\">Seleziona Testata...</option>
+                ${dropdowns.testate.map(t => `<option value=\"${t.id}\" data-serie=\"${t.serie_id}\">${t.nome}</option>`).join('')}
             </select>`;
 
         modal.classList.replace('hidden', 'flex');
@@ -191,21 +181,24 @@ export const render = {
         const selectTestata = document.getElementById('select-testata');
         const selectSupplemento = document.getElementById('select-supplemento');
         const selectCondizione = document.getElementById('select-condizione');
+        const inputCoverUrl = document.getElementById('input-cover-url');
 
-        // --- LOGICA ANTEPRIMA EDITORE ---
+        // --- ANTEPRIME DINAMICHE ---
         const updateEditorePreview = (select) => {
             const selectedOpt = select.options[select.selectedIndex];
-            const imgUrl = selectedOpt ? selectedOpt.dataset.img : null;
-            const previewWrap = document.getElementById('preview-editore');
-            const imgEl = previewWrap.querySelector('img');
-
-            if (imgUrl && imgUrl !== '') {
-                imgEl.src = imgUrl;
-                imgEl.classList.remove('hidden');
-            } else {
-                imgEl.classList.add('hidden');
-            }
+            const imgUrl = selectedOpt?.dataset.img;
+            const imgEl = document.getElementById('preview-editore').querySelector('img');
+            if (imgUrl) { imgEl.src = imgUrl; imgEl.classList.remove('hidden'); } else { imgEl.classList.add('hidden'); }
         };
+
+        const updateCoverPreview = (url) => {
+            const imgEl = document.getElementById('preview-cover');
+            const placeholder = document.getElementById('placeholder-cover');
+            if (url && url.trim() !== '') { imgEl.src = url; imgEl.classList.remove('hidden'); placeholder.classList.add('hidden'); }
+            else { imgEl.classList.add('hidden'); placeholder.classList.remove('hidden'); }
+        };
+
+        inputCoverUrl.oninput = (e) => updateCoverPreview(e.target.value);
 
         const syncEditoriESupplementi = (codiceId, targetEditoreId = null) => {
             Array.from(selectEditore.options).forEach(opt => {
@@ -214,8 +207,7 @@ export const render = {
                 opt.hidden = !match; opt.disabled = !match;
             });
             selectEditore.value = targetEditoreId || "";
-            updateEditorePreview(selectEditore); // Trigger dinamico
-            
+            updateEditorePreview(selectEditore);
             Array.from(selectSupplemento.options).forEach(opt => {
                 if (!opt.dataset.codice) return;
                 const match = (opt.dataset.codice == codiceId);
@@ -242,26 +234,44 @@ export const render = {
 
         if (issue.id) {
             const cId = issue.editore?.codice_editore_id || issue.codice_editore_id;
-            if (cId) {
-                selectCodice.value = cId;
-                syncEditoriESupplementi(cId, issue.editore_id);
-                updateEditorePreview(selectEditore); // --- TRIGGER INIZIALE FIX ---
-            }
-            if (issue.serie_id) {
-                selectSerie.value = issue.serie_id;
-                syncSerieDependents(issue.serie_id, issue.annata_id, issue.testata_id);
-            }
+            if (cId) { selectCodice.value = cId; syncEditoriESupplementi(cId, issue.editore_id); updateEditorePreview(selectEditore); }
+            if (issue.serie_id) { selectSerie.value = issue.serie_id; syncSerieDependents(issue.serie_id, issue.annata_id, issue.testata_id); }
             if (issue.supplemento_id) selectSupplemento.value = issue.supplemento_id;
-            if (issue.condizione !== undefined && issue.condizione !== null && selectCondizione) {
-                selectCondizione.value = issue.condizione.toString();
-            }
+            if (issue.condizione && selectCondizione) selectCondizione.value = issue.condizione.toString();
+            updateCoverPreview(issue.immagine_url);
         }
 
         document.getElementById('cancel-form').onclick = () => modal.classList.replace('flex', 'hidden');
-        document.getElementById('form-albo').onsubmit = (e) => { e.preventDefault(); console.log("Salvataggio..."); };
+        
+        // --- LOGICA SALVATAGGIO ---
+        document.getElementById('form-albo').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerText;
+            
+            try {
+                btn.disabled = true;
+                btn.innerText = "SALVATAGGIO...";
+                
+                const formData = new FormData(e.target);
+                const data = Object.fromEntries(formData.entries());
+                
+                await api.saveIssue(data);
+                modal.classList.replace('flex', 'hidden');
+                
+                if (store.state.selectedSerie) {
+                    store.state.issues = await api.getIssuesBySerie(store.state.selectedSerie.id);
+                    this.refreshGrid();
+                }
+            } catch (err) {
+                alert("Errore: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }
+        };
     },
 
-    // --- SEZIONE EVENTI CARD ---
     attachCardEvents() {
         document.querySelectorAll('[data-id]').forEach(c => { c.onclick = () => this.openIssueModal(c.dataset.id); });
     }
