@@ -1,6 +1,7 @@
 /**
- * VERSION: 1.8.6  (Integrale - Fix Attributo Immagine Editore)
+ * VERSION: 1.8.5  (Integrale - Sbroglio Condizione e Fix Immagine Editore)
  * NOTA: Non rimuovere i commenti identificativi delle sezioni.
+ * IMPERATIVO: Non modificare mai i livelli senza la mia autorizzazione
  */
 export const UI = {
     // LIVELLO 1: HEADER (Invariato)
@@ -35,6 +36,7 @@ export const UI = {
             </div>
         </header>`,
 
+    // LIVELLO 2: SEZIONE CODICI BAR (Invariato)
     PUBLISHER_SECTION: (contentHtml) => `
         <section class="bg-slate-800/30 border-b border-slate-800 py-3">
             <div class="container mx-auto px-6">
@@ -58,6 +60,7 @@ export const UI = {
         return `<div id="reset-brand-filter" class="flex-none w-14 h-14 md:w-16 md:h-16 border ${activeClass} rounded-lg flex items-center justify-center transition-all duration-300 cursor-pointer text-[10px] font-black uppercase tracking-tighter">Tutti</div>`;
     },
 
+    // LIVELLO 3: SEZIONE SERIE (Invariato)
     SERIE_SECTION: (contentHtml) => `
         <section class="bg-slate-900/50 border-b border-slate-800 py-4 overflow-hidden">
             <div class="container mx-auto px-6">
@@ -77,6 +80,7 @@ export const UI = {
             </button>
         </div>`,
 
+    // CONTENITORI PRINCIPALI (Invariato)
     MAIN_GRID_CONTAINER: () => `
         <main class="max-w-7xl mx-auto p-4 md:p-6">
             <div id="main-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"></div>
@@ -108,6 +112,7 @@ export const UI = {
             </div>
         </div>`,
 
+    // MODALE VISUALIZZAZIONE (Invariato)
     MODAL_LAYOUT: (issue, storiesHtml) => `
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8 relative">
             <button id="edit-this-issue" data-id="${issue.id}" class="absolute top-0 left-0 bg-yellow-500 text-slate-900 p-2 rounded-full shadow-xl hover:scale-110 transition-transform z-10" title="Modifica Albo">✏️</button>
@@ -132,6 +137,7 @@ export const UI = {
             </div>
         </div>`,
 
+    // MODALE EDIT AVANZATO (Modifica Chirurgica)
     ISSUE_FORM: (issue, dropdowns) => `
         <div class="p-2">
             <h2 class="text-xl font-black text-white uppercase mb-6 tracking-tighter flex items-center gap-2">
@@ -255,6 +261,7 @@ export const UI = {
             </form>
         </div>`,
 
+    // LIVELLO 4: GESTIONE STORIE (Invariato)
     STORY_ROW: (storia, si, charsHtml) => `
         <div class="py-3 border-l-2 border-yellow-600 pl-4 mb-3 bg-slate-800/30 rounded-r-lg">
             <div class="flex justify-between items-center mb-2">
