@@ -1,6 +1,6 @@
 /**
- * VERSION: 8.8.0 (Integrale - Implementazione Salvataggio DB)
- * NOTA: Rispetta la logica consolidata 8.7.1 e implementa l'invio dati a Supabase.
+ * VERSION: 8.8.0 (Integrale - Fix Syntax & Salvataggio DB)
+ * NOTA: Rispetta la logica consolidata e implementa l'invio dati a Supabase.
  */
 import { api } from './api.js';
 import { store } from './store.js';
@@ -15,7 +15,6 @@ export const render = {
         this.attachHeaderEvents();
     },
 
-    // --- SEZIONE SHOWCASE (v7.5) ---
     async refreshShowcases() {
         const pubSlot = document.getElementById('ui-publisher-bar');
         const serieSlot = document.getElementById('ui-serie-section');
@@ -39,7 +38,6 @@ export const render = {
         } catch (e) { console.error(e); }
     },
 
-    // --- SEZIONE EVENTI HEADER ---
     attachHeaderEvents() {
         const logo = document.getElementById('logo-reset');
         if (logo) logo.onclick = () => location.reload();
@@ -56,7 +54,6 @@ export const render = {
         document.getElementById('btn-add-albo').onclick = () => this.openFormModal();
     },
 
-    // --- SEZIONE EVENTI PUBLISHER ---
     attachPublisherEvents() {
         const resetBtn = document.getElementById('reset-brand-filter');
         if (resetBtn) resetBtn.onclick = async () => { store.state.selectedBrand = null; await this.refreshShowcases(); this.refreshGrid(); };
@@ -65,7 +62,6 @@ export const render = {
         });
     },
 
-    // --- SEZIONE EVENTI SERIE ---
     attachSerieEvents() {
         document.querySelectorAll('[data-serie-id]').forEach(el => {
             el.onclick = async (e) => {
@@ -77,7 +73,6 @@ export const render = {
         });
     },
 
-    // --- SEZIONE RENDER GRIGLIA ---
     refreshGrid() {
         const container = document.getElementById('main-grid');
         if (!container || !store.state.selectedSerie) return;
@@ -86,7 +81,6 @@ export const render = {
         this.attachCardEvents();
     },
 
-    // --- SEZIONE MODALE VISUALIZZAZIONE ---
     async openIssueModal(id) {
         const modal = document.getElementById('issue-modal');
         const issue = store.state.issues.find(i => i.id == id);
@@ -97,7 +91,6 @@ export const render = {
         document.getElementById('close-modal').onclick = () => modal.classList.replace('flex', 'hidden');
     },
 
-    // --- SEZIONE MODALE FORM (NUOVO/EDIT) ---
     async openFormModal(issueData = null) {
         const modal = document.getElementById('issue-modal');
         const content = document.getElementById('modal-body');
@@ -136,40 +129,40 @@ export const render = {
             return (s + t + a + n + d).trim();
         };
 
-        const supplementoWrapper = content.querySelector('input[name=\"supplemento\"]').parentElement;
+        const supplementoWrapper = content.querySelector('input[name="supplemento"]').parentElement;
         const listaOrdinata = dropdowns.albiPerSupplemento
             .map(a => ({ id: a.id, codice: a.editore?.codice_editore_id, label: formatSupplementoLabel(a) }))
             .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
 
-        supplementoWrapper.innerHTML = `<label class=\"block text-[10px] font-bold text-slate-500 uppercase mb-1\">Supplemento a...</label>
-            <select name=\"supplemento_id\" id=\"select-supplemento\" class=\"w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none\">
-                <option value=\"\">Nessuno (Albo autonomo)</option>
-                ${listaOrdinata.map(a => `<option value=\"${a.id}\" data-codice=\"${a.codice}\">${a.label}</option>`).join('')}
+        supplementoWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Supplemento a...</label>
+            <select name="supplemento_id" id="select-supplemento" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
+                <option value="">Nessuno (Albo autonomo)</option>
+                ${listaOrdinata.map(a => `<option value="${a.id}" data-codice="${a.codice}">${a.label}</option>`).join('')}
             </select>`;
 
-        const oldCondField = content.querySelector('[name=\"condizione\"]');
+        const oldCondField = content.querySelector('[name="condizione"]');
         if (oldCondField) {
             const condWrapper = oldCondField.parentElement;
-            const stati = [{ v: 5, l: \"Edicola\" }, { v: 4, l: \"Ottimo\" }, { v: 3, l: \"Buono\" }, { v: 2, l: \"Discreto\" }, { v: 1, l: \"Lettura\" }];
-            condWrapper.innerHTML = `<label class=\"block text-[10px] font-bold text-slate-500 uppercase mb-1\">Condizione</label>
-                <select name=\"condizione\" id=\"select-condizione\" class=\"w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none\">
-                    <option value=\"\">Non specificata</option>
-                    ${stati.map(s => `<option value=\"${s.v}\">${s.l}</option>`).join('')}
+            const stati = [{ v: 5, l: "Edicola" }, { v: 4, l: "Ottimo" }, { v: 3, l: "Buono" }, { v: 2, l: "Discreto" }, { v: 1, l: "Lettura" }];
+            condWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Condizione</label>
+                <select name="condizione" id="select-condizione" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
+                    <option value="">Non specificata</option>
+                    ${stati.map(s => `<option value="${s.v}">${s.l}</option>`).join('')}
                 </select>`;
         }
 
-        const annataWrapper = content.querySelector('input[name=\"annata\"]').parentElement;
-        annataWrapper.innerHTML = `<label class=\"block text-[10px] font-bold text-slate-500 uppercase mb-1\">Annata</label>
-            <select name=\"annata_id\" id=\"select-annata\" class=\"w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none\">
-                <option value=\"\">Seleziona Annata...</option>
-                ${dropdowns.annate.map(a => `<option value=\"${a.id}\" data-serie=\"${a.serie_id}\">${a.nome}</option>`).join('')}
+        const annataWrapper = content.querySelector('input[name="annata"]').parentElement;
+        annataWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Annata</label>
+            <select name="annata_id" id="select-annata" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
+                <option value="">Seleziona Annata...</option>
+                ${dropdowns.annate.map(a => `<option value="${a.id}" data-serie="${a.serie_id}">${a.nome}</option>`).join('')}
             </select>`;
 
-        const testataWrapper = content.querySelector('select[name=\"testata_id\"]').parentElement;
-        testataWrapper.innerHTML = `<label class=\"block text-[10px] font-bold text-slate-500 uppercase mb-1\">Testata</label>
-            <select name=\"testata_id\" id=\"select-testata\" class=\"w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none\">
-                <option value=\"\">Seleziona Testata...</option>
-                ${dropdowns.testate.map(t => `<option value=\"${t.id}\" data-serie=\"${t.serie_id}\">${t.nome}</option>`).join('')}
+        const testataWrapper = content.querySelector('select[name="testata_id"]').parentElement;
+        testataWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Testata</label>
+            <select name="testata_id" id="select-testata" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
+                <option value="">Seleziona Testata...</option>
+                ${dropdowns.testate.map(t => `<option value="${t.id}" data-serie="${t.serie_id}">${t.nome}</option>`).join('')}
             </select>`;
 
         modal.classList.replace('hidden', 'flex');
@@ -183,7 +176,6 @@ export const render = {
         const selectCondizione = document.getElementById('select-condizione');
         const inputCoverUrl = document.getElementById('input-cover-url');
 
-        // --- ANTEPRIME DINAMICHE ---
         const updateEditorePreview = (select) => {
             const selectedOpt = select.options[select.selectedIndex];
             const imgUrl = selectedOpt?.dataset.img;
@@ -243,22 +235,17 @@ export const render = {
 
         document.getElementById('cancel-form').onclick = () => modal.classList.replace('flex', 'hidden');
         
-        // --- LOGICA SALVATAGGIO ---
         document.getElementById('form-albo').onsubmit = async (e) => {
             e.preventDefault();
             const btn = e.target.querySelector('button[type="submit"]');
             const originalText = btn.innerText;
-            
             try {
                 btn.disabled = true;
                 btn.innerText = "SALVATAGGIO...";
-                
                 const formData = new FormData(e.target);
                 const data = Object.fromEntries(formData.entries());
-                
                 await api.saveIssue(data);
                 modal.classList.replace('flex', 'hidden');
-                
                 if (store.state.selectedSerie) {
                     store.state.issues = await api.getIssuesBySerie(store.state.selectedSerie.id);
                     this.refreshGrid();
