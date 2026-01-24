@@ -4,14 +4,31 @@
 import { UI } from './ui.js';
 
 export const Render = {
-    // Inizializza Header e Wrapper Modale
+    // Inizializza la struttura fissa (Header e Wrapper Modale)
     initLayout: () => {
         const body = document.body;
         body.insertAdjacentHTML('afterbegin', UI.HEADER());
         body.insertAdjacentHTML('beforeend', UI.MODAL_WRAPPER());
     },
 
-    // Renderizza la griglia principale (Livello 4)
+    // Renderizza la sezione editori (Pillole)
+    publishers: (publishers, activeId = null) => {
+        const container = document.getElementById('ui-publisher-bar');
+        if (!container) return;
+        const allBtn = UI.ALL_PUBLISHERS_BUTTON(!activeId);
+        const pills = publishers.map(pub => UI.PUBLISHER_PILL(pub, pub.id === activeId)).join('');
+        container.innerHTML = allBtn + pills;
+    },
+
+    // Renderizza lo showcase delle serie
+    series: (series) => {
+        const sectionContainer = document.getElementById('serie-section-wrapper');
+        if (!sectionContainer) return;
+        const itemsHtml = series.map(s => UI.SERIE_ITEM(s)).join('');
+        sectionContainer.innerHTML = UI.SERIE_SECTION(itemsHtml);
+    },
+
+    // Renderizza la griglia degli albi (Badge Celo/Manca automatico)
     grid: (issues) => {
         const mainContainer = document.getElementById('main-content-area');
         if (!document.getElementById('main-grid')) {
@@ -27,13 +44,7 @@ export const Render = {
         });
     },
 
-    // Renderizza il form nel modale (Livello 6)
-    modalForm: (issue, dropdowns) => {
-        const modalBody = document.getElementById('modal-body');
-        modalBody.innerHTML = UI.ISSUE_FORM(issue, dropdowns);
-    },
-
-    // Renderizza i dettagli nel modale (Livello 5 & 7)
+    // Renderizza i dettagli dell'albo e le relative storie nel modale
     modalDetails: (issue, stories) => {
         const modalBody = document.getElementById('modal-body');
         const storiesHtml = stories.map(s => {
@@ -41,5 +52,11 @@ export const Render = {
             return UI.STORY_ROW(s, s.info_collegamento, charsHtml);
         }).join('');
         modalBody.innerHTML = UI.MODAL_LAYOUT(issue, storiesHtml);
+    },
+
+    // Renderizza il form di editing (Toggle Celo/Manca incluso)
+    modalForm: (issue, dropdowns) => {
+        const modalBody = document.getElementById('modal-body');
+        modalBody.innerHTML = UI.ISSUE_FORM(issue, dropdowns);
     }
 };
