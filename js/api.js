@@ -48,7 +48,7 @@ export const api = {
         delete payload.testata;
         delete payload.tipo_pubblicazione;
         delete payload.storia_in_issue;
-        delete payload.codice_editore_id; // Campo logico del form
+        delete payload.codice_editore_id;
 
         // Normalizzazione dati
         if (payload.valore) payload.valore = parseFloat(payload.valore);
