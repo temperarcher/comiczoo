@@ -1,8 +1,7 @@
 /**
- * VERSION: 8.6.9 (Sbroglio Condizione Definitivo)
- * NOTA: Forza la sovrascrittura del campo condizione indipendentemente da cosa generi UI.js.
- * MODIFICHE CHIRURGICHE: Individuazione dinamica del wrapper e iniezione select 1-5.
- * MANTENERE I COMMENTI SEZIONALI: Presenti e aggiornati.
+ * VERSION: 8.7.0 (Integrale - Fix Anteprima Editore con Logica Consolidata)
+ * NOTA: Ripristinata la logica di Annata, Testata e Supplemento persa nella v8.6.9.
+ * MODIFICHE: Aggiunto updateEditorePreview e trigger su selectEditore.onchange.
  */
 import { api } from './api.js';
 import { store } from './store.js';
@@ -155,18 +154,13 @@ export const render = {
             </select>`;
 
         // --- SBROGLIO CAMPO CONDIZIONE (LOGICA REFORZATA) ---
-        // Cerco qualsiasi elemento che abbia name="condizione" (input o select)
         const oldCondField = content.querySelector('[name="condizione"]');
         if (oldCondField) {
             const condWrapper = oldCondField.parentElement;
             const stati = [
-                { v: 5, l: "Edicola" },
-                { v: 4, l: "Ottimo" },
-                { v: 3, l: "Buono" },
-                { v: 2, l: "Discreto" },
-                { v: 1, l: "Lettura" }
+                { v: 5, l: "Edicola" }, { v: 4, l: "Ottimo" }, { v: 3, l: "Buono" },
+                { v: 2, l: "Discreto" }, { v: 1, l: "Lettura" }
             ];
-
             condWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Condizione</label>
                 <select name="condizione" id="select-condizione" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
                     <option value="">Non specificata</option>
@@ -174,7 +168,7 @@ export const render = {
                 </select>`;
         }
 
-        // Iniezione Annata e Testata
+        // --- INIEZIONE ANNATA E TESTATA ---
         const annataWrapper = content.querySelector('input[name="annata"]').parentElement;
         annataWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Annata</label>
             <select name="annata_id" id="select-annata" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
@@ -199,6 +193,21 @@ export const render = {
         const selectSupplemento = document.getElementById('select-supplemento');
         const selectCondizione = document.getElementById('select-condizione');
 
+        // --- LOGICA ANTEPRIMA EDITORE ---
+        const updateEditorePreview = (select) => {
+            const selectedOpt = select.options[select.selectedIndex];
+            const imgUrl = selectedOpt ? selectedOpt.dataset.img : null;
+            const previewWrap = document.getElementById('preview-editore');
+            const imgEl = previewWrap.querySelector('img');
+
+            if (imgUrl && imgUrl !== '') {
+                imgEl.src = imgUrl;
+                imgEl.classList.remove('hidden');
+            } else {
+                imgEl.classList.add('hidden');
+            }
+        };
+
         // --- LOGICA FILTRAGGIO DINAMICO ---
         const syncEditoriESupplementi = (codiceId, targetEditoreId = null) => {
             Array.from(selectEditore.options).forEach(opt => {
@@ -207,6 +216,7 @@ export const render = {
                 opt.hidden = !match; opt.disabled = !match;
             });
             selectEditore.value = targetEditoreId || "";
+            updateEditorePreview(selectEditore); // Aggiorna immagine editore
             
             Array.from(selectSupplemento.options).forEach(opt => {
                 if (!opt.dataset.codice) return;
@@ -229,6 +239,7 @@ export const render = {
         };
 
         selectCodice.onchange = () => syncEditoriESupplementi(selectCodice.value);
+        selectEditore.onchange = () => updateEditorePreview(selectEditore);
         selectSerie.onchange = () => syncSerieDependents(selectSerie.value);
 
         if (issue.id) {
@@ -242,8 +253,6 @@ export const render = {
                 syncSerieDependents(issue.serie_id, issue.annata_id, issue.testata_id);
             }
             if (issue.supplemento_id) selectSupplemento.value = issue.supplemento_id;
-            
-            // --- RECUPERO CONDIZIONE DB ---
             if (issue.condizione !== undefined && issue.condizione !== null && selectCondizione) {
                 selectCondizione.value = issue.condizione.toString();
             }
