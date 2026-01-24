@@ -3,21 +3,21 @@
  
  */
 import { Render } from './render.js';
-// Assicurati che gli altri import (supabase, ecc) siano corretti
 
+// Funzione di inizializzazione principale
 async function initApp() {
     try {
-        // 1. Costruisce la base della pagina
+        // 1. Inizializza il layout base (Header e Modale)
         Render.initLayout();
 
-        // 2. Esempio caricamento (sostituisci con la tua logica fetch)
-        // const issues = await fetchIssues(); 
-        // Render.grid(issues);
-
-        console.log("Sistema Atomizzato Pronto.");
+        // Nota: Qui aggiungerai le tue chiamate Supabase/Fetch 
+        // per popolare i dati quando pronti.
+        
+        console.log("Architettura Atomica caricata: main.js collegato a Render.");
     } catch (error) {
-        console.error("Errore inizializzazione:", error);
+        console.error("Errore fatale durante l'avvio:", error);
     }
 }
 
+// Avvio al caricamento del DOM
 document.addEventListener('DOMContentLoaded', initApp);
