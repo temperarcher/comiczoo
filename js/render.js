@@ -1,6 +1,6 @@
 /**
- * VERSION: 8.8.0 (Integrale - Fix Syntax & Salvataggio DB)
- * NOTA: Rispetta la logica consolidata e implementa l'invio dati a Supabase.
+ * VERSION: 8.9.0 (Integrale - Gestione Modale Codice Editore)
+ * NOTA: Implementa l'apertura ricorsiva dei modali per le tabelle correlate.
  */
 import { api } from './api.js';
 import { store } from './store.js';
@@ -224,6 +224,15 @@ export const render = {
         selectEditore.onchange = () => updateEditorePreview(selectEditore);
         selectSerie.onchange = () => syncSerieDependents(selectSerie.value);
 
+        // --- GESTIONE CODICE EDITORE (NEW/EDIT) ---
+        document.getElementById('btn-new-codice').onclick = () => this.openCodiceEditoreModal();
+        document.getElementById('btn-edit-codice').onclick = () => {
+            const currentId = selectCodice.value;
+            if (!currentId) return alert("Seleziona prima un Brand da modificare");
+            const codice = dropdowns.codici.find(c => c.id == currentId);
+            this.openCodiceEditoreModal(codice);
+        };
+
         if (issue.id) {
             const cId = issue.editore?.codice_editore_id || issue.codice_editore_id;
             if (cId) { selectCodice.value = cId; syncEditoriESupplementi(cId, issue.editore_id); updateEditorePreview(selectEditore); }
@@ -256,6 +265,49 @@ export const render = {
                 btn.disabled = false;
                 btn.innerText = originalText;
             }
+        };
+    },
+
+    async openCodiceEditoreModal(codice = null) {
+        const modal = document.getElementById('secondary-modal');
+        const body = document.getElementById('secondary-modal-body');
+        
+        body.innerHTML = UI.MODAL_CODICE_EDITORE(codice || {});
+        modal.classList.replace('hidden', 'flex');
+
+        const inputUrl = document.getElementById('input-codice-url');
+        const imgEl = document.getElementById('preview-codice-img');
+        const placeholder = document.getElementById('placeholder-codice-img');
+
+        const updatePreview = (url) => {
+            if (url && url.trim() !== '') { imgEl.src = url; imgEl.classList.remove('hidden'); placeholder.classList.add('hidden'); }
+            else { imgEl.classList.add('hidden'); placeholder.classList.remove('hidden'); }
+        };
+
+        inputUrl.oninput = (e) => updatePreview(e.target.value);
+
+        document.getElementById('close-secondary').onclick = () => modal.classList.replace('flex', 'hidden');
+
+        document.getElementById('form-codice-editore').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            
+            try {
+                const saved = await api.saveCodiceEditore(data);
+                modal.classList.replace('flex', 'hidden');
+                
+                // Refresh delle showcase e del form sottostante
+                await this.refreshShowcases();
+                const selectCodice = document.getElementById('select-codice-editore');
+                if (selectCodice) {
+                    const { data: list } = await window.supabaseClient.from('codice_editore').select('*').order('nome');
+                    selectCodice.innerHTML = '<option value="">Seleziona Brand...</option>' + 
+                        list.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+                    selectCodice.value = saved[0].id;
+                    selectCodice.dispatchEvent(new Event('change'));
+                }
+            } catch (err) { alert(err.message); }
         };
     },
 
