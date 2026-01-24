@@ -1,6 +1,7 @@
 /**
- * VERSION: 1.8.5  (Integrale - Chirurgica Sbroglio Condizione)
+ * VERSION: 1.8.5  (Integrale - Sbroglio Condizione e Fix Immagine Editore)
  * NOTA: Non rimuovere i commenti identificativi delle sezioni.
+ * IMPERATIVO: Non modificare mai i livelli senza la mia autorizzazione
  */
 export const UI = {
     // LIVELLO 1: HEADER (Invariato)
@@ -136,7 +137,7 @@ export const UI = {
             </div>
         </div>`,
 
-    // MODALE EDIT AVANZATO (Modifica Chirurgica Condizione)
+    // MODALE EDIT AVANZATO (Modifica Chirurgica)
     ISSUE_FORM: (issue, dropdowns) => `
         <div class="p-2">
             <h2 class="text-xl font-black text-white uppercase mb-6 tracking-tighter flex items-center gap-2">
@@ -166,7 +167,7 @@ export const UI = {
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Editore</label>
                             <select name="editore_id" id="select-editore-name" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
                                 <option value="">-- Seleziona Codice --</option>
-                                ${dropdowns.editori.map(e => `<option value="${e.id}" data-parent="${e.codice_editore_id}" data-img="${e.immagine_url}">${e.nome}</option>`).join('')}
+                                ${dropdowns.editori.map(e => `<option value="${e.id}" data-parent="${e.codice_editore_id}" data-img="${e.immagine_url || ''}">${e.nome}</option>`).join('')}
                             </select>
                         </div>
                         <div class="md:col-span-2">
