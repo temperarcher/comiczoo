@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.8.4  (Integrale - Form con ID precisi per sincronizzazione Edit)
+ * VERSION: 1.8.5  (Integrale - Chirurgica Sbroglio Condizione)
  * NOTA: Non rimuovere i commenti identificativi delle sezioni.
  */
 export const UI = {
@@ -136,7 +136,7 @@ export const UI = {
             </div>
         </div>`,
 
-    // MODALE EDIT AVANZATO
+    // MODALE EDIT AVANZATO (Modifica Chirurgica Condizione)
     ISSUE_FORM: (issue, dropdowns) => `
         <div class="p-2">
             <h2 class="text-xl font-black text-white uppercase mb-6 tracking-tighter flex items-center gap-2">
@@ -234,12 +234,7 @@ export const UI = {
                         </div>
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Condizione</label>
-                            <select name="condizione" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
-                                <option value="Ottimo" ${issue.condizione === 'Ottimo' ? 'selected' : ''}>Ottimo</option>
-                                <option value="Buono" ${issue.condizione === 'Buono' ? 'selected' : ''}>Buono</option>
-                                <option value="Discreto" ${issue.condizione === 'Discreto' ? 'selected' : ''}>Discreto</option>
-                                <option value="Scarso" ${issue.condizione === 'Scarso' ? 'selected' : ''}>Scarso</option>
-                            </select>
+                            <input type="hidden" name="condizione" value="${issue.condizione || ''}">
                         </div>
                     </div>
 
