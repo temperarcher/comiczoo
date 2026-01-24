@@ -21,14 +21,14 @@ export const form = (issue, dropdowns) => `
                 <div>
                     <label class="text-[10px] font-black text-slate-500 uppercase">Brand (Codice Editore)</label>
                     <select name="codice_editore_id" class="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl text-white">
-                        <option value="">Brand...</option>
+                        <option value="">Seleziona Brand...</option>
                         ${dropdowns.codici.map(c => `<option value="${c.id}" ${issue.codice_editore_id == c.id ? 'selected' : ''}>${c.nome}</option>`).join('')}
                     </select>
                 </div>
                 <div>
                     <label class="text-[10px] font-black text-slate-500 uppercase">Serie</label>
                     <select name="serie_id" class="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl text-white" required>
-                        <option value="">Serie...</option>
+                        <option value="">Seleziona Serie...</option>
                         ${dropdowns.serie.map(s => `<option value="${s.id}" ${issue.serie_id == s.id ? 'selected' : ''}>${s.nome}</option>`).join('')}
                     </select>
                 </div>
@@ -40,7 +40,8 @@ export const form = (issue, dropdowns) => `
                     <label class="text-[10px] font-black text-slate-500 uppercase">Valore (€)</label>
                     <input type="number" step="0.01" name="valore" value="${issue.valore || ''}" class="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl text-white">
                 </div>
-                <div class="col-span-full">
+
+                <div class="col-span-full mt-2">
                     <label class="text-[10px] font-black text-slate-500 uppercase block mb-3">Stato Possesso</label>
                     <div class="flex gap-4">
                         <label class="flex-1 cursor-pointer">
@@ -57,9 +58,10 @@ export const form = (issue, dropdowns) => `
                         </label>
                     </div>
                 </div>
+
                 <div class="col-span-full flex gap-4 pt-6 border-t border-slate-800 mt-4">
-                    <button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-4 rounded-xl uppercase text-xs">Salva</button>
-                    <button type="button" id="cancel-form" class="px-8 bg-slate-700 text-white font-bold rounded-xl uppercase text-xs">Annulla</button>
+                    <button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-4 rounded-xl uppercase text-xs tracking-widest shadow-lg shadow-yellow-500/20 transition-all">Salva Albo</button>
+                    <button type="button" id="cancel-form" class="px-8 bg-slate-700 text-white font-bold rounded-xl uppercase text-xs transition-all">Annulla</button>
                 </div>
             </div>
         </form>
