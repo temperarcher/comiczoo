@@ -1,7 +1,9 @@
 /**
- * VERSION: 1.9.1 (Ripristino Grafica Consolidata + Modale Codice Editore)
+ * VERSION: 1.8.6  (Integrale - Fix Attributo Immagine Editore)
+ * NOTA: Non rimuovere i commenti identificativi delle sezioni.
  */
 export const UI = {
+    // LIVELLO 1: HEADER (Invariato)
     HEADER: () => `
         <header class="bg-slate-800 border-b border-slate-700 p-6 sticky top-0 z-50 shadow-2xl">
             <div class="container mx-auto flex flex-col lg:flex-row justify-between items-center gap-6">
@@ -18,6 +20,7 @@ export const UI = {
             </div>
         </header>`,
 
+    // LIVELLO 2: SHOWCASE (Invariato)
     PUBLISHER_SECTION: (content) => `
         <div class="bg-slate-800/50 border-b border-slate-700/50 py-4 overflow-x-auto no-scrollbar">
             <div id="ui-publisher-bar" class="container mx-auto flex gap-3 px-6 items-center">
@@ -51,12 +54,13 @@ export const UI = {
             </div>
         </div>`,
 
+    // LIVELLO 3: GRIGLIA E CARD (Invariato)
     MAIN_GRID_CONTAINER: () => `
         <div class="container mx-auto px-6 pb-20">
             <div class="flex items-center gap-4 mb-8">
                 <div class="h-px flex-1 bg-slate-800"></div>
                 <div class="flex gap-2">
-                    <button data-filter="all" class="filter-btn bg-yellow-500 text-slate-950 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all">Tutti</button>
+                    <button data-filter="all" class="filter-btn bg-yellow-500 text-slate-950 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-yellow-500/20">Tutti</button>
                     <button data-filter="celo" class="filter-btn text-slate-400 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:text-white transition-all">Celo</button>
                     <button data-filter="manca" class="filter-btn text-slate-400 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:text-white transition-all">Manca</button>
                 </div>
@@ -84,12 +88,10 @@ export const UI = {
             </div>
         </div>`,
 
+    // LIVELLO 4: MODALE DETTAGLI (Storie Personaggi)
     MODAL_WRAPPER: () => `
         <div id="issue-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-slate-950/90 backdrop-blur-sm overflow-y-auto">
             <div id="modal-body" class="w-full max-w-5xl my-auto"></div>
-        </div>
-        <div id="secondary-modal" class="fixed inset-0 z-[110] hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-            <div id="secondary-modal-body" class="w-full max-w-md my-auto"></div>
         </div>`,
 
     MODAL_LAYOUT: (data, storiesHtml) => `
@@ -141,6 +143,7 @@ export const UI = {
             </div>
         </div>`,
 
+    // LIVELLO 5: FORM DI EDIT/ADD (Completo)
     ISSUE_FORM: (issue, dropdowns) => `
         <div class="bg-slate-900 rounded-3xl border border-slate-700 shadow-2xl overflow-hidden">
             <div class="bg-slate-800 p-6 border-b border-slate-700 flex justify-between items-center">
@@ -151,58 +154,93 @@ export const UI = {
                 <div class="md:col-span-4 space-y-4">
                     <div class="aspect-[3/4] bg-slate-950 rounded-2xl border-2 border-dashed border-slate-800 overflow-hidden relative group">
                         <img id="preview-cover" src="${issue.immagine_url || ''}" class="w-full h-full object-cover ${issue.immagine_url ? '' : 'hidden'}">
+                        <div id="cover-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-700 ${issue.immagine_url ? 'hidden' : ''}">
+                            <span class="text-4xl mb-2">🖼️</span>
+                            <span class="text-[10px] font-black uppercase tracking-widest">Anteprima Cover</span>
+                        </div>
                     </div>
                     <div>
                         <label class="block text-[10px] font-black text-slate-500 uppercase mb-2">URL Immagine Cover</label>
-                        <input type="text" name="immagine_url" id="input-cover-url" value="${issue.immagine_url || ''}" class="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl text-sm text-white outline-none">
+                        <input type="text" name="immagine_url" id="input-cover-url" value="${issue.immagine_url || ''}" class="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl text-sm text-white outline-none focus:border-yellow-500 transition-all shadow-inner" placeholder="https://...">
                     </div>
                 </div>
 
                 <div class="md:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="col-span-full">
                         <label class="block text-[10px] font-black text-slate-500 uppercase mb-2">Titolo Albo</label>
-                        <input type="text" name="nome" value="${issue.nome || ''}" class="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl text-sm text-white outline-none" required>
+                        <input type="text" name="nome" value="${issue.nome || ''}" class="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl text-sm text-white outline-none focus:border-yellow-500 transition-all" required>
                     </div>
 
                     <div>
                         <label class="block text-[10px] font-black text-slate-500 uppercase mb-2">Brand</label>
-                        <div class="flex gap-2">
-                            <select name="codice_editore_id" id="select-codice-editore" class="flex-1 bg-slate-800 border border-slate-700 p-3 rounded-xl text-sm text-white outline-none">
-                                <option value="">Seleziona Brand...</option>
-                                ${dropdowns.codici.map(c => `<option value="${c.id}" ${issue.editore?.codice_editore_id == c.id ? 'selected' : ''}>${c.nome}</option>`).join('')}
-                            </select>
-                            <button type="button" id="btn-edit-codice" class="p-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-all">✏️</button>
-                            <button type="button" id="btn-new-codice" class="p-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-all">➕</button>
-                        </div>
+                        <select name="codice_editore_id" id="select-codice-editore" class="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl text-sm text-white outline-none focus:border-yellow-500 appearance-none">
+                            <option value="">Seleziona Brand...</option>
+                            ${dropdowns.codici.map(c => `<option value="${c.id}">${c.nome}</option>`).join('')}
+                        </select>
                     </div>
 
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-500 uppercase mb-2 italic">Editore Nome</label>
-                        <select name="editore_id" id="select-editore-name" class="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl text-sm text-white outline-none">
-                            <option value="">Seleziona Editore...</option>
-                            ${dropdowns.editori.map(e => `<option value="${e.id}" data-parent="${e.codice_editore_id}" data-img="${e.immagine_url}">${e.nome}</option>`).join('')}
-                        </select>
+                    <div class="relative">
+                        <label class="block text-[10px] font-black text-slate-500 uppercase mb-2 italic">Editore Nome (Logo)</label>
+                        <div class="flex gap-3 items-center">
+                            <div class="w-12 h-12 bg-slate-950 rounded-lg border border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
+                                <img id="preview-editore-logo" src="" class="w-full h-full object-contain hidden">
+                                <span id="placeholder-editore-logo" class="text-xs">?</span>
+                            </div>
+                            <select name="editore_id" id="select-editore-name" class="flex-1 bg-slate-800 border border-slate-700 p-3 rounded-xl text-sm text-white outline-none focus:border-yellow-500 appearance-none">
+                                <option value="">Seleziona Editore...</option>
+                                ${dropdowns.editori.map(e => `<option value="${e.id}" data-parent="${e.codice_editore_id}" data-img="${e.immagine_url}">${e.nome}</option>`).join('')}
+                            </select>
+                        </div>
                     </div>
 
                     <div class="col-span-full h-px bg-slate-800 my-2"></div>
 
                     <div>
                         <label class="block text-[10px] font-black text-slate-500 uppercase mb-2">Serie</label>
-                        <select name="serie_id" id="select-serie" class="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl text-sm text-white outline-none" required>
+                        <select name="serie_id" id="select-serie" class="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl text-sm text-white outline-none focus:border-yellow-500" required>
                             <option value="">Seleziona Serie...</option>
                             ${dropdowns.serie.map(s => `<option value="${s.id}">${s.nome}</option>`).join('')}
                         </select>
                     </div>
                     <div>
                         <label class="block text-[10px] font-black text-slate-500 uppercase mb-2">Numero</label>
-                        <input type="text" name="numero" value="${issue.numero || ''}" class="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl text-sm text-white outline-none">
+                        <input type="text" name="numero" value="${issue.numero || ''}" class="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl text-sm text-white outline-none focus:border-yellow-500">
                     </div>
-                    
-                    <div class="hidden"><input type="hidden" name="annata_id"><input type="hidden" name="testata_id"></div>
+
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-500 uppercase mb-2">Annata (Auto)</label>
+                        <select name="annata_id" id="select-annata" class="w-full bg-slate-700 border border-slate-700 p-3 rounded-xl text-sm text-slate-400 outline-none cursor-not-allowed" disabled>
+                            <option value="">Automatico...</option>
+                            ${dropdowns.annate.map(a => `<option value="${a.id}" data-parent="${a.serie_id}">${a.nome}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-500 uppercase mb-2">Testata (Auto)</label>
+                        <select name="testata_id" id="select-testata" class="w-full bg-slate-700 border border-slate-700 p-3 rounded-xl text-sm text-slate-400 outline-none cursor-not-allowed" disabled>
+                            <option value="">Automatico...</option>
+                            ${dropdowns.testate.map(t => `<option value="${t.id}" data-parent="${t.serie_id}">${t.nome}</option>`).join('')}
+                        </select>
+                    </div>
+
+                    <div class="col-span-full h-px bg-slate-800 my-2"></div>
+
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-500 uppercase mb-2 italic">Supplemento (Opzionale)</label>
+                        <select name="supplemento_id" id="select-supplemento" class="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl text-sm text-white outline-none focus:border-yellow-500">
+                            <option value="">Nessuno</option>
+                            ${dropdowns.supplementi.map(s => `<option value="${s.id}" data-parent="${s.codice_editore_id}">${s.nome}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-500 uppercase mb-2">Condizione (1-5)</label>
+                        <div id="condizione-wrapper">
+                            <input type="number" name="condizione" value="${issue.condizione || ''}" class="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl text-sm text-white outline-none focus:border-yellow-500">
+                        </div>
+                    </div>
 
                     <div>
                         <label class="block text-[10px] font-black text-slate-500 uppercase mb-2">Valore (€)</label>
-                        <input type="number" step="0.01" name="valore" value="${issue.valore || ''}" class="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl text-sm text-white outline-none">
+                        <input type="number" step="0.01" name="valore" value="${issue.valore || ''}" class="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl text-sm text-white outline-none focus:border-yellow-500 shadow-inner">
                     </div>
                     <div>
                         <label class="block text-[10px] font-black text-slate-500 uppercase mb-2">Possesso</label>
@@ -220,31 +258,8 @@ export const UI = {
                 </div>
 
                 <div class="col-span-full flex gap-4 pt-6 border-t border-slate-800">
-                    <button type="submit" class="flex-1 bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-black py-4 rounded-xl uppercase text-xs tracking-widest transition-all">Salva Albo</button>
+                    <button type="submit" class="flex-1 bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-black py-4 rounded-xl uppercase text-xs tracking-widest shadow-lg shadow-yellow-500/20 transition-all">Salva Albo</button>
                     <button type="button" id="cancel-form" class="px-8 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl uppercase text-xs transition-all">Annulla</button>
-                </div>
-            </form>
-        </div>`,
-
-    MODAL_CODICE_EDITORE: (codice = {}) => `
-        <div class="bg-slate-900 rounded-3xl border border-slate-700 shadow-2xl overflow-hidden">
-            <div class="bg-slate-800 p-5 border-b border-slate-700 flex justify-between items-center">
-                <h3 class="text-lg font-black text-white uppercase tracking-tighter">${codice.id ? 'Modifica' : 'Nuovo'} Brand</h3>
-            </div>
-            <form id="form-codice-editore" class="p-6 space-y-5">
-                <input type="hidden" name="id" value="${codice.id || ''}">
-                <div class="flex gap-4">
-                    <div class="w-20 h-20 bg-slate-950 rounded-xl border border-slate-700 overflow-hidden shrink-0 flex items-center justify-center">
-                        <img id="preview-codice-img" src="${codice.immagine_url || ''}" class="w-full h-full object-contain ${codice.immagine_url ? '' : 'hidden'}">
-                    </div>
-                    <div class="flex-1 space-y-4">
-                        <input type="text" name="nome" placeholder="Nome Brand" value="${codice.nome || ''}" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded-xl text-sm text-white outline-none" required>
-                        <input type="text" name="immagine_url" id="input-codice-url" placeholder="URL Logo" value="${codice.immagine_url || ''}" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded-xl text-sm text-white outline-none">
-                    </div>
-                </div>
-                <div class="flex gap-3 pt-2">
-                    <button type="submit" class="flex-1 bg-yellow-500 text-slate-900 font-black py-3 rounded-xl uppercase text-[10px] tracking-widest">Salva</button>
-                    <button type="button" id="close-secondary" class="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl uppercase text-[10px]">Chiudi</button>
                 </div>
             </form>
         </div>`,
