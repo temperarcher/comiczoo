@@ -1,6 +1,6 @@
 /**
- * VERSION: 8.5.1
- * SCOPO: Query Supabase e Salvataggio (Issue + Codice Editore)
+ * VERSION: 8.4.1
+ * SCOPO: Query Supabase e Salvataggio con sanificazione stringhe vuote
  */
 
 const ISSUE_DETAILS_QUERY = `
@@ -40,7 +40,10 @@ export const api = {
     },
 
     async saveIssue(issueData) {
+        // Clonazione del payload
         const payload = { ...issueData };
+        
+        // 1. RIMOZIONE CAMPI RELAZIONALI (Sola lettura)
         delete payload.editore;
         delete payload.annata;
         delete payload.testata;
@@ -48,24 +51,28 @@ export const api = {
         delete payload.storia_in_issue;
         delete payload.codice_editore_id;
 
+        // 2. SANIFICAZIONE STRINGHE VUOTE -> NULL
         Object.keys(payload).forEach(key => {
-            if (payload[key] === "") payload[key] = null;
+            if (payload[key] === "") {
+                payload[key] = null;
+            }
         });
 
+        // 3. CASTING NUMERICI SPECIFICI
         if (payload.valore !== null) payload.valore = parseFloat(payload.valore);
         if (payload.condizione !== null) payload.condizione = parseInt(payload.condizione);
+        
         if (!payload.id) delete payload.id;
 
-        const { data, error } = await window.supabaseClient.from('issue').upsert(payload).select();
-        if (error) throw error;
-        return data;
-    },
+        const { data, error } = await window.supabaseClient
+            .from('issue')
+            .upsert(payload)
+            .select();
 
-    async saveCodiceEditore(codiceData) {
-        const payload = { ...codiceData };
-        if (!payload.id) delete payload.id;
-        const { data, error } = await window.supabaseClient.from('codice_editore').upsert(payload).select();
-        if (error) throw error;
+        if (error) {
+            console.error("ERRORE SALVATAGGIO:", error.message);
+            throw error;
+        }
         return data;
     }
 };
