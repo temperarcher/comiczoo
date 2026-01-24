@@ -1,9 +1,7 @@
 /**
  * VERSION: 1.8.6  (Integrale - Fix Attributo Immagine Editore)
- * NOTA: Non rimuovere i commenti identificativi delle sezioni.
  */
 export const UI = {
-    // LIVELLO 1: HEADER (Invariato)
     HEADER: () => `
         <header class="bg-slate-800 border-b border-slate-700 p-6 sticky top-0 z-50 shadow-2xl">
             <div class="container mx-auto flex flex-col lg:flex-row justify-between items-center gap-6">
@@ -20,7 +18,6 @@ export const UI = {
             </div>
         </header>`,
 
-    // LIVELLO 2: SHOWCASE (Invariato)
     PUBLISHER_SECTION: (content) => `
         <div class="bg-slate-800/50 border-b border-slate-700/50 py-4 overflow-x-auto no-scrollbar">
             <div id="ui-publisher-bar" class="container mx-auto flex gap-3 px-6 items-center">
@@ -54,7 +51,6 @@ export const UI = {
             </div>
         </div>`,
 
-    // LIVELLO 3: GRIGLIA E CARD (Invariato)
     MAIN_GRID_CONTAINER: () => `
         <div class="container mx-auto px-6 pb-20">
             <div class="flex items-center gap-4 mb-8">
@@ -88,7 +84,6 @@ export const UI = {
             </div>
         </div>`,
 
-    // LIVELLO 4: MODALE DETTAGLI (Storie Personaggi)
     MODAL_WRAPPER: () => `
         <div id="issue-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-slate-950/90 backdrop-blur-sm overflow-y-auto">
             <div id="modal-body" class="w-full max-w-5xl my-auto"></div>
@@ -143,7 +138,6 @@ export const UI = {
             </div>
         </div>`,
 
-    // LIVELLO 5: FORM DI EDIT/ADD (Completo)
     ISSUE_FORM: (issue, dropdowns) => `
         <div class="bg-slate-900 rounded-3xl border border-slate-700 shadow-2xl overflow-hidden">
             <div class="bg-slate-800 p-6 border-b border-slate-700 flex justify-between items-center">
@@ -232,9 +226,9 @@ export const UI = {
                         </select>
                     </div>
                     <div>
-                        <label class="block text-[10px] font-black text-slate-500 uppercase mb-2">Condizione (1-5)</label>
+                        <label class="block text-[10px] font-black text-slate-500 uppercase mb-2">Condizione</label>
                         <div id="condizione-wrapper">
-                            <input type="number" name="condizione" value="${issue.condizione || ''}" class="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl text-sm text-white outline-none focus:border-yellow-500">
+                             <input type="number" name="condizione" value="${issue.condizione || ''}" class="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl text-sm text-white outline-none focus:border-yellow-500">
                         </div>
                     </div>
 
