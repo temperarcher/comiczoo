@@ -1,6 +1,6 @@
 /**
- * VERSION: 8.9.0 (Integrale - Gestione Modale Codice Editore)
- * NOTA: Implementa l'apertura ricorsiva dei modali per le tabelle correlate.
+ * VERSION: 8.8.0 (Integrale - Fix Syntax & Salvataggio DB)
+ * NOTA: Rispetta la logica consolidata e implementa l'invio dati a Supabase.
  */
 import { api } from './api.js';
 import { store } from './store.js';
@@ -91,152 +91,88 @@ export const render = {
         document.getElementById('close-modal').onclick = () => modal.classList.replace('flex', 'hidden');
     },
 
-    async openFormModal(issueData = null) {
+    async openFormModal(issue = {}) {
         const modal = document.getElementById('issue-modal');
         const content = document.getElementById('modal-body');
-        
-        const promises = [
+
+        const [resC, resE, resS, resA, resT, resSup] = await Promise.all([
             window.supabaseClient.from('codice_editore').select('*').order('nome'),
             window.supabaseClient.from('editore').select('*').order('nome'),
             window.supabaseClient.from('serie').select('*').order('nome'),
-            window.supabaseClient.from('tipo_pubblicazione').select('*').order('nome'),
-            window.supabaseClient.from('testata').select('*').order('nome'),
             window.supabaseClient.from('annata').select('*').order('nome'),
-            window.supabaseClient.from('issue').select(`id, numero, data_pubblicazione, condizione, serie(nome), testata(nome), annata(nome), editore!inner(codice_editore_id)`)
-        ];
+            window.supabaseClient.from('testata').select('*').order('nome'),
+            window.supabaseClient.from('supplemento').select('*').order('nome')
+        ]);
 
-        if (issueData && issueData.id) {
-            promises.push(window.supabaseClient.from('issue').select('*, editore(*)').eq('id', issueData.id).single());
-        }
-
-        const results = await Promise.all(promises);
-        const dropdowns = {
-            codici: results[0].data, editori: results[1].data, serie: results[2].data,
-            tipi: results[3].data, testate: results[4].data, annate: results[5].data,
-            albiPerSupplemento: results[6].data
-        };
-        
-        const issue = (issueData && results[7]) ? results[7].data : (issueData || {});
-
+        const dropdowns = { codici: resC.data, editori: resE.data, serie: resS.data, annate: resA.data, testate: resT.data, supplementi: resSup.data };
         content.innerHTML = UI.ISSUE_FORM(issue, dropdowns);
-        
-        const formatSupplementoLabel = (albo) => {
-            const s = albo.serie?.nome ? `${albo.serie.nome} ` : '';
-            const t = albo.testata?.nome ? `${albo.testata.nome} ` : '';
-            const a = albo.annata?.nome ? `${albo.annata.nome} ` : '';
-            const n = albo.numero ? `#${albo.numero} ` : '';
-            const d = albo.data_pubblicazione ? `del ${albo.data_pubblicazione}` : '';
-            return (s + t + a + n + d).trim();
-        };
-
-        const supplementoWrapper = content.querySelector('input[name="supplemento"]').parentElement;
-        const listaOrdinata = dropdowns.albiPerSupplemento
-            .map(a => ({ id: a.id, codice: a.editore?.codice_editore_id, label: formatSupplementoLabel(a) }))
-            .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
-
-        supplementoWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Supplemento a...</label>
-            <select name="supplemento_id" id="select-supplemento" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
-                <option value="">Nessuno (Albo autonomo)</option>
-                ${listaOrdinata.map(a => `<option value="${a.id}" data-codice="${a.codice}">${a.label}</option>`).join('')}
-            </select>`;
-
-        const oldCondField = content.querySelector('[name="condizione"]');
-        if (oldCondField) {
-            const condWrapper = oldCondField.parentElement;
-            const stati = [{ v: 5, l: "Edicola" }, { v: 4, l: "Ottimo" }, { v: 3, l: "Buono" }, { v: 2, l: "Discreto" }, { v: 1, l: "Lettura" }];
-            condWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Condizione</label>
-                <select name="condizione" id="select-condizione" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
-                    <option value="">Non specificata</option>
-                    ${stati.map(s => `<option value="${s.v}">${s.l}</option>`).join('')}
-                </select>`;
-        }
-
-        const annataWrapper = content.querySelector('input[name="annata"]').parentElement;
-        annataWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Annata</label>
-            <select name="annata_id" id="select-annata" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
-                <option value="">Seleziona Annata...</option>
-                ${dropdowns.annate.map(a => `<option value="${a.id}" data-serie="${a.serie_id}">${a.nome}</option>`).join('')}
-            </select>`;
-
-        const testataWrapper = content.querySelector('select[name="testata_id"]').parentElement;
-        testataWrapper.innerHTML = `<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Testata</label>
-            <select name="testata_id" id="select-testata" class="w-full bg-slate-800 border border-slate-700 p-2.5 rounded text-sm text-white outline-none">
-                <option value="">Seleziona Testata...</option>
-                ${dropdowns.testate.map(t => `<option value="${t.id}" data-serie="${t.serie_id}">${t.nome}</option>`).join('')}
-            </select>`;
-
         modal.classList.replace('hidden', 'flex');
+
+        const wrapper = document.getElementById('condizione-wrapper');
+        if (wrapper) wrapper.innerHTML = `<select name="condizione" id="select-condizione" class="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl text-sm text-white outline-none focus:border-yellow-500 appearance-none"><option value="">Voto...</option>${[1,2,3,4,5].map(v => `<option value="${v}">${v}</option>`).join('')}</select>`;
 
         const selectCodice = document.getElementById('select-codice-editore');
         const selectEditore = document.getElementById('select-editore-name');
+        const selectSupplemento = document.getElementById('select-supplemento');
         const selectSerie = document.getElementById('select-serie');
         const selectAnnata = document.getElementById('select-annata');
         const selectTestata = document.getElementById('select-testata');
-        const selectSupplemento = document.getElementById('select-supplemento');
         const selectCondizione = document.getElementById('select-condizione');
-        const inputCoverUrl = document.getElementById('input-cover-url');
-
-        const updateEditorePreview = (select) => {
-            const selectedOpt = select.options[select.selectedIndex];
-            const imgUrl = selectedOpt?.dataset.img;
-            const imgEl = document.getElementById('preview-editore').querySelector('img');
-            if (imgUrl) { imgEl.src = imgUrl; imgEl.classList.remove('hidden'); } else { imgEl.classList.add('hidden'); }
-        };
+        const inputCover = document.getElementById('input-cover-url');
+        const previewCover = document.getElementById('preview-cover');
+        const placeholderCover = document.getElementById('cover-placeholder');
+        const imgLogo = document.getElementById('preview-editore-logo');
+        const placeholderLogo = document.getElementById('placeholder-editore-logo');
 
         const updateCoverPreview = (url) => {
-            const imgEl = document.getElementById('preview-cover');
-            const placeholder = document.getElementById('placeholder-cover');
-            if (url && url.trim() !== '') { imgEl.src = url; imgEl.classList.remove('hidden'); placeholder.classList.add('hidden'); }
-            else { imgEl.classList.add('hidden'); placeholder.classList.remove('hidden'); }
+            if (url) { previewCover.src = url; previewCover.classList.remove('hidden'); placeholderCover.classList.add('hidden'); }
+            else { previewCover.classList.add('hidden'); placeholderCover.classList.remove('hidden'); }
         };
 
-        inputCoverUrl.oninput = (e) => updateCoverPreview(e.target.value);
+        const updateEditorePreview = (sel) => {
+            const opt = sel.options[sel.selectedIndex];
+            const img = opt?.dataset.img;
+            if (img && img !== "null") { imgLogo.src = img; imgLogo.classList.remove('hidden'); placeholderLogo.classList.add('hidden'); }
+            else { imgLogo.classList.add('hidden'); placeholderLogo.classList.remove('hidden'); }
+        };
+
+        inputCover.oninput = (e) => updateCoverPreview(e.target.value);
 
         const syncEditoriESupplementi = (codiceId, targetEditoreId = null) => {
             Array.from(selectEditore.options).forEach(opt => {
-                if (!opt.dataset.parent) return;
-                const match = (opt.dataset.parent == codiceId);
+                const match = !opt.value || opt.dataset.parent == codiceId;
                 opt.hidden = !match; opt.disabled = !match;
             });
-            selectEditore.value = targetEditoreId || "";
-            updateEditorePreview(selectEditore);
             Array.from(selectSupplemento.options).forEach(opt => {
-                if (!opt.dataset.codice) return;
-                const match = (opt.dataset.codice == codiceId);
+                const match = !opt.value || opt.dataset.parent == codiceId;
                 opt.hidden = !match; opt.disabled = !match;
             });
-            if (selectSupplemento.options[selectSupplemento.selectedIndex]?.hidden) selectSupplemento.value = "";
+            if (targetEditoreId) selectEditore.value = targetEditoreId;
+            else if (selectEditore.options[selectEditore.selectedIndex].hidden) selectEditore.value = "";
+            updateEditorePreview(selectEditore);
         };
 
         const syncSerieDependents = (serieId, targetAnnataId = null, targetTestataId = null) => {
-            [selectAnnata, selectTestata].forEach(sel => {
-                Array.from(sel.options).forEach(opt => {
-                    if (!opt.dataset.serie) return;
-                    const match = (opt.dataset.serie == serieId);
-                    opt.hidden = !match; opt.disabled = !match;
-                });
-            });
-            selectAnnata.value = targetAnnataId || "";
-            selectTestata.value = targetTestataId || "";
+            const firstAnnata = Array.from(selectAnnata.options).find(opt => opt.dataset.parent == serieId);
+            const firstTestata = Array.from(selectTestata.options).find(opt => opt.dataset.parent == serieId);
+            selectAnnata.value = targetAnnataId || firstAnnata?.value || "";
+            selectTestata.value = targetTestataId || firstTestata?.value || "";
         };
 
         selectCodice.onchange = () => syncEditoriESupplementi(selectCodice.value);
         selectEditore.onchange = () => updateEditorePreview(selectEditore);
         selectSerie.onchange = () => syncSerieDependents(selectSerie.value);
 
-        // --- GESTIONE CODICE EDITORE (NEW/EDIT) ---
-        document.getElementById('btn-new-codice').onclick = () => this.openCodiceEditoreModal();
-        document.getElementById('btn-edit-codice').onclick = () => {
-            const currentId = selectCodice.value;
-            if (!currentId) return alert("Seleziona prima un Brand da modificare");
-            const codice = dropdowns.codici.find(c => c.id == currentId);
-            this.openCodiceEditoreModal(codice);
-        };
-
         if (issue.id) {
             const cId = issue.editore?.codice_editore_id || issue.codice_editore_id;
-            if (cId) { selectCodice.value = cId; syncEditoriESupplementi(cId, issue.editore_id); updateEditorePreview(selectEditore); }
-            if (issue.serie_id) { selectSerie.value = issue.serie_id; syncSerieDependents(issue.serie_id, issue.annata_id, issue.testata_id); }
+            if (cId) {
+                selectCodice.value = cId;
+                syncEditoriESupplementi(cId, issue.editore_id);
+            }
+            if (issue.serie_id) {
+                selectSerie.value = issue.serie_id;
+                syncSerieDependents(issue.serie_id, issue.annata_id, issue.testata_id);
+            }
             if (issue.supplemento_id) selectSupplemento.value = issue.supplemento_id;
             if (issue.condizione && selectCondizione) selectCondizione.value = issue.condizione.toString();
             updateCoverPreview(issue.immagine_url);
@@ -265,49 +201,6 @@ export const render = {
                 btn.disabled = false;
                 btn.innerText = originalText;
             }
-        };
-    },
-
-    async openCodiceEditoreModal(codice = null) {
-        const modal = document.getElementById('secondary-modal');
-        const body = document.getElementById('secondary-modal-body');
-        
-        body.innerHTML = UI.MODAL_CODICE_EDITORE(codice || {});
-        modal.classList.replace('hidden', 'flex');
-
-        const inputUrl = document.getElementById('input-codice-url');
-        const imgEl = document.getElementById('preview-codice-img');
-        const placeholder = document.getElementById('placeholder-codice-img');
-
-        const updatePreview = (url) => {
-            if (url && url.trim() !== '') { imgEl.src = url; imgEl.classList.remove('hidden'); placeholder.classList.add('hidden'); }
-            else { imgEl.classList.add('hidden'); placeholder.classList.remove('hidden'); }
-        };
-
-        inputUrl.oninput = (e) => updatePreview(e.target.value);
-
-        document.getElementById('close-secondary').onclick = () => modal.classList.replace('flex', 'hidden');
-
-        document.getElementById('form-codice-editore').onsubmit = async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const data = Object.fromEntries(formData.entries());
-            
-            try {
-                const saved = await api.saveCodiceEditore(data);
-                modal.classList.replace('flex', 'hidden');
-                
-                // Refresh delle showcase e del form sottostante
-                await this.refreshShowcases();
-                const selectCodice = document.getElementById('select-codice-editore');
-                if (selectCodice) {
-                    const { data: list } = await window.supabaseClient.from('codice_editore').select('*').order('nome');
-                    selectCodice.innerHTML = '<option value="">Seleziona Brand...</option>' + 
-                        list.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
-                    selectCodice.value = saved[0].id;
-                    selectCodice.dispatchEvent(new Event('change'));
-                }
-            } catch (err) { alert(err.message); }
         };
     },
 
