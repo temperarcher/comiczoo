@@ -1,7 +1,6 @@
 /**
- * VERSION: 8.7.0 (Integrale - Fix Anteprima Editore con Logica Consolidata)
- * NOTA: Ripristinata la logica di Annata, Testata e Supplemento persa nella v8.6.9.
- * MODIFICHE: Aggiunto updateEditorePreview e trigger su selectEditore.onchange.
+ * VERSION: 8.7.1 (Integrale - Fix Finale Anteprima Editore)
+ * NOTA: Rispetta la logica consolidata e forza il trigger iniziale dell'immagine.
  */
 import { api } from './api.js';
 import { store } from './store.js';
@@ -153,7 +152,7 @@ export const render = {
                 ${listaOrdinata.map(a => `<option value="${a.id}" data-codice="${a.codice}">${a.label}</option>`).join('')}
             </select>`;
 
-        // --- SBROGLIO CAMPO CONDIZIONE (LOGICA REFORZATA) ---
+        // --- SBROGLIO CAMPO CONDIZIONE ---
         const oldCondField = content.querySelector('[name="condizione"]');
         if (oldCondField) {
             const condWrapper = oldCondField.parentElement;
@@ -208,7 +207,6 @@ export const render = {
             }
         };
 
-        // --- LOGICA FILTRAGGIO DINAMICO ---
         const syncEditoriESupplementi = (codiceId, targetEditoreId = null) => {
             Array.from(selectEditore.options).forEach(opt => {
                 if (!opt.dataset.parent) return;
@@ -216,7 +214,7 @@ export const render = {
                 opt.hidden = !match; opt.disabled = !match;
             });
             selectEditore.value = targetEditoreId || "";
-            updateEditorePreview(selectEditore); // Aggiorna immagine editore
+            updateEditorePreview(selectEditore); // Trigger dinamico
             
             Array.from(selectSupplemento.options).forEach(opt => {
                 if (!opt.dataset.codice) return;
@@ -247,6 +245,7 @@ export const render = {
             if (cId) {
                 selectCodice.value = cId;
                 syncEditoriESupplementi(cId, issue.editore_id);
+                updateEditorePreview(selectEditore); // --- TRIGGER INIZIALE FIX ---
             }
             if (issue.serie_id) {
                 selectSerie.value = issue.serie_id;
