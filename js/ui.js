@@ -1,7 +1,10 @@
 /**
- * VERSION: 1.8.6  (Integrale - Fix Attributo Immagine Editore)
+ * VERSION: 7.4 (INTEGRALE - RESTORE VISUALS)
+ * NOTA: Ripristinata la larghezza variabile delle immagini serie (Showcase).
+ * Include la gestione completa delle storie e dei personaggi nel modale.
  */
 export const UI = {
+    // LIVELLO 1: HEADER
     HEADER: () => `
         <header class="bg-slate-800 border-b border-slate-700 p-6 sticky top-0 z-50 shadow-2xl">
             <div class="container mx-auto flex flex-col lg:flex-row justify-between items-center gap-6">
@@ -18,6 +21,7 @@ export const UI = {
             </div>
         </header>`,
 
+    // LIVELLO 2: PUBLISHER BAR
     PUBLISHER_SECTION: (content) => `
         <div class="bg-slate-800/50 border-b border-slate-700/50 py-4 overflow-x-auto no-scrollbar">
             <div id="ui-publisher-bar" class="container mx-auto flex gap-3 px-6 items-center">
@@ -26,7 +30,7 @@ export const UI = {
         </div>`,
 
     PUBLISHER_PILL: (pub, active) => `
-        <button data-brand-id="${pub.id}" class="flex items-center gap-3 px-4 py-2 rounded-full border transition-all shrink-0 ${active ? 'bg-yellow-500 border-yellow-500 text-slate-900 font-bold' : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'}">
+        <button data-brand-id="${pub.id}" class="flex-none flex items-center gap-3 px-4 py-2 rounded-full border transition-all ${active ? 'bg-yellow-500 border-yellow-500 text-slate-900 font-bold' : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'}">
             <img src="${pub.immagine_url}" class="w-5 h-5 object-contain rounded-sm">
             <span class="text-xs uppercase tracking-wider">${pub.nome}</span>
         </button>`,
@@ -34,23 +38,24 @@ export const UI = {
     ALL_PUBLISHERS_BUTTON: (active) => `
         <button id="reset-brand-filter" class="px-5 py-2 rounded-full border text-xs uppercase font-bold tracking-widest transition-all shrink-0 ${active ? 'bg-white border-white text-slate-900' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}">Tutti</button>`,
 
+    // LIVELLO 3: SERIE SHOWCASE (LARGHEZZA VARIABILE v7.4)
     SERIE_SECTION: (content) => `
         <div class="container mx-auto px-6 py-8">
             <h2 class="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em] mb-6">Le tue Serie</h2>
-            <div id="ui-serie-section" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+            <div id="ui-serie-section" class="flex gap-4 overflow-x-auto pb-6 no-scrollbar">
                 ${content}
             </div>
         </div>`,
 
     SERIE_ITEM: (serie) => `
-        <div data-serie-id="${serie.id}" class="group relative bg-slate-800 rounded-xl overflow-hidden border border-slate-700 hover:border-yellow-500/50 transition-all cursor-pointer aspect-[3/4] shadow-lg">
-            <img src="${serie.immagine_url}" class="w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500">
-            <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent"></div>
-            <div class="absolute bottom-0 left-0 p-3 w-full">
-                <p class="text-white font-bold text-xs leading-tight uppercase tracking-tighter drop-shadow-md">${serie.nome}</p>
+        <div data-serie-id="${serie.id}" class="flex-none group relative bg-slate-800 rounded-xl overflow-hidden border border-slate-700 hover:border-yellow-500/50 transition-all cursor-pointer shadow-lg">
+            <img src="${serie.immagine_url}" class="h-40 md:h-48 w-auto object-cover transition-all duration-500 group-hover:scale-105">
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                <p class="text-white font-bold text-[10px] uppercase tracking-tighter drop-shadow-md">${serie.nome}</p>
             </div>
         </div>`,
 
+    // LIVELLO 4: MAIN GRID (ALBI)
     MAIN_GRID_CONTAINER: () => `
         <div class="container mx-auto px-6 pb-20">
             <div class="flex items-center gap-4 mb-8">
@@ -84,6 +89,7 @@ export const UI = {
             </div>
         </div>`,
 
+    // LIVELLO 5: MODALE DETTAGLI
     MODAL_WRAPPER: () => `
         <div id="issue-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-slate-950/90 backdrop-blur-sm overflow-y-auto">
             <div id="modal-body" class="w-full max-w-5xl my-auto"></div>
@@ -138,6 +144,7 @@ export const UI = {
             </div>
         </div>`,
 
+    // LIVELLO 6: FORM (EDIT/ADD)
     ISSUE_FORM: (issue, dropdowns) => `
         <div class="bg-slate-900 rounded-3xl border border-slate-700 shadow-2xl overflow-hidden">
             <div class="bg-slate-800 p-6 border-b border-slate-700 flex justify-between items-center">
@@ -258,6 +265,7 @@ export const UI = {
             </form>
         </div>`,
 
+    // LIVELLO 7: STORIE E PERSONAGGI
     STORY_ROW: (storia, si, charsHtml) => `
         <div class="py-3 border-l-2 border-yellow-600 pl-4 mb-3 bg-slate-800/30 rounded-r-lg">
             <div class="flex justify-between items-center mb-2">
