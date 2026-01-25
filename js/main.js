@@ -1,6 +1,6 @@
 /**
- * VERSION: 1.0.1
- * FIX: Query relazionale diretta su tabella issue per evitare 404 su issue_view
+ * VERSION: 1.0.2
+ * FIX: Query relazionale corretta per evitare valori 'null' negli URL e nei testi
  */
 import { Render } from './render.js';
 import { supabase } from './supabase-client.js'; 
@@ -9,33 +9,34 @@ async function initApp() {
     try {
         Render.initLayout();
 
-        // Interroghiamo direttamente la tabella issue con i join relazionali
+        // Recuperiamo i dati con i join necessari
         const [resIssues, resPubs, resSeries] = await Promise.all([
             supabase.from('issue').select(`
                 *,
                 testata:serie_id(nome),
                 annata:annata_id(nome)
             `).order('numero'),
-            supabase.from('editore').select('*'),
-            supabase.from('serie').select('*')
+            supabase.from('editore').select('*').order('nome'),
+            supabase.from('serie').select('*').order('nome')
         ]);
 
         if (resIssues.error) throw resIssues.error;
 
-        // Adattamento dati per l'atomo card.js
-        const formattedIssues = (resIssues.data || []).map(i => ({
+        // Formattazione dati per evitare i 'null' che causano il 404
+        const issues = (resIssues.data || []).map(i => ({
             ...i,
-            testata: i.testata?.nome || 'N/D',
-            annata: i.annata?.nome || 'N/D'
+            testata: i.testata?.nome || 'Serie Ignota',
+            annata: i.annata?.nome || 'N/D',
+            immagine_url: i.immagine_url || 'https://via.placeholder.com/300x450?text=No+Cover'
         }));
 
         Render.publishers(resPubs.data || []);
         Render.series(resSeries.data || []);
-        Render.grid(formattedIssues);
+        Render.grid(issues);
 
-        console.log("App avviata: Dati caricati correttamente tramite join relazionale.");
+        console.log("Dati renderizzati con successo.");
     } catch (e) {
-        console.error("Errore inizializzazione:", e.message);
+        console.error("Errore Inizializzazione:", e.message);
     }
 }
 
