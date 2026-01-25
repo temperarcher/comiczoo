@@ -4,47 +4,61 @@
 import { UI } from './ui.js';
 
 export const Render = {
-    // Inizializza la struttura fissa (Header e Wrapper Modale)
+    // 1. Inizializzazione Struttura Base
     initLayout: () => {
-        const body = document.body;
-        body.insertAdjacentHTML('afterbegin', UI.HEADER());
-        body.insertAdjacentHTML('beforeend', UI.MODAL_WRAPPER());
+        document.getElementById('ui-header-root').innerHTML = UI.HEADER();
+        document.getElementById('ui-modal-root').innerHTML = UI.MODAL_WRAPPER();
     },
 
-    // Renderizza la sezione editori (Pillole)
-    publishers: (publishers, activeId = null) => {
-        const container = document.getElementById('ui-publisher-bar');
-        if (!container) return;
+    // 2. Render Sezione Editori (Container + Items)
+    publishers: (publishersData, activeId = null) => {
+        const root = document.getElementById('ui-main-root');
         const allBtn = UI.ALL_PUBLISHERS_BUTTON(!activeId);
-        const pills = publishers.map(pub => UI.PUBLISHER_PILL(pub, pub.id === activeId)).join('');
-        container.innerHTML = allBtn + pills;
-    },
-
-    // Renderizza lo showcase delle serie
-    series: (series) => {
-        const sectionContainer = document.getElementById('serie-section-wrapper');
-        if (!sectionContainer) return;
-        const itemsHtml = series.map(s => UI.SERIE_ITEM(s)).join('');
-        sectionContainer.innerHTML = UI.SERIE_SECTION(itemsHtml);
-    },
-
-    // Renderizza la griglia degli albi (Badge Celo/Manca automatico)
-    grid: (issues) => {
-        const mainContainer = document.getElementById('main-content-area');
-        if (!document.getElementById('main-grid')) {
-            mainContainer.innerHTML = UI.MAIN_GRID_CONTAINER();
+        const pills = publishersData.map(pub => UI.PUBLISHER_PILL(pub, pub.id === activeId)).join('');
+        
+        // Creiamo il div contenitore se non esiste o aggiorniamolo
+        let section = document.getElementById('publisher-section');
+        if (!section) {
+            root.insertAdjacentHTML('afterbegin', '<div id="publisher-section"></div>');
+            section = document.getElementById('publisher-section');
         }
-        const grid = document.getElementById('main-grid');
-        grid.innerHTML = ''; 
-        issues.forEach(issue => {
-            const badgeStyle = issue.possesso === 'celo' 
+        section.innerHTML = UI.PUBLISHER_SECTION(allBtn + pills);
+    },
+
+    // 3. Render Showcase Serie (Container + Items)
+    series: (seriesData) => {
+        const root = document.getElementById('ui-main-root');
+        let section = document.getElementById('series-section');
+        if (!section) {
+            // Lo inseriamo dopo gli editori
+            const pubSection = document.getElementById('publisher-section');
+            pubSection.insertAdjacentHTML('afterend', '<div id="series-section"></div>');
+            section = document.getElementById('series-section');
+        }
+        const itemsHtml = seriesData.map(s => UI.SERIE_ITEM(s)).join('');
+        section.innerHTML = UI.SERIE_SECTION(itemsHtml);
+    },
+
+    // 4. Render Griglia Principale
+    grid: (issues) => {
+        const root = document.getElementById('ui-main-root');
+        let section = document.getElementById('grid-section');
+        if (!section) {
+            root.insertAdjacentHTML('beforeend', '<div id="grid-section"></div>');
+            section = document.getElementById('grid-section');
+        }
+
+        const cardsHtml = issues.map(issue => {
+            const style = issue.possesso === 'celo' 
                 ? 'bg-green-500/20 text-green-500 border-green-500/30' 
                 : 'bg-red-500/20 text-red-500 border-red-500/30';
-            grid.insertAdjacentHTML('beforeend', UI.ISSUE_CARD(issue, badgeStyle));
-        });
+            return UI.ISSUE_CARD(issue, style);
+        }).join('');
+
+        section.innerHTML = UI.MAIN_GRID_CONTAINER(cardsHtml);
     },
 
-    // Renderizza i dettagli dell'albo e le relative storie nel modale
+    // 5. Modale
     modalDetails: (issue, stories) => {
         const modalBody = document.getElementById('modal-body');
         const storiesHtml = stories.map(s => {
@@ -52,11 +66,5 @@ export const Render = {
             return UI.STORY_ROW(s, s.info_collegamento, charsHtml);
         }).join('');
         modalBody.innerHTML = UI.MODAL_LAYOUT(issue, storiesHtml);
-    },
-
-    // Renderizza il form di editing (Toggle Celo/Manca incluso)
-    modalForm: (issue, dropdowns) => {
-        const modalBody = document.getElementById('modal-body');
-        modalBody.innerHTML = UI.ISSUE_FORM(issue, dropdowns);
     }
 };
