@@ -1,20 +1,31 @@
 /**
- * VERSION: 1.1.1
+ * VERSION: 1.1.2
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
 import { Render } from './render.js';
+import { supabase } from './supabase-client.js';
 
-document.addEventListener('DOMContentLoaded', () => {
-    Render.initLayout();
+async function initApp() {
+    try {
+        // 1. Inizializzazione Layout base
+        Render.initLayout();
 
-    // DATI DI TEST PER FORZARE LA COMPARSA DELLA SEZIONE
-    const testData = [
-        { id: '1', nome: 'ALP', immagine_url: 'https://i.imgur.com/kxXO0Oh.jpg' },
-        { id: '2', nome: 'BCM', immagine_url: 'https://i.imgur.com/PY1VsKj.jpg' }
-    ];
-    
-    Render.publishers(testData);
+        // 2. Recupero dati reali da Supabase (Tabella codice_editore)
+        const { data: publishers, error } = await supabase
+            .from('codice_editore')
+            .select('*')
+            .order('nome');
 
-    console.log("Sistema Inizializzato - Versione 1.1.1");
-});
+        if (error) throw error;
+
+        // 3. Rendering della sezione editori con dati reali
+        Render.publishers(publishers || []);
+
+        console.log("Sistema Inizializzato v1.1.2 - Dati Supabase caricati.");
+    } catch (e) {
+        console.error("Errore durante l'inizializzazione dell'App:", e.message);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', initApp);
