@@ -10,7 +10,15 @@ export const Render = {
         // 1. Vestizione Body
         UI.ROOTS.APPLY_BODY_STYLE();
         
-        // 2. Iniezione struttura base
-        document.body.innerHTML = UI.ROOTS.MAIN_ROOT();
+        // 2. Iniezione struttura base con slot header
+        document.body.innerHTML = 
+            UI.ROOTS.HEADER_SLOT() + 
+            UI.ROOTS.MAIN_ROOT();
+
+        // 3. Renderizzazione contenuto Header
+        const headerContainer = document.getElementById('ui-header-slot');
+        if (headerContainer) {
+            headerContainer.innerHTML = UI.HEADER();
+        }
     }
 };
