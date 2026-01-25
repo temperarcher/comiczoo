@@ -7,7 +7,7 @@ import { sections } from './ui/layout/sections.js';
 import { header } from './ui/layout/header.js';
 import { publishers } from './ui/layout/publishers.js';
 import { series } from './ui/layout/series.js';
-import { issues } from './ui/layout/issues.js'; // Nuovo import
+import { issues } from './ui/layout/issues.js';
 
 export const UI = {
     ROOTS: sections,
@@ -17,6 +17,7 @@ export const UI = {
     ALL_PUBLISHERS_BUTTON: publishers.ALL_BUTTON,
     SERIES_SECTION: series.SECTION,
     SERIES_CARD: series.CARD,
-    ISSUES_SECTION: issues.SECTION, // Registrazione nell'HUB
-    ISSUES_CARD: issues.CARD      // Registrazione nell'HUB
+    // Registrazione atomi Issues per l'HUB
+    ISSUES_SECTION: issues.SECTION,
+    ISSUES_CARD: issues.CARD
 };
