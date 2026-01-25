@@ -10,6 +10,7 @@ export const sections = {
         b.className = "bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col";
     },
 
-    // Punto di innesto principale
+    // Punti di innesto strutturali
+    HEADER_SLOT: () => `<div id="ui-header-slot"></div>`,
     MAIN_ROOT: () => `<main id="ui-main-root" class="flex-grow"></main>`
 };
