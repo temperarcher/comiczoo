@@ -6,56 +6,44 @@ import { UI } from './ui.js';
 export const Render = {
     // 1. Inizializzazione Struttura Base
     initLayout: () => {
-        document.getElementById('ui-header-root').innerHTML = UI.HEADER();
-        document.getElementById('ui-modal-root').innerHTML = UI.MODAL_WRAPPER();
+        const body = document.body;
+        body.innerHTML = ''; // Pulisce tutto
+        body.insertAdjacentHTML('beforeend', UI.HEADER());
+        body.insertAdjacentHTML('beforeend', UI.ROOTS.ROOT_MAIN());
+        body.insertAdjacentHTML('beforeend', UI.MODAL_WRAPPER());
+
+        // Prepariamo i contenitori interni nel main root
+        const main = document.getElementById('ui-main-root');
+        main.insertAdjacentHTML('beforeend', UI.ROOTS.PUBLISHER_ROOT());
+        main.insertAdjacentHTML('beforeend', UI.ROOTS.SERIES_ROOT());
+        main.insertAdjacentHTML('beforeend', UI.ROOTS.GRID_ROOT());
     },
 
-    // 2. Render Sezione Editori (Container + Items)
-    publishers: (publishersData, activeId = null) => {
-        const root = document.getElementById('ui-main-root');
-        const allBtn = UI.ALL_PUBLISHERS_BUTTON(!activeId);
-        const pills = publishersData.map(pub => UI.PUBLISHER_PILL(pub, pub.id === activeId)).join('');
-        
-        // Creiamo il div contenitore se non esiste o aggiorniamolo
-        let section = document.getElementById('publisher-section');
-        if (!section) {
-            root.insertAdjacentHTML('afterbegin', '<div id="publisher-section"></div>');
-            section = document.getElementById('publisher-section');
-        }
-        section.innerHTML = UI.PUBLISHER_SECTION(allBtn + pills);
+    // 2. Render Editori
+    publishers: (data, activeId = null) => {
+        const target = document.getElementById('publisher-section');
+        const content = UI.ALL_PUBLISHERS_BUTTON(!activeId) + 
+                        data.map(p => UI.PUBLISHER_PILL(p, p.id === activeId)).join('');
+        target.innerHTML = UI.PUBLISHER_SECTION(content);
     },
 
-    // 3. Render Showcase Serie (Container + Items)
-    series: (seriesData) => {
-        const root = document.getElementById('ui-main-root');
-        let section = document.getElementById('series-section');
-        if (!section) {
-            // Lo inseriamo dopo gli editori
-            const pubSection = document.getElementById('publisher-section');
-            pubSection.insertAdjacentHTML('afterend', '<div id="series-section"></div>');
-            section = document.getElementById('series-section');
-        }
-        const itemsHtml = seriesData.map(s => UI.SERIE_ITEM(s)).join('');
-        section.innerHTML = UI.SERIE_SECTION(itemsHtml);
+    // 3. Render Serie
+    series: (data) => {
+        const target = document.getElementById('series-section');
+        const content = data.map(s => UI.SERIE_ITEM(s)).join('');
+        target.innerHTML = UI.SERIE_SECTION(content);
     },
 
-    // 4. Render Griglia Principale
+    // 4. Render Griglia
     grid: (issues) => {
-        const root = document.getElementById('ui-main-root');
-        let section = document.getElementById('grid-section');
-        if (!section) {
-            root.insertAdjacentHTML('beforeend', '<div id="grid-section"></div>');
-            section = document.getElementById('grid-section');
-        }
-
+        const target = document.getElementById('grid-section');
         const cardsHtml = issues.map(issue => {
             const style = issue.possesso === 'celo' 
                 ? 'bg-green-500/20 text-green-500 border-green-500/30' 
                 : 'bg-red-500/20 text-red-500 border-red-500/30';
             return UI.ISSUE_CARD(issue, style);
         }).join('');
-
-        section.innerHTML = UI.MAIN_GRID_CONTAINER(cardsHtml);
+        target.innerHTML = UI.MAIN_GRID_CONTAINER(cardsHtml);
     },
 
     // 5. Modale
