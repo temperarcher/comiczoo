@@ -1,7 +1,6 @@
 /**
- * VERSION: 1.1.3
+ * VERSION: 1.1.4
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
- * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
 export const sections = {
     APPLY_BODY_STYLE: () => {
@@ -10,5 +9,6 @@ export const sections = {
     },
     HEADER_SLOT: () => `<div id="ui-header-slot"></div>`,
     PUBLISHER_SLOT: () => `<div id="ui-publisher-slot"></div>`,
+    SERIES_SLOT: () => `<div id="ui-series-slot"></div>`, // Nuovo slot aggiunto
     MAIN_ROOT: () => `<main id="ui-main-root" class="flex-grow"></main>`
 };
