@@ -39,14 +39,24 @@ export const Render = {
         target.innerHTML = UI.SERIES_SECTION(content);
     },
 
-    // Nuova funzione per il rendering della griglia albi (MAIN_ROOT)
+    /**
+     * Rende la griglia degli albi (Album Figurine) nel MAIN_ROOT
+     */
     issues: (data) => {
         const target = document.getElementById('ui-main-root');
         if (!target) return;
+
+        // Se non ci sono dati, svuota il contenitore
+        if (!data || data.length === 0) {
+            target.innerHTML = '<div class="p-10 text-center text-slate-500">Nessun albo trovato per questa serie.</div>';
+            return;
+        }
+
+        // Mapping degli albi tramite gli atomi registrati in UI
         const content = data.map(i => UI.ISSUES_CARD(i)).join('');
         target.innerHTML = UI.ISSUES_SECTION(content);
         
-        // Scroll automatico al contenuto per feedback immediato su mobile
+        // Scroll automatico per mostrare i risultati
         target.scrollIntoView({ behavior: 'smooth' });
     }
 };
