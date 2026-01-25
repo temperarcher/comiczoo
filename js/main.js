@@ -33,7 +33,7 @@ async function initApp() {
         Render.publishers(publishers || []);
         Render.series(series || []);
 
-        console.log("Sistema v1.1.8 Pronto - Relazioni Database configurate.");
+        console.log("Sistema v1.1.9 Pronto - Griglia Albi (Album Figurine) Attiva.");
     } catch (e) {
         console.error("Errore Inizializzazione:", e.message);
     }
