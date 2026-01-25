@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.1.3
+ * VERSION: 1.1.4
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -9,15 +9,26 @@ import { supabase } from './supabase-client.js';
 async function initApp() {
     try {
         Render.initLayout();
-        const { data: publishers, error } = await supabase
+
+        // 1. Caricamento Editori
+        const { data: publishers, error: pError } = await supabase
             .from('codice_editore')
             .select('*')
             .order('nome');
-        if (error) throw error;
+        if (pError) throw pError;
         Render.publishers(publishers || []);
-        console.log("Sistema Inizializzato v1.1.3 - UI Sincronizzata.");
+
+        // 2. Caricamento Serie (Fetch reale dal DB)
+        const { data: series, error: sError } = await supabase
+            .from('serie')
+            .select('*')
+            .order('nome');
+        if (sError) throw sError;
+        Render.series(series || []);
+
+        console.log("Sistema Inizializzato v1.1.4 - Showcase Serie Attivo.");
     } catch (e) {
-        console.error("Errore durante l'inizializzazione dell'App:", e.message);
+        console.error("Errore Inizializzazione:", e.message);
     }
 }
 document.addEventListener('DOMContentLoaded', initApp);
