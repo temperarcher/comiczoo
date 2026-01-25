@@ -3,7 +3,8 @@
  
  */
 import { Render } from './render.js';
-import { supabase } from './supabase-client.js';
+// Assicurati che supabase-client.js sia anch'esso in js/
+import { supabase } from './supabase-client.js'; 
 
 async function initApp() {
     try {
@@ -19,8 +20,10 @@ async function initApp() {
         Render.series(resSeries.data || []);
         Render.grid(resIssues.data || []);
 
-        console.log("Architettura 100% Atomica Attiva.");
-    } catch (e) { console.error(e); }
+        console.log("App avviata correttamente dalla cartella js/");
+    } catch (e) {
+        console.error("Errore inizializzazione:", e);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', initApp);
