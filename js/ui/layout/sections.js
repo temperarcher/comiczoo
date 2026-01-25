@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.0.0
+ * VERSION: 1.1.0
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -12,5 +12,6 @@ export const sections = {
 
     // Punti di innesto strutturali
     HEADER_SLOT: () => `<div id="ui-header-slot"></div>`,
+    PUBLISHER_SLOT: () => `<div id="ui-publisher-slot"></div>`, // Nuovo slot aggiunto
     MAIN_ROOT: () => `<main id="ui-main-root" class="flex-grow"></main>`
 };
