@@ -1,6 +1,5 @@
 /**
- * VERSION: 1.1.1
- * FIX: Sincronizzazione con ROOTS e IDs corretti
+ * VERSION: 1.1.2
  */
 import { UI } from './ui.js';
 
@@ -36,24 +35,12 @@ export const Render = {
     grid: (issues) => {
         const target = document.getElementById('grid-section');
         if (!target) return;
-        
         const cardsHtml = issues.map(issue => {
             const style = issue.possesso === 'celo' 
                 ? 'bg-green-500/20 text-green-500 border-green-500/30' 
                 : 'bg-red-500/20 text-red-500 border-red-500/30';
             return UI.ISSUE_CARD(issue, style);
         }).join('');
-
         target.innerHTML = UI.MAIN_GRID_CONTAINER(cardsHtml);
-    },
-
-    modalDetails: (issue, stories) => {
-        const modalBody = document.getElementById('modal-body');
-        if (!modalBody) return;
-        const storiesHtml = stories.map(s => {
-            const charsHtml = (s.personaggi || []).map(c => UI.CHARACTER_TAG(c)).join('');
-            return UI.STORY_ROW(s, s.info_collegamento, charsHtml);
-        }).join('');
-        modalBody.innerHTML = UI.MODAL_LAYOUT(issue, storiesHtml);
     }
 };
