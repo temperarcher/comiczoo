@@ -4,6 +4,7 @@
 import { header } from './ui/layout/header.js';
 import { publishers } from './ui/layout/publishers.js';
 import { series } from './ui/layout/series.js';
+import { sections } from './ui/layout/sections.js'; // Nuovo
 import { container } from './ui/grid/container.js';
 import { card } from './ui/grid/card.js';
 import { base } from './ui/modal/base.js';
@@ -12,6 +13,7 @@ import { form } from './ui/modal/form.js';
 
 export const UI = {
     HEADER: header,
+    ROOTS: sections, // Aggiunto
     PUBLISHER_SECTION: publishers.SECTION,
     PUBLISHER_PILL: publishers.PILL,
     ALL_PUBLISHERS_BUTTON: publishers.ALL_BUTTON,
