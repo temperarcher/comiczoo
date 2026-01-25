@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.1.1
+ * VERSION: 1.1.2
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -28,6 +28,7 @@ export const Render = {
         const target = document.getElementById('ui-publisher-slot');
         if (!target) return;
         
+        // Costruzione contenuto usando gli atomi dell'HUB UI
         const content = UI.ALL_PUBLISHERS_BUTTON(!activeId) + 
                         data.map(p => UI.PUBLISHER_PILL(p)).join('');
         
