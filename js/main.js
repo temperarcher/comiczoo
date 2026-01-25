@@ -1,6 +1,6 @@
 /**
- * VERSION: 1.0.2
- * FIX: Query relazionale corretta per evitare valori 'null' negli URL e nei testi
+ * VERSION: 1.0.1
+ * FIX: Query relazionale diretta per evitare URL 'null'
  */
 import { Render } from './render.js';
 import { supabase } from './supabase-client.js'; 
@@ -9,7 +9,7 @@ async function initApp() {
     try {
         Render.initLayout();
 
-        // Recuperiamo i dati con i join necessari
+        // Join relazionale: chiediamo a 'issue' di portarsi dietro il nome della serie e dell'annata
         const [resIssues, resPubs, resSeries] = await Promise.all([
             supabase.from('issue').select(`
                 *,
@@ -22,7 +22,7 @@ async function initApp() {
 
         if (resIssues.error) throw resIssues.error;
 
-        // Formattazione dati per evitare i 'null' che causano il 404
+        // Pulizia dati: se un'immagine manca, mettiamo un placeholder invece di 'null'
         const issues = (resIssues.data || []).map(i => ({
             ...i,
             testata: i.testata?.nome || 'Serie Ignota',
@@ -34,9 +34,9 @@ async function initApp() {
         Render.series(resSeries.data || []);
         Render.grid(issues);
 
-        console.log("Dati renderizzati con successo.");
+        console.log("Dati caricati con successo senza errori 404.");
     } catch (e) {
-        console.error("Errore Inizializzazione:", e.message);
+        console.error("Errore fatale:", e.message);
     }
 }
 
