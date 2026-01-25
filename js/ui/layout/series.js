@@ -1,14 +1,29 @@
 /**
- * VERSION: 1.1.5
+ * VERSION: 1.1.6
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
 export const series = {
-    // Contenitore Showcase con scrollbar scura visibile solo al passaggio
+    // Contenitore Showcase con correzione CSS per eliminare la striscia bianca della scrollbar
     SECTION: (content) => `
+        <style>
+            #serie-showcase::-webkit-scrollbar {
+                height: 6px;
+            }
+            #serie-showcase::-webkit-scrollbar-track {
+                background: transparent; 
+            }
+            #serie-showcase::-webkit-scrollbar-thumb {
+                background: transparent;
+                border-radius: 10px;
+            }
+            #serie-showcase:hover::-webkit-scrollbar-thumb {
+                background: #334155; /* slate-700 */
+            }
+        </style>
         <section class="bg-slate-900/50 border-b border-slate-800 py-4 overflow-hidden">
             <div class="container mx-auto px-6">
-                <div id="serie-showcase" class="flex gap-4 overflow-x-auto pb-2 custom-scrollbar items-center scrollbar-thin scrollbar-thumb-transparent hover:scrollbar-thumb-slate-700 scrollbar-track-transparent transition-colors">
+                <div id="serie-showcase" class="flex gap-4 overflow-x-auto pb-2 items-center">
                     ${content}
                 </div>
             </div>
