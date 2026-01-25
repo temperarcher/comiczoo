@@ -21,15 +21,10 @@ export const Render = {
     publishers: (data, activeId = null) => {
         const target = document.getElementById('ui-publisher-slot');
         if (!target) return;
-        // La logica di isActive viene passata all'atomo ALL_BUTTON e PILL (tramite controllo id)
         const content = UI.ALL_PUBLISHERS_BUTTON(!activeId) + 
-                        data.map(p => {
-                            // Qui non alteriamo l'atomo, passiamo solo il dato per l'onclick già presente
-                            return UI.PUBLISHER_PILL(p);
-                        }).join('');
+                        data.map(p => UI.PUBLISHER_PILL(p)).join('');
         target.innerHTML = UI.PUBLISHER_SECTION(content);
         
-        // Gestione feedback visivo classi active senza alterare atomi
         if(activeId) {
             document.querySelectorAll('.codice-item').forEach(el => el.classList.remove('active', 'border-yellow-500'));
             const activeEl = document.getElementById(`codice-${activeId}`);
@@ -42,5 +37,16 @@ export const Render = {
         if (!target) return;
         const content = data.map(s => UI.SERIES_CARD(s)).join('');
         target.innerHTML = UI.SERIES_SECTION(content);
+    },
+
+    // Nuova funzione per il rendering della griglia albi (MAIN_ROOT)
+    issues: (data) => {
+        const target = document.getElementById('ui-main-root');
+        if (!target) return;
+        const content = data.map(i => UI.ISSUES_CARD(i)).join('');
+        target.innerHTML = UI.ISSUES_SECTION(content);
+        
+        // Scroll automatico al contenuto per feedback immediato su mobile
+        target.scrollIntoView({ behavior: 'smooth' });
     }
 };
