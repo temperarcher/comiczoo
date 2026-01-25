@@ -4,7 +4,9 @@
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
 import { sections } from './ui/layout/sections.js';
+import { header } from './ui/layout/header.js';
 
 export const UI = {
-    ROOTS: sections
+    ROOTS: sections,
+    HEADER: header
 };
