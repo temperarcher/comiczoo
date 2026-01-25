@@ -1,6 +1,5 @@
 /**
- * VERSION: 1.0.0 
-
+ * VERSION: 1.0.0
  */
 export const sections = {
     ROOT_MAIN: () => `<main id="ui-main-root" class="min-h-screen"></main>`,
