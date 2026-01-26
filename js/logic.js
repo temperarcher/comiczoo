@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.1.9
+ * VERSION: 1.2.0
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -57,5 +57,66 @@ export const Logic = {
             if (error) throw error;
             Render.issues(data);
         } catch (e) { console.error("Errore griglia albi:", e.message); }
+    },
+
+    /**
+     * Recupera i dettagli completi di un albo inclusi supplementi, storie e personaggi
+     */
+    openIssueDetail: async (id) => {
+        try {
+            // 1. Fetch Dati Albo con JOIN annidati (Editore -> Codice Editore)
+            const { data: issue, error } = await supabase
+                .from('issue')
+                .select(`
+                    *,
+                    serie:serie_id(*),
+                    testata:testata_id(*),
+                    annata:annata_id(*),
+                    editore:editore_id(*, codice_editore:codice_editore_id(*)),
+                    tipo:tipo_pubblicazione_id(*)
+                `)
+                .eq('id', id)
+                .single();
+
+            if (error) throw error;
+
+            // 2. Fetch Storie e Personaggi (Tabella ponte storia_in_issue -> storia -> personaggio_storia -> personaggio)
+            const { data: storieRel } = await supabase
+                .from('storia_in_issue')
+                .select(`
+                    posizione,
+                    storia:storia_id (
+                        id, nome,
+                        personaggi:personaggio_storia (
+                            personaggio:personaggio_id (nome, immagine_url)
+                        )
+                    )
+                `)
+                .eq('issue_id', id)
+                .order('posizione');
+
+            const storiesFormatted = (storieRel || []).map(s => ({
+                posizione: s.posizione,
+                nome: s.storia.nome,
+                personaggi: s.storia.personaggi.map(p => p.personaggio)
+            }));
+
+            // 3. Gestione Supplemento (Auto-join ricorsivo su issue)
+            let supplementoStr = null;
+            if (issue.supplemento_id) {
+                const { data: supp } = await supabase
+                    .from('issue')
+                    .select('numero, data_pubblicazione, serie:serie_id(nome)')
+                    .eq('id', issue.supplemento_id)
+                    .single();
+                if (supp) {
+                    supplementoStr = `${supp.serie.nome} n°${supp.numero} del ${new Date(supp.data_pubblicazione).toLocaleDateString('it-IT')}`;
+                }
+            }
+
+            Render.modal(issue, storiesFormatted, supplementoStr);
+        } catch (e) {
+            console.error("Errore dettaglio modale:", e.message);
+        }
     }
 };
