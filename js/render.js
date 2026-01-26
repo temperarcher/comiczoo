@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.2.0
+ * VERSION: 1.2.1
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -43,7 +43,7 @@ export const Render = {
         const target = document.getElementById('ui-main-root');
         if (!target) return;
         if (!data || data.length === 0) {
-            target.innerHTML = '<div class="p-10 text-center text-slate-500">Nessun albo trovato per questa serie.</div>';
+            target.innerHTML = '<div class="p-10 text-center text-slate-500">Nessun albo trovato.</div>';
             return;
         }
         const content = data.map(i => UI.ISSUES_CARD(i)).join('');
@@ -51,20 +51,21 @@ export const Render = {
         target.scrollIntoView({ behavior: 'smooth' });
     },
 
-    /**
-     * Renderizza il modale dettaglio con la struttura a due colonne
-     */
     modal: (issue, stories, supplementoStr) => {
         const storiesHtml = stories.map(s => UI.MODAL_STORY_ITEM(s)).join('') || 
-                           '<p class="text-slate-600 text-xs italic">Nessuna storia registrata.</p>';
+                           '<p class="text-slate-600 text-[10px] italic p-2">Nessuna storia registrata.</p>';
         
+        // Calcolo Badge Possesso
+        const isManca = issue.possesso === 'manca';
+        const statusBadge = `<span class="px-2 py-1 rounded text-[9px] font-bold uppercase ${isManca ? 'bg-slate-700 text-slate-400' : 'bg-yellow-500 text-slate-900'}">${issue.possesso || 'manca'}</span>`;
+
         const rows = [
-            UI.MODAL_DETAIL_ROW("Editore", `${issue.editore?.codice_editore?.nome || ''} - ${issue.editore?.nome || ''}`, issue.editore?.immagine_url),
-            UI.MODAL_DETAIL_ROW("Serie e Testata", [issue.serie?.nome, issue.testata?.nome].filter(Boolean).join(' / ')),
-            UI.MODAL_DETAIL_ROW("Dati Pubblicazione", `${issue.annata?.nome || ''} n°${issue.numero || ''} ${issue.nome ? '- ' + issue.nome : ''} del ${issue.data_pubblicazione ? new Date(issue.data_pubblicazione).toLocaleDateString('it-IT') : 'Data non disponibile'}`),
-            UI.MODAL_DETAIL_ROW("Supplemento a", supplementoStr),
-            UI.MODAL_DETAIL_ROW("Tipo e Valore", `${issue.tipo?.nome || 'Standard'} - € ${issue.valore ? issue.valore.toFixed(2) : '0.00'}`),
-            UI.MODAL_DETAIL_ROW("Stato Collezione", `Condizione: ${issue.condizione || 'N/D'}/5 - Possesso: ${(issue.possesso || 'manca').toUpperCase()}`)
+            UI.MODAL_DETAIL_ROW("Editore", issue.editore?.codice_editore?.nome, issue.editore?.immagine_url, `<span class="text-xs text-slate-400">${issue.editore?.nome || ''}</span>`),
+            UI.MODAL_DETAIL_ROW("Pubblicazione", `${issue.serie?.nome} / ${issue.testata?.nome}`, null, `<span class="text-xs font-mono text-yellow-500">#${issue.numero}</span>`),
+            UI.MODAL_DETAIL_ROW("Data e Valore", issue.data_pubblicazione ? new Date(issue.data_pubblicazione).toLocaleDateString('it-IT') : 'N/D', null, `<span class="text-xs text-slate-200">€ ${issue.valore?.toFixed(2) || '0.00'}</span>`),
+            UI.MODAL_DETAIL_ROW("Condizione", "Valutazione Stato", null, UI.STARS(issue.condizione)),
+            UI.MODAL_DETAIL_ROW("Stato Collezione", "Disponibilità", null, statusBadge),
+            UI.MODAL_DETAIL_ROW("Supplemento", supplementoStr || "Nessun supplemento")
         ].join('');
 
         const content = UI.MODAL_LEFT_COL(issue, storiesHtml) + UI.MODAL_RIGHT_COL(rows);
