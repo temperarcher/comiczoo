@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.1.9
+ * VERSION: 1.2.0
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -29,11 +29,17 @@ async function initApp() {
         window.selectCodice = Logic.selectCodice;
         window.resetAllFilters = Logic.resetAllFilters;
         window.selectSerie = Logic.selectSerie;
+        // Esposizione per il modale dettagli
+        window.selectSerieDetail = Logic.openIssueDetail;
+        window.closeModal = () => {
+            const m = document.getElementById('modal-root');
+            if(m) m.innerHTML = '';
+        };
 
         Render.publishers(publishers || []);
         Render.series(series || []);
 
-        console.log("Sistema v1.1.9 Pronto - Griglia Albi (Album Figurine) Attiva.");
+        console.log("Sistema v1.2.0 Pronto - Dettaglio Albo con Storie e Personaggi Attivo.");
     } catch (e) {
         console.error("Errore Inizializzazione:", e.message);
     }
