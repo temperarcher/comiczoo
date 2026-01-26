@@ -7,19 +7,21 @@ export const modal = {
     // Struttura portante del modale
     WRAPPER: (content) => `
         <div id="modal-overlay" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onclick="UI.MODAL_CLOSE(event)">
-            <div class="bg-slate-900 border border-slate-700 w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-xl shadow-2xl flex flex-col md:flex-row" onclick="event.stopPropagation()">
+            <div class="relative bg-slate-900 border border-slate-700 w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-xl shadow-2xl flex flex-col md:flex-row" onclick="event.stopPropagation()">
                 ${content}
-                <button onclick="UI.MODAL_CLOSE(null)" class="absolute top-4 right-4 text-slate-400 hover:text-white text-2xl">&times;</button>
+                <button onclick="UI.MODAL_CLOSE(null)" class="absolute top-4 right-4 text-slate-400 hover:text-white text-2xl z-10">&times;</button>
             </div>
         </div>`,
 
     // Colonna Sinistra: Immagine e Storie
-    LEFT_COL: (issue, stories) => `
+    LEFT_COL: (issue, storiesHtml) => `
         <div class="w-full md:w-2/5 p-6 border-r border-slate-800 overflow-y-auto">
             <img src="${issue.immagine_url}" class="w-full aspect-[2/3] object-cover rounded shadow-lg border border-slate-700 mb-6" alt="Copertina">
             <div class="space-y-4">
-                <h3 class="text-xs font-black uppercase tracking-widest text-yellow-500 border-b border-slate-800 pb-2">Sommario Storie</h3>
-                ${stories}
+                <h3 class="text-[10px] font-black uppercase tracking-widest text-yellow-500 border-b border-slate-800 pb-2">Sommario Storie</h3>
+                <div class="flex flex-col gap-3">
+                    ${storiesHtml}
+                </div>
             </div>
         </div>`,
 
@@ -45,11 +47,11 @@ export const modal = {
 
     // Riga Dettaglio
     DETAIL_ROW: (label, value, img = null) => `
-        <div class="flex flex-col gap-1">
-            <span class="text-[10px] font-black uppercase tracking-tighter text-slate-500">${label}</span>
+        <div class="flex flex-col gap-1 border-b border-slate-800/50 pb-3 last:border-0">
+            <span class="text-[9px] font-black uppercase tracking-widest text-slate-500">${label}</span>
             <div class="flex items-center gap-3">
-                ${img ? `<img src="${img}" class="h-8 w-8 rounded bg-white p-0.5 object-contain">` : ''}
-                <span class="text-sm text-slate-100 font-medium">${value || '---'}</span>
+                ${img ? `<img src="${img}" class="h-10 w-10 rounded bg-white p-1 object-contain shadow-sm">` : ''}
+                <span class="text-sm text-slate-100 font-semibold tracking-wide">${value || 'N/D'}</span>
             </div>
         </div>`
 };
