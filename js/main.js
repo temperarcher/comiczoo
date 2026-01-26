@@ -29,7 +29,8 @@ async function initApp() {
         window.selectCodice = Logic.selectCodice;
         window.resetAllFilters = Logic.resetAllFilters;
         window.selectSerie = Logic.selectSerie;
-        // Esposizione per il modale dettagli
+        
+        // Esposizione per il modale dettagli come richiesto dal protocollo
         window.selectSerieDetail = Logic.openIssueDetail;
         window.closeModal = () => {
             const m = document.getElementById('modal-root');
@@ -39,7 +40,7 @@ async function initApp() {
         Render.publishers(publishers || []);
         Render.series(series || []);
 
-        console.log("Sistema v1.2.0 Pronto - Dettaglio Albo con Storie e Personaggi Attivo.");
+        console.log("Sistema v1.1.9 Pronto - Griglia Albi (Album Figurine) e Modale Dettagli Attivi.");
     } catch (e) {
         console.error("Errore Inizializzazione:", e.message);
     }
