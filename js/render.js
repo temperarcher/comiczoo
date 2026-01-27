@@ -1,11 +1,12 @@
 /**
- * VERSION: 1.3.2
+ * VERSION: 1.3.3
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
 import { UI } from './ui.js';
 
 export const Render = {
+    // ... (initLayout, publishers, series, issues restano invariati)
     initLayout: () => {
         UI.ROOTS.APPLY_BODY_STYLE();
         document.body.innerHTML = 
