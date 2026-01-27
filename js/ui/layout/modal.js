@@ -6,10 +6,14 @@
 export const modal = {
     WRAPPER: (content) => `
         <style>
-            #modal-right-col { scrollbar-width: thin; scrollbar-color: #334155 #0f172a; }
-            #modal-right-col::-webkit-scrollbar { width: 6px; }
-            #modal-right-col::-webkit-scrollbar-track { background: #0f172a; }
-            #modal-right-col::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+            /* Applica lo stile dark a tutte le aree scrollabili dentro il modale */
+            .modal-scroll-clean { 
+                scrollbar-width: thin; 
+                scrollbar-color: #334155 #0f172a; 
+            }
+            .modal-scroll-clean::-webkit-scrollbar { width: 6px; }
+            .modal-scroll-clean::-webkit-scrollbar-track { background: #0f172a; }
+            .modal-scroll-clean::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
         </style>
         <div id="modal-overlay" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onclick="UI.MODAL_CLOSE(event)">
             <div class="relative bg-slate-900 border border-slate-700 w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-xl shadow-2xl flex flex-col md:flex-row" onclick="event.stopPropagation()">
@@ -19,7 +23,7 @@ export const modal = {
         </div>`,
 
     LEFT_COL: (issue, storiesHtml) => `
-        <div class="w-full md:w-2/5 p-6 border-r border-slate-800 overflow-y-auto bg-slate-950">
+        <div class="w-full md:w-2/5 p-6 border-r border-slate-800 overflow-y-auto bg-slate-950 modal-scroll-clean">
             <img src="${issue.immagine_url}" class="w-full aspect-[2/3] object-cover rounded shadow-2xl mb-6 border border-slate-800" alt="Copertina">
             <div class="space-y-4">
                 <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-500 border-b border-slate-800 pb-2">Sommario Storie</h3>
@@ -43,7 +47,7 @@ export const modal = {
         </div>`,
 
     RIGHT_COL: (rowsHtml) => `
-        <div id="modal-right-col" class="w-full md:w-3/5 p-8 overflow-y-auto bg-slate-900 flex flex-col gap-6">
+        <div id="modal-right-col" class="w-full md:w-3/5 p-8 overflow-y-auto bg-slate-900 flex flex-col gap-6 modal-scroll-clean">
             <div>
                 <h2 class="text-xl font-bold text-white tracking-tight">Dettagli Albo</h2>
                 <div class="h-1 w-8 bg-yellow-500 mt-1"></div>
