@@ -56,7 +56,7 @@ export const Render = {
                            '<p class="text-slate-600 text-[10px] italic">Nessuna storia.</p>';
         
         const isManca = issue.possesso === 'manca';
-        const statusBadge = `<span class="px-2 py-0.5 rounded text-[9px] font-black uppercase ${isManca ? 'bg-slate-800 text-slate-500' : 'bg-green-600 text-white'}">${issue.possesso || 'manca'}</span>`;
+        const statusBadge = `<span class="px-2 py-0.5 rounded text-[9px] font-black uppercase ${isManca ? 'bg-slate-800 text-slate-500' : 'bg-green-600 text-white'}\">${issue.possesso || 'manca'}</span>`;
 
         const rows = [
             UI.MODAL_DETAIL_ROW("Editore", issue.editore?.nome, issue.editore?.immagine_url, `<span class="text-[10px] text-slate-500">${issue.editore?.codice_editore?.nome || ''}</span>`),
