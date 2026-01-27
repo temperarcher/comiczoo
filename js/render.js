@@ -1,11 +1,12 @@
 /**
- * VERSION: 1.3.1
+ * VERSION: 1.3.2
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
 import { UI } from './ui.js';
 
 export const Render = {
+    // ... (initLayout, publishers, series, issues restano invariati)
     initLayout: () => {
         UI.ROOTS.APPLY_BODY_STYLE();
         document.body.innerHTML = 
@@ -57,22 +58,25 @@ export const Render = {
         
         const formatDate = (d) => d ? new Date(d).toLocaleDateString('it-IT') : 'N/D';
 
-        // 1. Dati Header concatenati
         const header = {
             titolo: `${issue.serie?.nome || ''} ${issue.testata?.nome ? '- ' + issue.testata.nome : ''}`,
             infoUscita: `${issue.annata?.nome || ''} n°${issue.numero} del ${formatDate(issue.data_pubblicazione)}`,
-            infoSupplemento: supplementoStr ? supplementoStr : null
+            infoSupplemento: supplementoStr
         };
 
-        // 2. Badge Celo/Manca
         const isManca = issue.possesso === 'manca';
         const statusBadge = `<span class="px-3 py-1 rounded text-[10px] font-black uppercase tracking-wider ${isManca ? 'bg-red-900/40 text-red-500 border border-red-900/50' : 'bg-green-600 text-white shadow-lg'}">${issue.possesso === 'celo' ? 'posseduto' : 'mancante'}</span>`;
 
-        // 3. Righe Dati accorpate
+        // Modifica richiesta: Label separate per Tipo e Valore
+        const valSubValue = `
+            <span class="text-[9px] font-black uppercase text-slate-500 tracking-widest mb-1">Valore</span>
+            <span class="text-xl font-light text-white leading-none">€ ${issue.valore?.toFixed(2) || '0.00'}</span>
+        `;
+
         const rows = [
             UI.MODAL_DETAIL_ROW("Editore", issue.editore?.nome, issue.editore?.immagine_url, `<span class="text-[10px] font-mono text-slate-500">${issue.editore?.codice_editore?.nome || ''}</span>`),
-            UI.MODAL_DETAIL_ROW("Tipo e Valore", issue.tipo?.nome || "Regolare", null, `<span class="text-xl font-light text-white">€ ${issue.valore?.toFixed(2) || '0.00'}</span>`),
-            UI.MODAL_DETAIL_ROW("Stato Conservazione", UI.STARS(issue.condizione), null, statusBadge)
+            UI.MODAL_DETAIL_ROW("Tipo Pubblicazione", issue.tipo?.nome || "Regolare", null, valSubValue),
+            UI.MODAL_DETAIL_ROW("Stato Conservazione", `<div class="flex gap-1 mt-1">${UI.STARS(issue.condizione)}</div>`, null, statusBadge)
         ].join('');
 
         const content = UI.MODAL_LEFT_COL(issue, storiesHtml) + UI.MODAL_RIGHT_COL(header, rows);
