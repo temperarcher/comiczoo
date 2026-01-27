@@ -26,9 +26,9 @@ export const UI = {
     MODAL_RIGHT_COL: modal.RIGHT_COL,
     MODAL_STORY_ITEM: modal.STORY_ITEM,
     MODAL_DETAIL_ROW: modal.DETAIL_ROW,
-    MODAL_CLOSE: (e) => {
-        if(e) e.stopPropagation();
+    MODAL_CLOSE: (e) => { 
+        if(e) e.stopPropagation(); 
         const overlay = document.getElementById('modal-overlay');
-        if(overlay) overlay.remove();
-    }
+        if (overlay) overlay.remove();
+    },
 };
