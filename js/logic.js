@@ -101,6 +101,7 @@ export const Logic = {
                     .eq('id', issue.supplemento_id)
                     .single();
                 if (supp) {
+                    // MODIFICA VERSIONE 1.3.3: Mese per esteso
                     const suppDate = new Date(supp.data_pubblicazione).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
                     supplementoStr = `${supp.serie.nome} n°${supp.numero} del ${suppDate}`;
                 }
