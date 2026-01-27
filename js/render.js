@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.2.2
+ * VERSION: 1.3.0
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -53,20 +53,19 @@ export const Render = {
 
     modal: (issue, stories, supplementoStr) => {
         const storiesHtml = stories.map(s => UI.MODAL_STORY_ITEM(s)).join('') || 
-                           '<p class="text-slate-600 text-[10px] italic p-2">Nessuna storia registrata.</p>';
+                           '<p class="text-slate-600 text-[10px] italic">Nessuna storia.</p>';
         
         const isManca = issue.possesso === 'manca';
-        const statusBadge = `<span class="px-2 py-1 rounded text-[10px] font-black uppercase ${isManca ? 'bg-slate-700 text-slate-400' : 'bg-green-600 text-white shadow-lg shadow-green-900/20'}">${issue.possesso || 'manca'}</span>`;
+        const statusBadge = `<span class="px-2 py-0.5 rounded text-[9px] font-black uppercase ${isManca ? 'bg-slate-800 text-slate-500' : 'bg-green-600 text-white'}">${issue.possesso || 'manca'}</span>`;
 
-        // Costruzione righe con LOGHI e STELLINE
         const rows = [
-            UI.MODAL_DETAIL_ROW("Editore", issue.editore?.nome, issue.editore?.immagine_url, `<span class="text-[10px] text-slate-500 font-mono">${issue.editore?.codice_editore?.nome || ''}</span>`),
-            UI.MODAL_DETAIL_ROW("Serie e Testata", issue.serie?.nome, null, `<span class="text-xs font-bold text-yellow-500">n°${issue.numero || 'N/D'}</span>`),
-            UI.MODAL_DETAIL_ROW("Data Pubblicazione", issue.data_pubblicazione ? new Date(issue.data_pubblicazione).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Data N/D'),
-            UI.MODAL_DETAIL_ROW("Valore stimato", `€ ${issue.valore?.toFixed(2) || '0.00'}`, null, `<span class="text-[10px] text-slate-500 uppercase tracking-widest">Euro</span>`),
-            UI.MODAL_DETAIL_ROW("Condizione Albo", "Valutazione", null, UI.STARS(issue.condizione)),
-            UI.MODAL_DETAIL_ROW("Stato Collezione", "Disponibilità", null, statusBadge),
-            UI.MODAL_DETAIL_ROW("Note Supplemento", supplementoStr || "Nessun supplemento registrato")
+            UI.MODAL_DETAIL_ROW("Editore", issue.editore?.nome, issue.editore?.immagine_url, `<span class="text-[10px] text-slate-500">${issue.editore?.codice_editore?.nome || ''}</span>`),
+            UI.MODAL_DETAIL_ROW("Serie / Numero", issue.serie?.nome, null, `<span class="font-bold text-yellow-500">n°${issue.numero}</span>`),
+            UI.MODAL_DETAIL_ROW("Data Uscita", issue.data_pubblicazione ? new Date(issue.data_pubblicazione).toLocaleDateString('it-IT') : 'N/D'),
+            UI.MODAL_DETAIL_ROW("Valore", `€ ${issue.valore?.toFixed(2) || '0.00'}`),
+            UI.MODAL_DETAIL_ROW("Condizione", "Stato conservazione", null, UI.STARS(issue.condizione)),
+            UI.MODAL_DETAIL_ROW("Possesso", "Stato in collezione", null, statusBadge),
+            UI.MODAL_DETAIL_ROW("Note", supplementoStr || "---")
         ].join('');
 
         const content = UI.MODAL_LEFT_COL(issue, storiesHtml) + UI.MODAL_RIGHT_COL(rows);
