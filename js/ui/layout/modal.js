@@ -14,7 +14,7 @@ export const modal = {
         <div id="modal-overlay" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onclick="UI.MODAL_CLOSE(event)">
             <div class="relative bg-slate-900 border border-slate-700 w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-xl shadow-2xl flex flex-col md:flex-row" onclick="event.stopPropagation()">
                 ${content}
-                <button id="modal-close-btn" onclick="UI.MODAL_CLOSE(null)" class="absolute top-4 right-4 text-slate-400 hover:text-white text-4xl z-[110] leading-none">&times;</button>
+                <button id="modal-close-btn" onclick="UI.MODAL_CLOSE(null)" class="absolute top-4 right-4 text-slate-400 hover:text-white text-5xl z-[150] leading-none transition-colors">&times;</button>
             </div>
         </div>`,
 
