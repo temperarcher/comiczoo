@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.2.0
+ * VERSION: 1.3.3
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -57,7 +57,6 @@ export const Logic = {
 
     getDetail: async (id) => {
         try {
-            // 1. Dati Issue principali con join per il modale
             const { data: issue } = await supabase
                 .from('issue')
                 .select(`
@@ -71,7 +70,6 @@ export const Logic = {
                 .eq('id', id)
                 .single();
 
-            // 2. Query Storie relazionate
             const { data: storieRel } = await supabase
                 .from('storia_in_issue')
                 .select(`
@@ -101,9 +99,8 @@ export const Logic = {
                     .eq('id', issue.supplemento_id)
                     .single();
                 if (supp) {
-                    // MODIFICA VERSIONE 1.3.3: Mese per esteso
-                    const suppDate = new Date(supp.data_pubblicazione).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
-                    supplementoStr = `${supp.serie.nome} n°${supp.numero} del ${suppDate}`;
+                    // MODIFICA: Aggiunto oggetto opzioni per mese esteso
+                    supplementoStr = `${supp.serie.nome} n°${supp.numero} del ${new Date(supp.data_pubblicazione).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}`;
                 }
             }
 
