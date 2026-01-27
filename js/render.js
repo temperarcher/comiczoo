@@ -6,7 +6,6 @@
 import { UI } from './ui.js';
 
 export const Render = {
-    // ... (initLayout, publishers, series, issues restano invariati)
     initLayout: () => {
         UI.ROOTS.APPLY_BODY_STYLE();
         document.body.innerHTML = 
@@ -55,6 +54,7 @@ export const Render = {
     modal: (issue, stories, supplementoStr) => {
         const storiesHtml = stories.map(s => UI.MODAL_STORY_ITEM(s)).join('');
         
+        // 1. Header Dati (Data Estesa)
         const formatDate = (dateStr) => {
             if (!dateStr) return 'N/D';
             return new Date(dateStr).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -66,9 +66,11 @@ export const Render = {
             infoSupplemento: supplementoStr ? supplementoStr : null
         };
 
+        // 2. Badge Celo/Manca
         const isManca = issue.possesso === 'manca';
         const statusBadge = `<span class="px-3 py-1 rounded text-[10px] font-black uppercase tracking-wider ${isManca ? 'bg-red-900/40 text-red-500 border border-red-900/50' : 'bg-green-600 text-white shadow-lg'}">${issue.possesso === 'celo' ? 'posseduto' : 'mancante'}</span>`;
 
+        // Modifica richiesta: Label separate per Tipo e Valore
         const valSubValue = `
             <span class="text-[9px] font-black uppercase text-slate-500 tracking-widest mb-1">Valore</span>
             <span class="text-xl font-light text-white leading-none">€ ${issue.valore?.toFixed(2) || '0.00'}</span>
