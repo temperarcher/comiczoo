@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.3.0
+ * VERSION: 1.3.1
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -55,20 +55,27 @@ export const Render = {
         const storiesHtml = stories.map(s => UI.MODAL_STORY_ITEM(s)).join('') || 
                            '<p class="text-slate-600 text-[10px] italic">Nessuna storia.</p>';
         
-        const isManca = issue.possesso === 'manca';
-        const statusBadge = `<span class="px-2 py-0.5 rounded text-[9px] font-black uppercase ${isManca ? 'bg-slate-800 text-slate-500' : 'bg-green-600 text-white'}\">${issue.possesso || 'manca'}</span>`;
+        const formatDate = (d) => d ? new Date(d).toLocaleDateString('it-IT') : 'N/D';
 
+        // 1. Dati Header concatenati
+        const header = {
+            titolo: `${issue.serie?.nome || ''} ${issue.testata?.nome ? '- ' + issue.testata.nome : ''}`,
+            infoUscita: `${issue.annata?.nome || ''} n°${issue.numero} del ${formatDate(issue.data_pubblicazione)}`,
+            infoSupplemento: supplementoStr ? supplementoStr : null
+        };
+
+        // 2. Badge Celo/Manca
+        const isManca = issue.possesso === 'manca';
+        const statusBadge = `<span class="px-3 py-1 rounded text-[10px] font-black uppercase tracking-wider ${isManca ? 'bg-red-900/40 text-red-500 border border-red-900/50' : 'bg-green-600 text-white shadow-lg'}">${issue.possesso === 'celo' ? 'posseduto' : 'mancante'}</span>`;
+
+        // 3. Righe Dati accorpate
         const rows = [
-            UI.MODAL_DETAIL_ROW("Editore", issue.editore?.nome, issue.editore?.immagine_url, `<span class="text-[10px] text-slate-500">${issue.editore?.codice_editore?.nome || ''}</span>`),
-            UI.MODAL_DETAIL_ROW("Serie / Numero", issue.serie?.nome, null, `<span class="font-bold text-yellow-500">n°${issue.numero}</span>`),
-            UI.MODAL_DETAIL_ROW("Data Uscita", issue.data_pubblicazione ? new Date(issue.data_pubblicazione).toLocaleDateString('it-IT') : 'N/D'),
-            UI.MODAL_DETAIL_ROW("Valore", `€ ${issue.valore?.toFixed(2) || '0.00'}`),
-            UI.MODAL_DETAIL_ROW("Condizione", "Stato conservazione", null, UI.STARS(issue.condizione)),
-            UI.MODAL_DETAIL_ROW("Possesso", "Stato in collezione", null, statusBadge),
-            UI.MODAL_DETAIL_ROW("Note", supplementoStr || "---")
+            UI.MODAL_DETAIL_ROW("Editore", issue.editore?.nome, issue.editore?.immagine_url, `<span class="text-[10px] font-mono text-slate-500">${issue.editore?.codice_editore?.nome || ''}</span>`),
+            UI.MODAL_DETAIL_ROW("Tipo e Valore", issue.tipo?.nome || "Regolare", null, `<span class="text-xl font-light text-white">€ ${issue.valore?.toFixed(2) || '0.00'}</span>`),
+            UI.MODAL_DETAIL_ROW("Stato Conservazione", UI.STARS(issue.condizione), null, statusBadge)
         ].join('');
 
-        const content = UI.MODAL_LEFT_COL(issue, storiesHtml) + UI.MODAL_RIGHT_COL(rows);
+        const content = UI.MODAL_LEFT_COL(issue, storiesHtml) + UI.MODAL_RIGHT_COL(header, rows);
         
         let container = document.getElementById('modal-root');
         if (!container) {
