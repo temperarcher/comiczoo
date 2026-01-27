@@ -30,57 +30,48 @@ export const Logic = {
             Render.publishers(Logic.state.allPublishers, id);
             Render.series(filteredSeries);
             const mainRoot = document.getElementById('ui-main-root');
-            if(mainRoot) mainRoot.innerHTML = '';
-        } catch (e) { console.error("Filtro Codice fallito:", e.message); }
+            if (mainRoot) mainRoot.innerHTML = '';
+        } catch (e) {
+            console.error("Errore filtro editori:", e);
+        }
     },
 
-    resetAllFilters: () => {
-        Render.publishers(Logic.state.allPublishers, null);
-        Render.series(Logic.state.allSeries);
-        const mainRoot = document.getElementById('ui-main-root');
-        if(mainRoot) mainRoot.innerHTML = '';
-    },
-
-    selectSerie: async (id, nome) => {
+    selectSerie: async (serieId) => {
         try {
-            const { data, error } = await supabase
+            const { data: issues } = await supabase
+                .from('issue')
+                .select(`
+                    id, numero, nome, immagine_url, valore, condizione, possesso, 
+                    serie:serie_id(nome),
+                    annata:annata_id(nome),
+                    tipo:tipo_pubblicazione_id(nome)
+                `)
+                .eq('serie_id', serieId)
+                .order('numero', { ascending: true });
+
+            Render.issues(issues);
+        } catch (e) {
+            console.error("Errore carico albi:", e);
+        }
+    },
+
+    getDetail: async (id) => {
+        try {
+            // 1. Dati Issue principali con join per il modale
+            const { data: issue } = await supabase
                 .from('issue')
                 .select(`
                     *,
                     serie:serie_id(nome),
                     testata:testata_id(nome),
-                    annata:annata_id(nome)
-                `)
-                .eq('serie_id', id)
-                .order('data_pubblicazione', { ascending: true, nullsFirst: false });
-
-            if (error) throw error;
-            Render.issues(data);
-        } catch (e) { console.error("Errore griglia albi:", e.message); }
-    },
-
-    /**
-     * Recupera i dettagli completi di un albo inclusi supplementi, storie e personaggi
-     */
-    openIssueDetail: async (id) => {
-        try {
-            // 1. Fetch Dati Albo con JOIN annidati (Editore -> Codice Editore)
-            const { data: issue, error } = await supabase
-                .from('issue')
-                .select(`
-                    *,
-                    serie:serie_id(*),
-                    testata:testata_id(*),
-                    annata:annata_id(*),
-                    editore:editore_id(*, codice_editore:codice_editore_id(*)),
-                    tipo:tipo_pubblicazione_id(*)
+                    annata:annata_id(nome),
+                    tipo:tipo_pubblicazione_id(nome),
+                    editore:editore_id(nome, immagine_url, codice_editore:codice_editore_id(nome))
                 `)
                 .eq('id', id)
                 .single();
 
-            if (error) throw error;
-
-            // 2. Fetch Storie e Personaggi (Tabella ponte storia_in_issue -> storia -> personaggio_storia -> personaggio)
+            // 2. Query Storie relazionate
             const { data: storieRel } = await supabase
                 .from('storia_in_issue')
                 .select(`
@@ -110,13 +101,14 @@ export const Logic = {
                     .eq('id', issue.supplemento_id)
                     .single();
                 if (supp) {
-                    supplementoStr = `${supp.serie.nome} n°${supp.numero} del ${new Date(supp.data_pubblicazione).toLocaleDateString('it-IT')}`;
+                    const suppDate = new Date(supp.data_pubblicazione).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
+                    supplementoStr = `${supp.serie.nome} n°${supp.numero} del ${suppDate}`;
                 }
             }
 
             Render.modal(issue, storiesFormatted, supplementoStr);
         } catch (e) {
-            console.error("Errore dettaglio modale:", e.message);
+            console.error("Errore dettaglio modale:", e);
         }
     }
 };
