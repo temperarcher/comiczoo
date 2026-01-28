@@ -1,12 +1,11 @@
 /**
- * VERSION: 1.3.3
+ * VERSION: 1.3.4
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
 import { UI } from './ui.js';
 
 export const Render = {
-    // ... (initLayout, publishers, series, issues restano invariati)
     initLayout: () => {
         UI.ROOTS.APPLY_BODY_STYLE();
         document.body.innerHTML = 
@@ -79,7 +78,7 @@ export const Render = {
         const rows = [
             UI.MODAL_DETAIL_ROW("Editore", issue.editore?.nome, issue.editore?.immagine_url, `<span class="text-[10px] font-mono text-slate-500">${issue.editore?.codice_editore?.nome || ''}</span>`),
             UI.MODAL_DETAIL_ROW("Tipo Pubblicazione", issue.tipo?.nome || "Regolare", null, valSubValue),
-            UI.MODAL_DETAIL_ROW("Stato Conservazione", `<div class="flex gap-1 mt-1">${UI.STARS(issue.condizione, 'w-5 h-5')}</div>`, null, statusBadge)
+            UI.MODAL_DETAIL_ROW("Stato Conservazione", `<div class="flex gap-1.5 mt-1">${UI.STARS(issue.condizione, 'w-8 h-8')}</div>`, null, statusBadge)
         ].join('');
 
         const content = UI.MODAL_LEFT_COL(issue, storiesHtml) + UI.MODAL_RIGHT_COL(header, rows);
