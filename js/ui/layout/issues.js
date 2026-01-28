@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.3.2
+ * VERSION: 1.3.3
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -30,7 +30,7 @@ export const issues = {
             </div>`;
     },
 
-    STARS: (val) => {
+    STARS: (val, size = "w-2.5 h-2.5") => {
         if (!val) return '';
         let color = 'text-slate-600';
         if (val <= 2) color = 'text-red-500';
@@ -39,7 +39,7 @@ export const issues = {
 
         // Ritorna le stelle; il contenitore flex è gestito dal chiamante per massima flessibilità
         return Array(5).fill(0).map((_, i) => `
-            <svg class="w-2.5 h-2.5 ${i < val ? color : 'text-slate-800'}" fill="currentColor" viewBox="0 0 20 20">
+            <svg class="${size} ${i < val ? color : 'text-slate-800'}" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M9.049 2.927c.3-.921 1.303-.921 1.602 0l1.088 3.35a1 1 0 00.95.69h3.523c.969 0 1.371 1.24.588 1.81l-2.85 2.07a1 1 0 00-.364 1.118l1.088 3.35c.3.921-.755 1.688-1.54 1.118l-2.85-2.07a1 1 0 00-1.175 0l-2.85 2.07c-.784.57-1.838-.197-1.539-1.118l1.088-3.35a1 1 0 00-.364-1.118L2.05 8.777c-.783-.57-.38-1.81.588-1.81h3.523a1 1 0 00.95-.69l1.088-3.35z"/>
             </svg>
         `).join('');
