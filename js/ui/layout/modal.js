@@ -44,7 +44,7 @@ export const modal = {
         </div>`,
 
     RIGHT_COL: (header, rowsHtml) => `
-        <div class="w-full md:w-3/5 p-8 bg-slate-900 flex flex-col modal-scroll-dark">
+        <div class="w-full md:w-3/5 p-8 bg-slate-900 flex flex-col overflow-y-auto modal-scroll-dark">
             <div class="mb-8 border-b border-slate-800 pb-6">
                 <h2 class="text-2xl font-black text-white leading-tight uppercase tracking-tight">${header.titolo}</h2>
                 <p class="text-yellow-500 font-bold text-lg mt-1">${header.infoUscita}</p>
