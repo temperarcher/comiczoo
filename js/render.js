@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.3.4
+ * VERSION: 1.3.6
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -7,6 +7,7 @@ import { UI } from './ui.js';
 
 export const Render = {
     initLayout: () => {
+        window.UI = UI; // Esposizione globale per gestire gli eventi onclick dai template
         UI.ROOTS.APPLY_BODY_STYLE();
         document.body.innerHTML = 
             UI.ROOTS.HEADER_SLOT() + 
@@ -90,5 +91,12 @@ export const Render = {
             document.body.appendChild(container);
         }
         container.innerHTML = UI.MODAL_WRAPPER(content);
+
+        // AGGANCIO MANUALE EVENTI DI CHIUSURA (Fix v1.3.6)
+        const closeBtn = document.getElementById('modal-close-btn');
+        if (closeBtn) closeBtn.onclick = (e) => UI.MODAL_CLOSE(e);
+        
+        const overlay = document.getElementById('modal-overlay');
+        if (overlay) overlay.onclick = (e) => UI.MODAL_CLOSE(e);
     }
 };
