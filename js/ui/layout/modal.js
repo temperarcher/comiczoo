@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.4.0
+ * VERSION: 1.4.1
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -25,8 +25,7 @@ export const modal = {
                 </div>
             </div>
         </div>`,
-    
-    // ... restanti funzioni (LEFT_COL, RIGHT_COL, STORY_ITEM, DETAIL_ROW) restano invariate dal file caricato
+
     LEFT_COL: (issue, storiesHtml) => `
         <div class="w-full md:w-2/5 bg-slate-950 p-6 flex flex-col gap-6 border-r border-slate-800 overflow-y-auto modal-scroll-dark">
             <div class="aspect-[2/3] w-full rounded-lg overflow-hidden border border-slate-800 shadow-2xl">
@@ -35,7 +34,7 @@ export const modal = {
             <div>
                 <h3 class="text-[10px] font-black uppercase text-yellow-500 tracking-[0.2em] mb-4">Indice Storie</h3>
                 <div class="flex flex-col gap-3">
-                    ${storiesHtml || '<p class="text-slate-600 italic text-xs">Nessuna storia registrata</p>'}
+                    ${storiesHtml}
                 </div>
             </div>
         </div>`,
