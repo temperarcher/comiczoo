@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.3.4
+ * VERSION: 1.3.5
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -28,7 +28,7 @@ export const UI = {
     MODAL_DETAIL_ROW: modal.DETAIL_ROW,
     MODAL_CLOSE: (e) => {
         if(e) e.stopPropagation();
-        const overlay = document.getElementById('modal-overlay');
-        if(overlay) overlay.remove();
+        const modalRoot = document.getElementById('modal-root');
+        if(modalRoot) modalRoot.remove();
     }
 };
