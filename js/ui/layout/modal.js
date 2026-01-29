@@ -32,11 +32,11 @@ export const modal = {
 
     LEFT_COL: (issue, storiesHtml) => `
         <div class="w-full md:w-2/5 bg-slate-950 p-6 flex flex-col gap-6 border-r border-slate-800 overflow-y-auto modal-scroll-dark">
-            <div class="aspect-[2/3] w-full rounded-lg overflow-hidden border border-slate-800 shadow-2xl">
+            <div class="aspect-[2/3] w-full rounded-lg overflow-hidden border border-slate-800 shadow-2xl shrink-0">
                 <img src="${issue.immagine_url}" class="w-full h-full object-cover">
             </div>
-            <div>
-                <h3 class="text-[10px] font-black uppercase text-yellow-500 tracking-[0.2em] mb-4">Indice Storie</h3>
+            <div class="flex flex-col gap-4">
+                <h3 class="text-[10px] font-black uppercase text-yellow-500 tracking-[0.2em]">Indice Storie</h3>
                 <div class="flex flex-col gap-3">
                     ${storiesHtml}
                 </div>
