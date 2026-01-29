@@ -1,6 +1,6 @@
 /**
- * VERSION: 1.3.6
- * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
+ * VERSION: 1.4.0
+ * PROTOCOLLO DI INTEGRITÀ: AGGIORNAMENTO MAPPATURA FORM.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
 import { sections } from './ui/layout/sections.js';
@@ -9,6 +9,7 @@ import { publishers } from './ui/layout/publishers.js';
 import { series } from './ui/layout/series.js';
 import { issues } from './ui/layout/issues.js';
 import { modal } from './ui/layout/modal.js';
+import { form } from './ui/layout/form.js'; // Nuovo import
 
 export const UI = {
     ROOTS: sections,
@@ -26,6 +27,10 @@ export const UI = {
     MODAL_RIGHT_COL: modal.RIGHT_COL,
     MODAL_STORY_ITEM: modal.STORY_ITEM,
     MODAL_DETAIL_ROW: modal.DETAIL_ROW,
+    MODAL_FORM_WRAPPER: form.WRAPPER, // Nuova mappatura
+    MODAL_FORM_FIELD: form.FIELD_GROUP,
+    MODAL_FORM_SELECT: form.SELECT,
+    MODAL_FORM_INPUT: form.INPUT,
     MODAL_CLOSE: (e) => {
         if(e) e.stopPropagation();
         const modalRoot = document.getElementById('modal-root');
