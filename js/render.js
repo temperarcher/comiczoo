@@ -4,10 +4,12 @@
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
 import { UI } from './ui.js';
+import { Logic } from './logic.js'; // Aggiunto import per esposizione globale
 
 export const Render = {
     initLayout: () => {
         window.UI = UI; 
+        window.Logic = Logic; // Esposizione globale per gestire gli onclick inline
         UI.ROOTS.APPLY_BODY_STYLE();
         document.body.innerHTML = UI.ROOTS.HEADER_SLOT() + UI.ROOTS.PUBLISHER_SLOT() + UI.ROOTS.SERIES_SLOT() + UI.ROOTS.MAIN_ROOT();
         const headerContainer = document.getElementById('ui-header-slot');
@@ -92,7 +94,6 @@ export const Render = {
         if (!container) { container = document.createElement('div'); container.id = 'modal-root'; document.body.appendChild(container); }
         container.innerHTML = UI.MODAL_FORM_WRAPPER(title, fields);
 
-        // Associazione salvataggio con passaggio ID (null se nuovo)
         const saveBtn = document.getElementById('save-issue-btn');
         if (saveBtn) saveBtn.onclick = () => Logic.saveIssue(data?.id || null);
     }
