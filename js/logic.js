@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.4.5
+ * VERSION: 1.4.6
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -55,7 +55,6 @@ export const Logic = {
 
     selectSerie: async (id) => {
         try {
-            // RIPRISTINATO ORDINAMENTO PER DATA E NUMERO
             const { data, error } = await supabase
                 .from('issue')
                 .select(`*, serie:serie_id(nome), testata:testata_id(nome), annata:annata_id(nome)`)
