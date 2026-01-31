@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.4.1
+ * VERSION: 1.4.2
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -92,6 +92,8 @@ export const Render = {
         if (!container) { container = document.createElement('div'); container.id = 'modal-root'; document.body.appendChild(container); }
         container.innerHTML = UI.MODAL_FORM_WRAPPER(title, fields);
 
-        document.getElementById('save-issue-btn').onclick = () => Logic.saveIssue(data?.id);
+        // Associazione salvataggio con passaggio ID (null se nuovo)
+        const saveBtn = document.getElementById('save-issue-btn');
+        if (saveBtn) saveBtn.onclick = () => Logic.saveIssue(data?.id || null);
     }
 };
