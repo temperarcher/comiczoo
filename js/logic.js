@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.3.6
+ * VERSION: 1.3.7
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -59,12 +59,8 @@ export const Logic = {
         } catch (e) { console.error("Errore griglia albi:", e.message); }
     },
 
-    /**
-     * Recupera i dettagli completi di un albo inclusi supplementi, storie e personaggi
-     */
     openIssueDetail: async (id) => {
         try {
-            // 1. Fetch Dati Albo con JOIN annidati (Editore -> Codice Editore)
             const { data: issue, error } = await supabase
                 .from('issue')
                 .select(`
@@ -80,7 +76,6 @@ export const Logic = {
 
             if (error) throw error;
 
-            // 2. Fetch Storie e Personaggi (Tabella ponte storia_in_issue -> storia -> personaggio_storia -> personaggio)
             const { data: storieRel } = await supabase
                 .from('storia_in_issue')
                 .select(`
@@ -101,7 +96,6 @@ export const Logic = {
                 personaggi: s.storia.personaggi.map(p => p.personaggio)
             }));
 
-            // 3. Gestione Supplemento (Auto-join ricorsivo su issue)
             let supplementoStr = null;
             if (issue.supplemento_id) {
                 const { data: supp } = await supabase
@@ -115,8 +109,53 @@ export const Logic = {
             }
 
             Render.modal(issue, storiesFormatted, supplementoStr);
-        } catch (e) {
-            console.error("Errore dettaglio modale:", e.message);
+        } catch (e) { console.error("Errore dettaglio modale:", e.message); }
+    },
+
+    openEditForm: async (id) => {
+        try {
+            const { data: issue } = await supabase.from('issue').select('*').eq('id', id).single();
+            const lookup = {
+                series: Logic.state.allSeries,
+                publishers: Logic.state.allPublishers
+            };
+            Render.form("Modifica Albo", issue, lookup);
+        } catch (e) { console.error("Errore apertura form edit:", e.message); }
+    },
+
+    openNewForm: () => {
+        const lookup = {
+            series: Logic.state.allSeries,
+            publishers: Logic.state.allPublishers
+        };
+        Render.form("Nuovo Albo", null, lookup);
+    },
+
+    saveIssue: async (id = null) => {
+        try {
+            const payload = {
+                serie_id: document.getElementById('f-serie').value,
+                numero: parseInt(document.getElementById('f-numero').value),
+                editore_id: document.getElementById('f-editore').value,
+                possesso: document.getElementById('f-possesso').value,
+                valore: parseFloat(document.getElementById('f-valore').value),
+                condizione: parseInt(document.getElementById('f-condizione').value)
+            };
+
+            let res;
+            if (id) {
+                res = await supabase.from('issue').update(payload).eq('id', id);
+            } else {
+                res = await supabase.from('issue').insert([payload]);
+            }
+
+            if (res.error) throw res.error;
+            
+            UI.MODAL_CLOSE();
+            if (payload.serie_id) Logic.selectSerie(payload.serie_id);
+        } catch (e) { 
+            alert("Errore durante il salvataggio: " + e.message);
+            console.error("Salvataggio fallito:", e); 
         }
     }
 };
