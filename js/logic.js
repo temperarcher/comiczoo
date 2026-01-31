@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.4.2
+ * VERSION: 1.3.8
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -8,26 +8,38 @@ import { Render } from './render.js';
 import { UI } from './ui.js';
 
 export const Logic = {
-    state: { allSeries: [], allPublishers: [] },
+    state: { 
+        allSeries: [], 
+        allPublishers: [],
+        lookups: { testate: [], annate: [], tipi: [], albi: [] }
+    },
+
+    // Carica tutti i dati necessari per le select del form
+    refreshLookups: async () => {
+        try {
+            const [t, a, tp, alb] = await Promise.all([
+                supabase.from('testata').select('id, nome, serie_id'),
+                supabase.from('annata').select('id, nome, serie_id'),
+                supabase.from('tipo_pubblicazione').select('id, nome'),
+                supabase.from('issue').select('id, numero, serie:serie_id(nome)').order('numero')
+            ]);
+            Logic.state.lookups = {
+                testate: t.data || [],
+                annate: a.data || [],
+                tipi: tp.data || [],
+                albi: (alb.data || []).map(x => ({ id: x.id, nome: `${x.serie.nome} n°${x.numero}` }))
+            };
+        } catch (e) { console.error("Errore caricamento lookup:", e); }
+    },
 
     selectCodice: async (id) => {
         try {
-            const { data: editori } = await supabase
-                .from('editore')
-                .select('id')
-                .eq('codice_editore_id', id);
-            
+            const { data: editori } = await supabase.from('editore').select('id').eq('codice_editore_id', id);
             if (!editori || editori.length === 0) return Render.series([]);
             const editoreIds = editori.map(e => e.id);
-
-            const { data: issues } = await supabase
-                .from('issue')
-                .select('serie_id')
-                .in('editore_id', editoreIds);
-
+            const { data: issues } = await supabase.from('issue').select('serie_id').in('editore_id', editoreIds);
             const serieIds = [...new Set(issues.map(i => i.serie_id))];
             const filteredSeries = Logic.state.allSeries.filter(s => serieIds.includes(s.id));
-
             Render.publishers(Logic.state.allPublishers, id);
             Render.series(filteredSeries);
             const mainRoot = document.getElementById('ui-main-root');
@@ -46,15 +58,9 @@ export const Logic = {
         try {
             const { data, error } = await supabase
                 .from('issue')
-                .select(`
-                    *,
-                    serie:serie_id(nome),
-                    testata:testata_id(nome),
-                    annata:annata_id(nome)
-                `)
+                .select(`*, serie:serie_id(nome), testata:testata_id(nome), annata:annata_id(nome)`)
                 .eq('serie_id', id)
                 .order('data_pubblicazione', { ascending: true, nullsFirst: false });
-
             if (error) throw error;
             Render.issues(data);
         } catch (e) { console.error("Errore griglia albi:", e.message); }
@@ -64,32 +70,14 @@ export const Logic = {
         try {
             const { data: issue, error } = await supabase
                 .from('issue')
-                .select(`
-                    *,
-                    serie:serie_id(*),
-                    testata:testata_id(*),
-                    annata:annata_id(*),
-                    editore:editore_id(*, codice_editore:codice_editore_id(*)),
-                    tipo:tipo_pubblicazione_id(*)
-                `)
-                .eq('id', id)
-                .single();
-
+                .select(`*, serie:serie_id(*), testata:testata_id(*), annata:annata_id(*), editore:editore_id(*, codice_editore:codice_editore_id(*)), tipo:tipo_pubblicazione_id(*)`)
+                .eq('id', id).single();
             if (error) throw error;
 
             const { data: storieRel } = await supabase
                 .from('storia_in_issue')
-                .select(`
-                    posizione,
-                    storia:storia_id (
-                        id, nome,
-                        personaggi:personaggio_storia (
-                            personaggio:personaggio_id (nome, immagine_url)
-                        )
-                    )
-                `)
-                .eq('issue_id', id)
-                .order('posizione');
+                .select(`posizione, storia:storia_id (id, nome, personaggi:personaggio_storia (personaggio:personaggio_id (nome, immagine_url))))`)
+                .eq('issue_id', id).order('posizione');
 
             const storiesFormatted = (storieRel || []).map(s => ({
                 posizione: s.posizione,
@@ -99,64 +87,57 @@ export const Logic = {
 
             let supplementoStr = null;
             if (issue.supplemento_id) {
-                const { data: supp } = await supabase
-                    .from('issue')
-                    .select('numero, data_pubblicazione, serie:serie_id(nome)')
-                    .eq('id', issue.supplemento_id)
-                    .single();
-                if (supp) {
-                    supplementoStr = `${supp.serie.nome} n°${supp.numero} del ${new Date(supp.data_pubblicazione).toLocaleDateString('it-IT')}`;
-                }
+                const { data: supp } = await supabase.from('issue').select('numero, data_pubblicazione, serie:serie_id(nome)').eq('id', issue.supplemento_id).single();
+                if (supp) supplementoStr = `${supp.serie.nome} n°${supp.numero} del ${new Date(supp.data_pubblicazione).toLocaleDateString('it-IT')}`;
             }
-
             Render.modal(issue, storiesFormatted, supplementoStr);
         } catch (e) { console.error("Errore dettaglio modale:", e.message); }
     },
 
     openEditForm: async (id) => {
-        try {
-            const { data: issue } = await supabase.from('issue').select('*').eq('id', id).single();
-            const lookup = {
-                series: Logic.state.allSeries,
-                publishers: Logic.state.allPublishers
-            };
-            Render.form("Modifica Albo", issue, lookup);
-        } catch (e) { console.error("Errore apertura form edit:", e.message); }
+        await Logic.refreshLookups();
+        const { data: issue } = await supabase.from('issue').select('*').eq('id', id).single();
+        Render.form("Modifica Albo", issue, {
+            series: Logic.state.allSeries,
+            publishers: Logic.state.allPublishers,
+            ...Logic.state.lookups
+        });
     },
 
-    openNewForm: () => {
-        const lookup = {
+    openNewForm: async () => {
+        await Logic.refreshLookups();
+        Render.form("Nuovo Albo", null, {
             series: Logic.state.allSeries,
-            publishers: Logic.state.allPublishers
-        };
-        Render.form("Nuovo Albo", null, lookup);
+            publishers: Logic.state.allPublishers,
+            ...Logic.state.lookups
+        });
     },
 
     saveIssue: async (id = null) => {
         try {
             const payload = {
-                serie_id: document.getElementById('f-serie').value,
-                numero: parseInt(document.getElementById('f-numero').value),
-                editore_id: document.getElementById('f-editore').value,
+                serie_id: document.getElementById('f-serie').value || null,
+                testata_id: document.getElementById('f-testata').value || null,
+                annata_id: document.getElementById('f-annata').value || null,
+                tipo_pubblicazione_id: document.getElementById('f-tipo').value || null,
+                editore_id: document.getElementById('f-editore').value || null,
+                supplemento_id: document.getElementById('f-supplemento').value || null,
+                numero: parseInt(document.getElementById('f-numero').value) || 0,
+                nome: document.getElementById('f-nome').value || '',
+                immagine_url: document.getElementById('f-immagine').value || '',
+                data_pubblicazione: document.getElementById('f-data').value || null,
                 possesso: document.getElementById('f-possesso').value,
-                valore: parseFloat(document.getElementById('f-valore').value),
-                condizione: parseInt(document.getElementById('f-condizione').value)
+                valore: parseFloat(document.getElementById('f-valore').value) || 0,
+                condizione: parseInt(document.getElementById('f-condizione').value) || 5
             };
 
-            let res;
-            if (id) {
-                res = await supabase.from('issue').update(payload).eq('id', id);
-            } else {
-                res = await supabase.from('issue').insert([payload]);
-            }
+            const { data, error } = id 
+                ? await supabase.from('issue').update(payload).eq('id', id).select().single()
+                : await supabase.from('issue').insert([payload]).select().single();
 
-            if (res.error) throw res.error;
-            
+            if (error) throw error;
             UI.MODAL_CLOSE();
             if (payload.serie_id) Logic.selectSerie(payload.serie_id);
-        } catch (e) { 
-            alert("Errore durante il salvataggio: " + e.message);
-            console.error("Salvataggio fallito:", e); 
-        }
+        } catch (e) { alert("Errore: " + e.message); }
     }
 };
