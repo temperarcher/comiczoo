@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.4.0
+ * VERSION: 1.4.1
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -9,7 +9,7 @@ import { publishers } from './ui/layout/publishers.js';
 import { series } from './ui/layout/series.js';
 import { issues } from './ui/layout/issues.js';
 import { modal } from './ui/layout/modal.js';
-import { form } from './ui/layout/form.js'; // Nuovo import
+import { form } from './ui/layout/form.js';
 
 export const UI = {
     ROOTS: sections,
@@ -27,13 +27,24 @@ export const UI = {
     MODAL_RIGHT_COL: modal.RIGHT_COL,
     MODAL_STORY_ITEM: modal.STORY_ITEM,
     MODAL_DETAIL_ROW: modal.DETAIL_ROW,
-    MODAL_FORM_WRAPPER: form.WRAPPER, // Nuova mappatura
-    MODAL_FORM_FIELD: form.FIELD_GROUP,
-    MODAL_FORM_SELECT: form.SELECT,
-    MODAL_FORM_INPUT: form.INPUT,
     MODAL_CLOSE: (e) => {
-        if(e) e.stopPropagation();
-        const modalRoot = document.getElementById('modal-root');
-        if(modalRoot) modalRoot.remove();
+        if (e && e.stopPropagation) e.stopPropagation();
+        const m = document.getElementById('modal-root');
+        if (m) m.innerHTML = '';
+    },
+    // ATOMI FORM
+    MODAL_FORM_WRAPPER: form.WRAPPER,
+    MODAL_FORM_FIELD: form.FIELD_GROUP,
+    MODAL_FORM_INPUT: form.INPUT,
+    MODAL_FORM_SELECT: form.SELECT,
+    MODAL_FORM_PREVIEW: form.PREVIEW,
+    UPDATE_PREVIEW: (url) => {
+        const img = document.getElementById('form-preview-img');
+        const placeholder = document.getElementById('preview-placeholder');
+        if (img) {
+            img.src = url;
+            img.classList.toggle('hidden', !url);
+        }
+        if (placeholder) placeholder.classList.toggle('hidden', !!url);
     }
 };
