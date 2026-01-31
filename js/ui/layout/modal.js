@@ -4,7 +4,6 @@
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
 export const modal = {
-    // ATOMO: Gestione pulsanti d'azione
     ACTIONS: (issueId) => `
         <div class="absolute top-4 right-4 flex gap-2">
             <button onclick="Logic.openEditForm('${issueId}')" class="bg-slate-800/80 hover:bg-yellow-500 hover:text-black text-white p-2 rounded-lg transition-all shadow-lg border border-slate-700" title="Modifica Albo">
@@ -19,7 +18,6 @@ export const modal = {
             </button>
         </div>`,
 
-    // ATOMO: Immagine copertina con proporzioni bloccate (2/3)
     COVER: (url) => `
         <div class="aspect-[2/3] w-full rounded-lg overflow-hidden border border-slate-800 shadow-2xl shrink-0">
             <img src="${url}" class="w-full h-full object-cover">
@@ -44,32 +42,18 @@ export const modal = {
             ${modal.COVER(issue.immagine_url)}
             <div>
                 <h3 class="text-[10px] font-black uppercase text-yellow-500 tracking-[0.2em] mb-4">Indice Storie</h3>
-                <div class="flex flex-col gap-3">
-                    ${storiesHtml}
-                </div>
+                <div class="flex flex-col gap-3">${storiesHtml}</div>
             </div>
         </div>`,
 
     RIGHT_COL: (header, rowsHtml) => `
         <div class="w-full md:w-3/5 p-8 bg-slate-900 flex flex-col overflow-y-auto modal-scroll-dark">
             <div class="mb-8 border-b border-slate-800 pb-6">
-                <div class="flex justify-between items-start">
-                    <div class="flex-grow">
-                        <h2 class="text-2xl font-black text-white leading-tight uppercase tracking-tight">${header.titolo}</h2>
-                        <p class="text-yellow-500 font-bold text-lg mt-1">${header.infoUscita}</p>
-                    </div>
-                    ${header.valore ? `
-                        <div class="text-right flex flex-col items-end">
-                            <span class="text-[9px] font-black uppercase text-slate-500 tracking-widest mb-1">Valore stimato</span>
-                            <span class="text-2xl font-black text-white leading-none">€ ${header.valore}</span>
-                        </div>
-                    ` : ''}
-                </div>
+                <h2 class="text-2xl font-black text-white leading-tight uppercase tracking-tight">${header.titolo}</h2>
+                <p class="text-yellow-500 font-bold text-lg mt-1">${header.infoUscita}</p>
                 ${header.infoSupplemento ? `<p class="text-slate-500 text-[11px] mt-2 italic uppercase tracking-wider">Supplemento a: ${header.infoSupplemento}</p>` : ''}
             </div>
-            <div class="flex flex-col gap-6">
-                ${rowsHtml}
-            </div>
+            <div class="flex flex-col gap-6">${rowsHtml}</div>
         </div>`,
 
     STORY_ITEM: (story) => `
@@ -95,7 +79,7 @@ export const modal = {
                 </div>
             ` : ''}
             <div class="flex flex-col flex-grow">
-                <div class="flex justify-between items-end mb-1">
+                <div class="flex justify-between items-center mb-1">
                     <span class="text-[9px] font-black uppercase text-slate-500 tracking-widest">${label}</span>
                     ${subValue ? `<div class="text-right">${subValue}</div>` : ''}
                 </div>
