@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.4.1
+ * VERSION: 1.4.4
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -38,6 +38,7 @@ export const UI = {
     MODAL_FORM_INPUT: form.INPUT,
     MODAL_FORM_SELECT: form.SELECT,
     MODAL_FORM_PREVIEW: form.PREVIEW,
+    MODAL_FORM_STORY_ROW: form.STORY_ROW,
     UPDATE_PREVIEW: (url) => {
         const img = document.getElementById('form-preview-img');
         const placeholder = document.getElementById('preview-placeholder');
