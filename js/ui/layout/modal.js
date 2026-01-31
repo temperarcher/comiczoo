@@ -53,8 +53,18 @@ export const modal = {
     RIGHT_COL: (header, rowsHtml) => `
         <div class="w-full md:w-3/5 p-8 bg-slate-900 flex flex-col overflow-y-auto modal-scroll-dark">
             <div class="mb-8 border-b border-slate-800 pb-6">
-                <h2 class="text-2xl font-black text-white leading-tight uppercase tracking-tight">${header.titolo}</h2>
-                <p class="text-yellow-500 font-bold text-lg mt-1">${header.infoUscita}</p>
+                <div class="flex justify-between items-start">
+                    <div class="flex-grow">
+                        <h2 class="text-2xl font-black text-white leading-tight uppercase tracking-tight">${header.titolo}</h2>
+                        <p class="text-yellow-500 font-bold text-lg mt-1">${header.infoUscita}</p>
+                    </div>
+                    ${header.valore ? `
+                        <div class="text-right flex flex-col items-end">
+                            <span class="text-[9px] font-black uppercase text-slate-500 tracking-widest mb-1">Valore stimato</span>
+                            <span class="text-2xl font-black text-white leading-none">€ ${header.valore}</span>
+                        </div>
+                    ` : ''}
+                </div>
                 ${header.infoSupplemento ? `<p class="text-slate-500 text-[11px] mt-2 italic uppercase tracking-wider">Supplemento a: ${header.infoSupplemento}</p>` : ''}
             </div>
             <div class="flex flex-col gap-6">
