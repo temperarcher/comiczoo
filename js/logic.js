@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.4.4
+ * VERSION: 1.4.5
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -10,8 +10,8 @@ import { UI } from './ui.js';
 export const Logic = {
     state: { 
         allSeries: [], 
-        allPublishers: [], // Questo ora conterrà i record della tabella 'editore'
-        lookups: { testate: [], annate: [], tipi: [], albi: [] }
+        allPublishers: [],
+        lookups: { testate: [], annate: [], tipi: [], albi: [], editori: [] }
     },
 
     refreshLookups: async () => {
@@ -21,7 +21,7 @@ export const Logic = {
                 supabase.from('annata').select('id, nome, serie_id'),
                 supabase.from('tipo_pubblicazione').select('id, nome'),
                 supabase.from('issue').select('id, numero, serie:serie_id(nome)').order('numero'),
-                supabase.from('editore').select('id, nome') // Lookup editori specifico
+                supabase.from('editore').select('id, nome')
             ]);
             Logic.state.lookups = {
                 testate: t.data || [],
@@ -55,10 +55,12 @@ export const Logic = {
 
     selectSerie: async (id) => {
         try {
+            // RIPRISTINATO ORDINAMENTO PER DATA E NUMERO
             const { data, error } = await supabase
                 .from('issue')
                 .select(`*, serie:serie_id(nome), testata:testata_id(nome), annata:annata_id(nome)`)
                 .eq('serie_id', id)
+                .order('data_pubblicazione', { ascending: true })
                 .order('numero', { ascending: true });
             if (error) throw error;
             Render.issues(data);
@@ -95,8 +97,6 @@ export const Logic = {
     openEditForm: async (id) => {
         await Logic.refreshLookups();
         const { data: issue } = await supabase.from('issue').select('*').eq('id', id).single();
-        
-        // Recupero storie per la lista nel form
         const { data: storieRel } = await supabase
             .from('storia_in_issue')
             .select(`posizione, storia:storia_id (nome)`)
