@@ -1,12 +1,12 @@
 /**
- * VERSION: 1.4.0
+ * VERSION: 1.4.1
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
 export const form = {
     WRAPPER: (title, content) => `
-        <div id="modal-overlay" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-            <div class="relative bg-slate-900 border border-slate-700 w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-xl shadow-2xl flex flex-col" onclick="event.stopPropagation()">
+        <div id="modal-overlay" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onclick="UI.MODAL_CLOSE(event)">
+            <div class="relative bg-slate-900 border border-slate-700 w-full max-w-4xl max-h-[95vh] overflow-hidden rounded-xl shadow-2xl flex flex-col" onclick="event.stopPropagation()">
                 <div class="p-6 border-b border-slate-800 flex justify-between items-center">
                     <h2 class="text-xl font-black text-white uppercase tracking-tight">${title}</h2>
                     <button onclick="UI.MODAL_CLOSE()" class="text-slate-500 hover:text-white">
@@ -14,7 +14,7 @@ export const form = {
                     </button>
                 </div>
                 <div class="p-6 overflow-y-auto modal-scroll-dark">
-                    <form id="issue-form" class="space-y-4">
+                    <form id="issue-form" onsubmit="return false;">
                         ${content}
                     </form>
                 </div>
@@ -32,11 +32,17 @@ export const form = {
         </div>`,
 
     SELECT: (id, options, selectedId = '') => `
-        <select id="${id}" class="bg-slate-800 border border-slate-700 text-white text-sm rounded-lg focus:ring-yellow-500 focus:border-yellow-500 block w-full p-2.5 outline-none">
+        <select id="${id}" class="bg-slate-800 border border-slate-700 text-white text-sm rounded-lg focus:ring-yellow-500 focus:border-yellow-500 block w-full p-2.5 outline-none transition-all">
             <option value="">Seleziona...</option>
             ${options.map(o => `<option value="${o.id}" ${o.id === selectedId ? 'selected' : ''}>${o.nome}</option>`).join('')}
         </select>`,
 
-    INPUT: (id, type, value = '', placeholder = '') => `
-        <input type="${type}" id="${id}" value="${value}" placeholder="${placeholder}" class="bg-slate-800 border border-slate-700 text-white text-sm rounded-lg focus:ring-yellow-500 focus:border-yellow-500 block w-full p-2.5 outline-none">`
+    INPUT: (id, type, value = '', placeholder = '', oninput = '') => `
+        <input type="${type}" id="${id}" value="${value}" placeholder="${placeholder}" oninput="${oninput}" class="bg-slate-800 border border-slate-700 text-white text-sm rounded-lg focus:ring-yellow-500 focus:border-yellow-500 block w-full p-2.5 outline-none transition-all">`,
+
+    PREVIEW: (url) => `
+        <div class="aspect-[2/3] w-full bg-slate-950 rounded-lg border-2 border-dashed border-slate-800 flex items-center justify-center overflow-hidden">
+            <img id="form-preview-img" src="${url || ''}" class="w-full h-full object-cover ${!url ? 'hidden' : ''}">
+            ${!url ? '<span id="preview-placeholder" class="text-slate-700 font-black uppercase text-[10px] tracking-widest">Nessuna Immagine</span>' : ''}
+        </div>`
 };
