@@ -5,6 +5,7 @@
  */
 import { supabase } from './supabase-client.js';
 import { Render } from './render.js';
+import { UI } from './ui.js';
 
 export const Logic = {
     state: { allSeries: [], allPublishers: [] },
