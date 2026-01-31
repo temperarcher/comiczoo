@@ -6,7 +6,7 @@
 import { UI } from './ui.js';
 
 export const Render = {
-    // ... (initLayout, publishers, series, issues restano invariati e vengono copiati integralmente)
+    // ... (initLayout, publishers, series, issues rimangono invariati rispetto alla versione fornita)
     initLayout: () => {
         window.UI = UI; 
         UI.ROOTS.APPLY_BODY_STYLE();
@@ -53,16 +53,16 @@ export const Render = {
         const header = {
             titolo: `${issue.serie?.nome || ''} ${issue.testata?.nome ? '- ' + issue.testata.nome : ''}`,
             infoUscita: `${issue.annata?.nome || ''} n°${issue.numero} del ${formatDate(issue.data_pubblicazione)}`,
-            infoSupplemento: supplementoStr ? supplementoStr : null
+            infoSupplemento: supplementoStr ? supplementoStr : null,
+            valore: issue.valore?.toFixed(2) || '0.00' // Valore passato all'header
         };
 
         const isManca = issue.possesso === 'manca';
         const statusBadge = `<span class="px-3 py-1 rounded text-[10px] font-black uppercase tracking-wider ${isManca ? 'bg-red-900/40 text-red-500 border border-red-900/50' : 'bg-green-600 text-white shadow-lg'}">${issue.possesso === 'celo' ? 'posseduto' : 'mancante'}</span>`;
-        const valSubValue = `<span class="text-[9px] font-black uppercase text-slate-500 tracking-widest mb-1">Valore</span><span class="text-xl font-light text-white leading-none">€ ${issue.valore?.toFixed(2) || '0.00'}</span>`;
 
         const rows = [
             UI.MODAL_DETAIL_ROW("Editore", issue.editore?.nome, issue.editore?.immagine_url, `<span class="text-[10px] font-mono text-slate-500">${issue.editore?.codice_editore?.nome || ''}</span>`),
-            UI.MODAL_DETAIL_ROW("Tipo Pubblicazione", issue.tipo?.nome || "Regolare", null, valSubValue),
+            UI.MODAL_DETAIL_ROW("Tipo Pubblicazione", issue.tipo?.nome || "Regolare", null, null), // ValSubValue rimosso da qui
             UI.MODAL_DETAIL_ROW("Stato Conservazione", `<div class="flex gap-1.5 mt-1">${UI.STARS(issue.condizione, 'w-8 h-8')}</div>`, null, statusBadge)
         ].join('');
 
@@ -78,7 +78,6 @@ export const Render = {
         if (overlay) overlay.onclick = (e) => UI.MODAL_CLOSE(e);
     },
 
-    // NUOVA FUNZIONE PER IL FORM
     form: (title, data, lookup) => {
         const fields = [
             UI.MODAL_FORM_FIELD("Serie", UI.MODAL_FORM_SELECT("f-serie", lookup.series, data?.serie_id)),
