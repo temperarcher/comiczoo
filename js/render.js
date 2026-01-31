@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.4.4
+ * VERSION: 1.4.6
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -54,13 +54,10 @@ export const Render = {
             infoUscita: `${issue.annata?.nome || ''} n°${issue.numero} del ${formatDate(issue.data_pubblicazione)}`,
             infoSupplemento: supplementoStr ? supplementoStr : null
         };
-        const isManca = issue.possesso === 'manca';
-        const statusBadge = `<span class="px-3 py-1 rounded text-[10px] font-black uppercase tracking-wider ${isManca ? 'bg-red-900/40 text-red-500 border border-red-900/50' : 'bg-green-600 text-white shadow-lg'}">${issue.possesso === 'celo' ? 'posseduto' : 'mancante'}</span>`;
-        const valSubValue = `<span class="text-xs font-black text-yellow-500">€ ${issue.valore?.toFixed(2) || '0.00'}</span>`;
         const rows = [
             UI.MODAL_DETAIL_ROW("Editore", issue.editore?.nome, issue.editore?.immagine_url, `<span class="text-[10px] font-mono text-slate-500">${issue.editore?.codice_editore?.nome || ''}</span>`),
-            UI.MODAL_DETAIL_ROW("Tipo Pubblicazione", issue.tipo?.nome || "Regolare", null, valSubValue),
-            UI.MODAL_DETAIL_ROW("Stato Conservazione", `<div class="flex gap-1.5 mt-1">${UI.STARS(issue.condizione, 'w-8 h-8')}</div>`, null, statusBadge)
+            UI.MODAL_DETAIL_ROW("Tipo Pubblicazione", issue.tipo?.nome || "Regolare", null, `<span class="text-xs font-black text-yellow-500">€ ${issue.valore?.toFixed(2) || '0.00'}</span>`),
+            UI.MODAL_DETAIL_ROW("Stato Conservazione", `<div class="flex gap-1.5 mt-1">${UI.STARS(issue.condizione, 'w-8 h-8')}</div>`, null, `<span class="px-3 py-1 rounded text-[10px] font-black uppercase tracking-wider ${issue.possesso === 'manca' ? 'bg-red-900/40 text-red-500 border border-red-900/50' : 'bg-green-600 text-white shadow-lg'}">${issue.possesso === 'celo' ? 'posseduto' : 'mancante'}</span>`)
         ].join('');
         const content = UI.MODAL_LEFT_COL(issue, storiesHtml) + UI.MODAL_RIGHT_COL(header, rows);
         let container = document.getElementById('modal-root');
@@ -78,30 +75,23 @@ export const Render = {
                 <div class="space-y-4">
                     ${UI.MODAL_FORM_PREVIEW(data?.immagine_url)}
                     ${UI.MODAL_FORM_FIELD("URL Immagine", UI.MODAL_FORM_INPUT("f-immagine", "text", data?.immagine_url || '', "https://...", "UI.UPDATE_PREVIEW(this.value)"))}
-                    
                     <div class="mt-6">
                         <label class="text-[10px] font-black uppercase text-yellow-500 tracking-widest mb-3 block">Storie Contenute</label>
-                        <div class="space-y-2 max-h-[250px] overflow-y-auto pr-2 modal-scroll-dark">
-                            ${storiesHtml}
-                        </div>
+                        <div class="space-y-2 max-h-[250px] overflow-y-auto pr-2 modal-scroll-dark">${storiesHtml}</div>
                     </div>
                 </div>
                 <div class="space-y-4">
                     ${UI.MODAL_FORM_FIELD("Serie", UI.MODAL_FORM_SELECT("f-serie", lookup.series, data?.serie_id))}
                     ${UI.MODAL_FORM_FIELD("Testata", UI.MODAL_FORM_SELECT("f-testata", lookup.testate, data?.testata_id))}
-                    
                     <div class="grid grid-cols-2 gap-4">
                         ${UI.MODAL_FORM_FIELD("Numero", UI.MODAL_FORM_INPUT("f-numero", "number", data?.numero || ''))}
                         ${UI.MODAL_FORM_FIELD("Annata", UI.MODAL_FORM_SELECT("f-annata", lookup.annate, data?.annata_id))}
                     </div>
-
                     ${UI.MODAL_FORM_FIELD("Titolo Albo", UI.MODAL_FORM_INPUT("f-nome", "text", data?.nome || ''))}
                     ${UI.MODAL_FORM_FIELD("Editore", UI.MODAL_FORM_SELECT("f-editore", lookup.editori, data?.editore_id))}
-                    
                     ${UI.MODAL_FORM_FIELD("Tipo Pubblicazione", UI.MODAL_FORM_SELECT("f-tipo", lookup.tipi, data?.tipo_pubblicazione_id))}
                     ${UI.MODAL_FORM_FIELD("Data Pubblicazione", UI.MODAL_FORM_INPUT("f-data", "date", data?.data_pubblicazione || ''))}
                     ${UI.MODAL_FORM_FIELD("Supplemento a", UI.MODAL_FORM_SELECT("f-supplemento", lookup.albi, data?.supplemento_id))}
-                    
                     <div class="grid grid-cols-3 gap-4">
                         ${UI.MODAL_FORM_FIELD("Possesso", UI.MODAL_FORM_SELECT("f-possesso", [{id:'celo', nome:'CELO'}, {id:'manca', nome:'MANCA'}], data?.possesso))}
                         ${UI.MODAL_FORM_FIELD("Valore (€)", UI.MODAL_FORM_INPUT("f-valore", "number", data?.valore || '0.00'))}
