@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.4.3
+ * VERSION: 1.4.4
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -15,7 +15,6 @@ export const Render = {
         if (headerContainer) headerContainer.innerHTML = UI.HEADER();
     },
 
-    // ... (publishers, series, issues, modal rimangono invariati rispetto alla v1.4.2 fornita)
     publishers: (data, activeId = null) => {
         const target = document.getElementById('ui-publisher-slot');
         if (!target) return;
@@ -69,26 +68,41 @@ export const Render = {
         container.innerHTML = UI.MODAL_WRAPPER(content, issue.id);
     },
 
-    form: (title, data, lookup) => {
+    form: (title, data, lookup, stories = []) => {
+        const storiesHtml = stories.length > 0 
+            ? stories.map(s => UI.MODAL_FORM_STORY_ROW(s.posizione, s.storia.nome)).join('')
+            : '<p class="text-[10px] text-slate-600 uppercase font-black p-4 text-center border border-dashed border-slate-800 rounded-lg">Nessuna storia caricata</p>';
+
         const fields = `
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div class="space-y-4">
                     ${UI.MODAL_FORM_PREVIEW(data?.immagine_url)}
                     ${UI.MODAL_FORM_FIELD("URL Immagine", UI.MODAL_FORM_INPUT("f-immagine", "text", data?.immagine_url || '', "https://...", "UI.UPDATE_PREVIEW(this.value)"))}
-                    ${UI.MODAL_FORM_FIELD("Titolo Albo", UI.MODAL_FORM_INPUT("f-nome", "text", data?.nome || ''))}
+                    
+                    <div class="mt-6">
+                        <label class="text-[10px] font-black uppercase text-yellow-500 tracking-widest mb-3 block">Storie Contenute</label>
+                        <div class="space-y-2 max-h-[250px] overflow-y-auto pr-2 modal-scroll-dark">
+                            ${storiesHtml}
+                        </div>
+                    </div>
                 </div>
                 <div class="space-y-4">
                     ${UI.MODAL_FORM_FIELD("Serie", UI.MODAL_FORM_SELECT("f-serie", lookup.series, data?.serie_id))}
                     ${UI.MODAL_FORM_FIELD("Testata", UI.MODAL_FORM_SELECT("f-testata", lookup.testate, data?.testata_id))}
-                    <div class="grid grid-cols-2 gap-2">
+                    
+                    <div class="grid grid-cols-2 gap-4">
                         ${UI.MODAL_FORM_FIELD("Numero", UI.MODAL_FORM_INPUT("f-numero", "number", data?.numero || ''))}
                         ${UI.MODAL_FORM_FIELD("Annata", UI.MODAL_FORM_SELECT("f-annata", lookup.annate, data?.annata_id))}
                     </div>
-                    ${UI.MODAL_FORM_FIELD("Editore", UI.MODAL_FORM_SELECT("f-editore", lookup.publishers, data?.editore_id))}
+
+                    ${UI.MODAL_FORM_FIELD("Titolo Albo", UI.MODAL_FORM_INPUT("f-nome", "text", data?.nome || ''))}
+                    ${UI.MODAL_FORM_FIELD("Editore", UI.MODAL_FORM_SELECT("f-editore", lookup.editori, data?.editore_id))}
+                    
                     ${UI.MODAL_FORM_FIELD("Tipo Pubblicazione", UI.MODAL_FORM_SELECT("f-tipo", lookup.tipi, data?.tipo_pubblicazione_id))}
                     ${UI.MODAL_FORM_FIELD("Data Pubblicazione", UI.MODAL_FORM_INPUT("f-data", "date", data?.data_pubblicazione || ''))}
                     ${UI.MODAL_FORM_FIELD("Supplemento a", UI.MODAL_FORM_SELECT("f-supplemento", lookup.albi, data?.supplemento_id))}
-                    <div class="grid grid-cols-3 gap-2">
+                    
+                    <div class="grid grid-cols-3 gap-4">
                         ${UI.MODAL_FORM_FIELD("Possesso", UI.MODAL_FORM_SELECT("f-possesso", [{id:'celo', nome:'CELO'}, {id:'manca', nome:'MANCA'}], data?.possesso))}
                         ${UI.MODAL_FORM_FIELD("Valore (€)", UI.MODAL_FORM_INPUT("f-valore", "number", data?.valore || '0.00'))}
                         ${UI.MODAL_FORM_FIELD("Stato", UI.MODAL_FORM_INPUT("f-condizione", "number", data?.condizione || '5'))}
@@ -96,11 +110,9 @@ export const Render = {
                 </div>
             </div>
         `;
-
         let container = document.getElementById('modal-root');
         if (!container) { container = document.createElement('div'); container.id = 'modal-root'; document.body.appendChild(container); }
         container.innerHTML = UI.MODAL_FORM_WRAPPER(title, fields);
-
         const saveBtn = document.getElementById('save-issue-btn');
         if (saveBtn) saveBtn.onclick = () => Logic.saveIssue(data?.id || null);
     }
