@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.3.8
+ * VERSION: 1.4.4
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -10,26 +10,27 @@ import { UI } from './ui.js';
 export const Logic = {
     state: { 
         allSeries: [], 
-        allPublishers: [],
+        allPublishers: [], // Questo ora conterrà i record della tabella 'editore'
         lookups: { testate: [], annate: [], tipi: [], albi: [] }
     },
 
-    // Carica tutti i dati necessari per le select del form
     refreshLookups: async () => {
         try {
-            const [t, a, tp, alb] = await Promise.all([
+            const [t, a, tp, alb, ed] = await Promise.all([
                 supabase.from('testata').select('id, nome, serie_id'),
                 supabase.from('annata').select('id, nome, serie_id'),
                 supabase.from('tipo_pubblicazione').select('id, nome'),
-                supabase.from('issue').select('id, numero, serie:serie_id(nome)').order('numero')
+                supabase.from('issue').select('id, numero, serie:serie_id(nome)').order('numero'),
+                supabase.from('editore').select('id, nome') // Lookup editori specifico
             ]);
             Logic.state.lookups = {
                 testate: t.data || [],
                 annate: a.data || [],
                 tipi: tp.data || [],
-                albi: (alb.data || []).map(x => ({ id: x.id, nome: `${x.serie.nome} n°${x.numero}` }))
+                albi: (alb.data || []).map(x => ({ id: x.id, nome: `${x.serie?.nome || 'Serie Ignota'} n°${x.numero}` })),
+                editori: ed.data || []
             };
-        } catch (e) { console.error("Errore caricamento lookup:", e); }
+        } catch (e) { console.error("Errore lookup:", e); }
     },
 
     selectCodice: async (id) => {
@@ -42,9 +43,7 @@ export const Logic = {
             const filteredSeries = Logic.state.allSeries.filter(s => serieIds.includes(s.id));
             Render.publishers(Logic.state.allPublishers, id);
             Render.series(filteredSeries);
-            const mainRoot = document.getElementById('ui-main-root');
-            if(mainRoot) mainRoot.innerHTML = '';
-        } catch (e) { console.error("Filtro Codice fallito:", e.message); }
+        } catch (e) { console.error("Filtro Codice fallito:", e); }
     },
 
     resetAllFilters: () => {
@@ -54,25 +53,24 @@ export const Logic = {
         if(mainRoot) mainRoot.innerHTML = '';
     },
 
-    selectSerie: async (id, nome) => {
+    selectSerie: async (id) => {
         try {
             const { data, error } = await supabase
                 .from('issue')
                 .select(`*, serie:serie_id(nome), testata:testata_id(nome), annata:annata_id(nome)`)
                 .eq('serie_id', id)
-                .order('data_pubblicazione', { ascending: true, nullsFirst: false });
+                .order('numero', { ascending: true });
             if (error) throw error;
             Render.issues(data);
-        } catch (e) { console.error("Errore griglia albi:", e.message); }
+        } catch (e) { console.error("Errore griglia albi:", e); }
     },
 
     openIssueDetail: async (id) => {
         try {
-            const { data: issue, error } = await supabase
+            const { data: issue } = await supabase
                 .from('issue')
                 .select(`*, serie:serie_id(*), testata:testata_id(*), annata:annata_id(*), editore:editore_id(*, codice_editore:codice_editore_id(*)), tipo:tipo_pubblicazione_id(*)`)
                 .eq('id', id).single();
-            if (error) throw error;
 
             const { data: storieRel } = await supabase
                 .from('storia_in_issue')
@@ -87,30 +85,35 @@ export const Logic = {
 
             let supplementoStr = null;
             if (issue.supplemento_id) {
-                const { data: supp } = await supabase.from('issue').select('numero, data_pubblicazione, serie:serie_id(nome)').eq('id', issue.supplemento_id).single();
-                if (supp) supplementoStr = `${supp.serie.nome} n°${supp.numero} del ${new Date(supp.data_pubblicazione).toLocaleDateString('it-IT')}`;
+                const { data: supp } = await supabase.from('issue').select('numero, serie:serie_id(nome)').eq('id', issue.supplemento_id).single();
+                if (supp) supplementoStr = `${supp.serie.nome} n°${supp.numero}`;
             }
             Render.modal(issue, storiesFormatted, supplementoStr);
-        } catch (e) { console.error("Errore dettaglio modale:", e.message); }
+        } catch (e) { console.error("Dettaglio fallito:", e); }
     },
 
     openEditForm: async (id) => {
         await Logic.refreshLookups();
         const { data: issue } = await supabase.from('issue').select('*').eq('id', id).single();
+        
+        // Recupero storie per la lista nel form
+        const { data: storieRel } = await supabase
+            .from('storia_in_issue')
+            .select(`posizione, storia:storia_id (nome)`)
+            .eq('issue_id', id).order('posizione');
+
         Render.form("Modifica Albo", issue, {
             series: Logic.state.allSeries,
-            publishers: Logic.state.allPublishers,
             ...Logic.state.lookups
-        });
+        }, storieRel || []);
     },
 
     openNewForm: async () => {
         await Logic.refreshLookups();
         Render.form("Nuovo Albo", null, {
             series: Logic.state.allSeries,
-            publishers: Logic.state.allPublishers,
             ...Logic.state.lookups
-        });
+        }, []);
     },
 
     saveIssue: async (id = null) => {
@@ -131,9 +134,9 @@ export const Logic = {
                 condizione: parseInt(document.getElementById('f-condizione').value) || 5
             };
 
-            const { data, error } = id 
-                ? await supabase.from('issue').update(payload).eq('id', id).select().single()
-                : await supabase.from('issue').insert([payload]).select().single();
+            const { error } = id 
+                ? await supabase.from('issue').update(payload).eq('id', id)
+                : await supabase.from('issue').insert([payload]);
 
             if (error) throw error;
             UI.MODAL_CLOSE();
