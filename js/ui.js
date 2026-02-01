@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.4.6 
+ * VERSION: 1.4.8
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -32,19 +32,39 @@ export const UI = {
         const m = document.getElementById('modal-root');
         if (m) m.innerHTML = '';
     },
+    // ATOMI FORM
     MODAL_FORM_WRAPPER: form.WRAPPER,
     MODAL_FORM_FIELD: form.FIELD_GROUP,
     MODAL_FORM_INPUT: form.INPUT,
     MODAL_FORM_SELECT: form.SELECT,
     MODAL_FORM_PREVIEW: form.PREVIEW,
     MODAL_FORM_STORY_ROW: form.STORY_ROW,
+    MODAL_FORM_STARS: form.STARS_PICKER,
+
+    SET_FORM_STARS: (rating) => {
+        const input = document.getElementById('f-condizione');
+        if (input) input.value = rating === 0 ? "" : rating;
+        
+        document.querySelectorAll('[data-star]').forEach(star => {
+            const val = parseInt(star.getAttribute('data-star'));
+            if (val <= rating && rating > 0) {
+                star.classList.remove('text-slate-800', 'text-slate-600');
+                star.classList.add('text-yellow-500');
+            } else {
+                star.classList.remove('text-yellow-500');
+                star.classList.add('text-slate-800');
+            }
+        });
+    },
+
     UPDATE_PREVIEW: (url) => {
         const img = document.getElementById('form-preview-img');
         const placeholder = document.getElementById('preview-placeholder');
-        if (img) {
-            img.src = url;
-            img.classList.toggle('hidden', !url);
-        }
+        if (img) { img.src = url; img.classList.toggle('hidden', !url); }
         if (placeholder) placeholder.classList.toggle('hidden', !!url);
+    },
+    
+    HANDLE_POSSESSO_CHANGE: (val) => {
+        if (val === 'manca') UI.SET_FORM_STARS(0);
     }
 };
