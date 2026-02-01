@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.4.6
+ * VERSION: 1.4.7
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -117,17 +117,22 @@ export const Logic = {
 
     saveIssue: async (id = null) => {
         try {
+            const getValue = (id) => {
+                const val = document.getElementById(id).value;
+                return val === "" ? null : val;
+            };
+
             const payload = {
-                serie_id: document.getElementById('f-serie').value || null,
-                testata_id: document.getElementById('f-testata').value || null,
-                annata_id: document.getElementById('f-annata').value || null,
-                tipo_pubblicazione_id: document.getElementById('f-tipo').value || null,
-                editore_id: document.getElementById('f-editore').value || null,
-                supplemento_id: document.getElementById('f-supplemento').value || null,
+                serie_id: getValue('f-serie'),
+                testata_id: getValue('f-testata'),
+                annata_id: getValue('f-annata'),
+                tipo_pubblicazione_id: getValue('f-tipo'),
+                editore_id: getValue('f-editore'),
+                supplemento_id: getValue('f-supplemento'),
                 numero: parseInt(document.getElementById('f-numero').value) || 0,
                 nome: document.getElementById('f-nome').value || '',
                 immagine_url: document.getElementById('f-immagine').value || '',
-                data_pubblicazione: document.getElementById('f-data').value || null,
+                data_pubblicazione: getValue('f-data'),
                 possesso: document.getElementById('f-possesso').value,
                 valore: parseFloat(document.getElementById('f-valore').value) || 0,
                 condizione: parseInt(document.getElementById('f-condizione').value) || 5
@@ -140,6 +145,9 @@ export const Logic = {
             if (error) throw error;
             UI.MODAL_CLOSE();
             if (payload.serie_id) Logic.selectSerie(payload.serie_id);
-        } catch (e) { alert("Errore: " + e.message); }
+        } catch (e) { 
+            console.error("Errore Supabase:", e);
+            alert("Errore durante il salvataggio. Controlla la console per i dettagli."); 
+        }
     }
 };
