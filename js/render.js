@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.4.6
+ * VERSION: 1.4.8
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -82,7 +82,7 @@ export const Render = {
                 </div>
                 <div class="space-y-4">
                     ${UI.MODAL_FORM_FIELD("Serie", UI.MODAL_FORM_SELECT("f-serie", lookup.series, data?.serie_id))}
-                    ${UI.MODAL_FORM_FIELD("Testata", UI.MODAL_FORM_SELECT("f-testata", lookup.testate, data?.testata_id))}
+                    ${UI.MODAL_FORM_FIELD("Testata", UI.MODAL_FORM_SELECT("f-testate", lookup.testate, data?.testata_id))}
                     <div class="grid grid-cols-2 gap-4">
                         ${UI.MODAL_FORM_FIELD("Numero", UI.MODAL_FORM_INPUT("f-numero", "number", data?.numero || ''))}
                         ${UI.MODAL_FORM_FIELD("Annata", UI.MODAL_FORM_SELECT("f-annata", lookup.annate, data?.annata_id))}
@@ -93,9 +93,9 @@ export const Render = {
                     ${UI.MODAL_FORM_FIELD("Data Pubblicazione", UI.MODAL_FORM_INPUT("f-data", "date", data?.data_pubblicazione || ''))}
                     ${UI.MODAL_FORM_FIELD("Supplemento a", UI.MODAL_FORM_SELECT("f-supplemento", lookup.albi, data?.supplemento_id))}
                     <div class="grid grid-cols-3 gap-4">
-                        ${UI.MODAL_FORM_FIELD("Possesso", UI.MODAL_FORM_SELECT("f-possesso", [{id:'celo', nome:'CELO'}, {id:'manca', nome:'MANCA'}], data?.possesso))}
+                        ${UI.MODAL_FORM_FIELD("Possesso", UI.MODAL_FORM_SELECT("f-possesso", [{id:'celo', nome:'CELO'}, {id:'manca', nome:'MANCA'}], data?.possesso, "UI.HANDLE_POSSESSO_CHANGE(this.value)"))}
                         ${UI.MODAL_FORM_FIELD("Valore (€)", UI.MODAL_FORM_INPUT("f-valore", "number", data?.valore || '0.00'))}
-                        ${UI.MODAL_FORM_FIELD("Stato", UI.MODAL_FORM_INPUT("f-condizione", "number", data?.condizione || '5'))}
+                        ${UI.MODAL_FORM_FIELD("Stato Conservazione", UI.MODAL_FORM_STARS(data?.condizione))}
                     </div>
                 </div>
             </div>
