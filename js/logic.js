@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.4.7
+ * VERSION: 1.4.8
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -122,6 +122,9 @@ export const Logic = {
                 return val === "" ? null : val;
             };
 
+            const possesso = document.getElementById('f-possesso').value;
+            const ratingInput = document.getElementById('f-condizione').value;
+
             const payload = {
                 serie_id: getValue('f-serie'),
                 testata_id: getValue('f-testata'),
@@ -133,9 +136,9 @@ export const Logic = {
                 nome: document.getElementById('f-nome').value || '',
                 immagine_url: document.getElementById('f-immagine').value || '',
                 data_pubblicazione: getValue('f-data'),
-                possesso: document.getElementById('f-possesso').value,
+                possesso: possesso,
                 valore: parseFloat(document.getElementById('f-valore').value) || 0,
-                condizione: parseInt(document.getElementById('f-condizione').value) || 5
+                condizione: possesso === 'manca' ? null : (parseInt(ratingInput) || null)
             };
 
             const { error } = id 
@@ -147,7 +150,7 @@ export const Logic = {
             if (payload.serie_id) Logic.selectSerie(payload.serie_id);
         } catch (e) { 
             console.error("Errore Supabase:", e);
-            alert("Errore durante il salvataggio. Controlla la console per i dettagli."); 
+            alert("Errore durante il salvataggio."); 
         }
     }
 };
