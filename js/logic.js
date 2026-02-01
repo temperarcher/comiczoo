@@ -3,107 +3,154 @@
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
+import { supabase } from './supabase-client.js';
+import { Render } from './render.js';
 import { UI } from './ui.js';
-import { Logic } from './logic.js';
 
-export const Render = {
-    initLayout: () => {
-        window.UI = UI; window.Logic = Logic;
-        UI.ROOTS.APPLY_BODY_STYLE();
-        document.body.innerHTML = UI.ROOTS.HEADER_SLOT() + UI.ROOTS.PUBLISHER_SLOT() + UI.ROOTS.SERIES_SLOT() + UI.ROOTS.MAIN_ROOT();
-        const headerContainer = document.getElementById('ui-header-slot');
-        if (headerContainer) headerContainer.innerHTML = UI.HEADER();
+export const Logic = {
+    state: { 
+        allSeries: [], 
+        allPublishers: [],
+        lookups: { testate: [], annate: [], tipi: [], albi: [], editori: [] }
     },
 
-    publishers: (data, activeId = null) => {
-        const target = document.getElementById('ui-publisher-slot');
-        if (!target) return;
-        const content = UI.ALL_PUBLISHERS_BUTTON(!activeId) + data.map(p => UI.PUBLISHER_PILL(p)).join('');
-        target.innerHTML = UI.PUBLISHER_SECTION(content);
-        if(activeId) {
-            document.querySelectorAll('.codice-item').forEach(el => el.classList.remove('active', 'border-yellow-500'));
-            const activeEl = document.getElementById(`codice-${activeId}`);
-            if(activeEl) activeEl.classList.add('active', 'border-yellow-500');
+    refreshLookups: async () => {
+        try {
+            const [t, a, tp, alb, ed] = await Promise.all([
+                supabase.from('testata').select('id, nome, serie_id'),
+                supabase.from('annata').select('id, nome, serie_id'),
+                supabase.from('tipo_pubblicazione').select('id, nome'),
+                supabase.from('issue').select('id, numero, serie:serie_id(nome)').order('numero'),
+                supabase.from('editore').select('id, nome')
+            ]);
+            Logic.state.lookups = {
+                testate: t.data || [],
+                annate: a.data || [],
+                tipi: tp.data || [],
+                albi: (alb.data || []).map(x => ({ id: x.id, nome: `${x.serie?.nome || 'Serie Ignota'} n°${x.numero}` })),
+                editori: ed.data || []
+            };
+        } catch (e) { console.error("Errore lookup:", e); }
+    },
+
+    selectCodice: async (id) => {
+        try {
+            const { data: editori } = await supabase.from('editore').select('id').eq('codice_editore_id', id);
+            if (!editori || editori.length === 0) return Render.series([]);
+            const editoreIds = editori.map(e => e.id);
+            const { data: issues } = await supabase.from('issue').select('serie_id').in('editore_id', editoreIds);
+            const serieIds = [...new Set(issues.map(i => i.serie_id))];
+            const filteredSeries = Logic.state.allSeries.filter(s => serieIds.includes(s.id));
+            Render.publishers(Logic.state.allPublishers, id);
+            Render.series(filteredSeries);
+        } catch (e) { console.error("Filtro Codice fallito:", e); }
+    },
+
+    resetAllFilters: () => {
+        Render.publishers(Logic.state.allPublishers, null);
+        Render.series(Logic.state.allSeries);
+        const mainRoot = document.getElementById('ui-main-root');
+        if(mainRoot) mainRoot.innerHTML = '';
+    },
+
+    selectSerie: async (id) => {
+        try {
+            const { data, error } = await supabase
+                .from('issue')
+                .select(`*, serie:serie_id(nome), testata:testata_id(nome), annata:annata_id(nome)`)
+                .eq('serie_id', id)
+                .order('data_pubblicazione', { ascending: true })
+                .order('numero', { ascending: true });
+            if (error) throw error;
+            Render.issues(data);
+        } catch (e) { console.error("Errore griglia albi:", e); }
+    },
+
+    openIssueDetail: async (id) => {
+        try {
+            const { data: issue } = await supabase
+                .from('issue')
+                .select(`*, serie:serie_id(*), testata:testata_id(*), annata:annata_id(*), editore:editore_id(*, codice_editore:codice_editore_id(*)), tipo:tipo_pubblicazione_id(*)`)
+                .eq('id', id).single();
+
+            const { data: storieRel } = await supabase
+                .from('storia_in_issue')
+                .select(`posizione, storia:storia_id (id, nome, personaggi:personaggio_storia (personaggio:personaggio_id (nome, immagine_url))))`)
+                .eq('issue_id', id).order('posizione');
+
+            const storiesFormatted = (storieRel || []).map(s => ({
+                posizione: s.posizione,
+                nome: s.storia.nome,
+                personaggi: s.storia.personaggi.map(p => p.personaggio)
+            }));
+
+            let supplementoStr = null;
+            if (issue.supplemento_id) {
+                const { data: supp } = await supabase.from('issue').select('numero, serie:serie_id(nome)').eq('id', issue.supplemento_id).single();
+                if (supp) supplementoStr = `${supp.serie.nome} n°${supp.numero}`;
+            }
+            Render.modal(issue, storiesFormatted, supplementoStr);
+        } catch (e) { console.error("Dettaglio fallito:", e); }
+    },
+
+    openEditForm: async (id) => {
+        await Logic.refreshLookups();
+        const { data: issue } = await supabase.from('issue').select('*').eq('id', id).single();
+        const { data: storieRel } = await supabase
+            .from('storia_in_issue')
+            .select(`posizione, storia:storia_id (nome)`)
+            .eq('issue_id', id).order('posizione');
+
+        Render.form("Modifica Albo", issue, {
+            series: Logic.state.allSeries,
+            ...Logic.state.lookups
+        }, storieRel || []);
+    },
+
+    openNewForm: async () => {
+        await Logic.refreshLookups();
+        Render.form("Nuovo Albo", null, {
+            series: Logic.state.allSeries,
+            ...Logic.state.lookups
+        }, []);
+    },
+
+    saveIssue: async (id = null) => {
+        try {
+            const getValue = (id) => {
+                const val = document.getElementById(id).value;
+                return val === "" ? null : val;
+            };
+
+            const possesso = document.getElementById('f-possesso').value;
+            const ratingInput = document.getElementById('f-condizione').value;
+
+            const payload = {
+                serie_id: getValue('f-serie'),
+                testata_id: getValue('f-testata'),
+                annata_id: getValue('f-annata'),
+                tipo_pubblicazione_id: getValue('f-tipo'),
+                editore_id: getValue('f-editore'),
+                supplemento_id: getValue('f-supplemento'),
+                numero: parseInt(document.getElementById('f-numero').value) || 0,
+                nome: document.getElementById('f-nome').value || '',
+                immagine_url: document.getElementById('f-immagine').value || '',
+                data_pubblicazione: getValue('f-data'),
+                possesso: possesso,
+                valore: parseFloat(document.getElementById('f-valore').value) || 0,
+                condizione: possesso === 'manca' ? null : (parseInt(ratingInput) || null)
+            };
+
+            const { error } = id 
+                ? await supabase.from('issue').update(payload).eq('id', id)
+                : await supabase.from('issue').insert([payload]);
+
+            if (error) throw error;
+            UI.MODAL_CLOSE();
+            if (payload.serie_id) Logic.selectSerie(payload.serie_id);
+        } catch (e) { 
+            console.error("Errore Supabase:", e);
+            alert("Errore durante il salvataggio."); 
         }
-    },
-
-    series: (data) => {
-        const target = document.getElementById('ui-series-slot');
-        if (!target) return;
-        const content = data.map(s => UI.SERIES_CARD(s)).join('');
-        target.innerHTML = UI.SERIES_SECTION(content);
-    },
-
-    issues: (data) => {
-        const target = document.getElementById('ui-main-root');
-        if (!target) return;
-        if (!data || data.length === 0) {
-            target.innerHTML = '<div class="p-10 text-center text-slate-500">Nessun albo trovato.</div>';
-            return;
-        }
-        const content = data.map(i => UI.ISSUES_CARD(i)).join('');
-        target.innerHTML = UI.ISSUES_SECTION(content);
-        target.scrollIntoView({ behavior: 'smooth' });
-    },
-
-    modal: (issue, stories, supplementoStr) => {
-        const storiesHtml = stories.map(s => UI.MODAL_STORY_ITEM(s)).join('');
-        const formatDate = (dateStr) => { if (!dateStr) return 'N/D'; return new Date(dateStr).toLocaleDateString('it-IT'); };
-        const header = {
-            titolo: `${issue.serie?.nome || ''} ${issue.testata?.nome ? '- ' + issue.testata.nome : ''}`,
-            infoUscita: `${issue.annata?.nome || ''} n°${issue.numero} del ${formatDate(issue.data_pubblicazione)}`,
-            infoSupplemento: supplementoStr ? supplementoStr : null
-        };
-        const rows = [
-            UI.MODAL_DETAIL_ROW("Editore", issue.editore?.nome, issue.editore?.immagine_url, `<span class="text-[10px] font-mono text-slate-500">${issue.editore?.codice_editore?.nome || ''}</span>`),
-            UI.MODAL_DETAIL_ROW("Tipo Pubblicazione", issue.tipo?.nome || "Regolare", null, `<span class="text-xs font-black text-yellow-500">€ ${issue.valore?.toFixed(2) || '0.00'}</span>`),
-            UI.MODAL_DETAIL_ROW("Stato Conservazione", `<div class="flex gap-1.5 mt-1">${UI.STARS(issue.condizione, 'w-8 h-8')}</div>`, null, `<span class="px-3 py-1 rounded text-[10px] font-black uppercase tracking-wider ${issue.possesso === 'manca' ? 'bg-red-900/40 text-red-500 border border-red-900/50' : 'bg-green-600 text-white shadow-lg'}">${issue.possesso === 'celo' ? 'posseduto' : 'mancante'}</span>`)
-        ].join('');
-        const content = UI.MODAL_LEFT_COL(issue, storiesHtml) + UI.MODAL_RIGHT_COL(header, rows);
-        let container = document.getElementById('modal-root');
-        if (!container) { container = document.createElement('div'); container.id = 'modal-root'; document.body.appendChild(container); }
-        container.innerHTML = UI.MODAL_WRAPPER(content, issue.id);
-    },
-
-    form: (title, data, lookup, stories = []) => {
-        const storiesHtml = stories.length > 0 
-            ? stories.map(s => UI.MODAL_FORM_STORY_ROW(s.posizione, s.storia.nome)).join('')
-            : '<p class="text-[10px] text-slate-600 uppercase font-black p-4 text-center border border-dashed border-slate-800 rounded-lg">Nessuna storia caricata</p>';
-
-        const fields = `
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div class="space-y-4">
-                    ${UI.MODAL_FORM_PREVIEW(data?.immagine_url)}
-                    ${UI.MODAL_FORM_FIELD("URL Immagine", UI.MODAL_FORM_INPUT("f-immagine", "text", data?.immagine_url || '', "https://...", "UI.UPDATE_PREVIEW(this.value)"))}
-                    <div class="mt-6">
-                        <label class="text-[10px] font-black uppercase text-yellow-500 tracking-widest mb-3 block">Storie Contenute</label>
-                        <div class="space-y-2 max-h-[250px] overflow-y-auto pr-2 modal-scroll-dark">${storiesHtml}</div>
-                    </div>
-                </div>
-                <div class="space-y-4">
-                    ${UI.MODAL_FORM_FIELD("Serie", UI.MODAL_FORM_SELECT("f-serie", lookup.series, data?.serie_id))}
-                    ${UI.MODAL_FORM_FIELD("Testata", UI.MODAL_FORM_SELECT("f-testate", lookup.testate, data?.testata_id))}
-                    <div class="grid grid-cols-2 gap-4">
-                        ${UI.MODAL_FORM_FIELD("Numero", UI.MODAL_FORM_INPUT("f-numero", "number", data?.numero || ''))}
-                        ${UI.MODAL_FORM_FIELD("Annata", UI.MODAL_FORM_SELECT("f-annata", lookup.annate, data?.annata_id))}
-                    </div>
-                    ${UI.MODAL_FORM_FIELD("Titolo Albo", UI.MODAL_FORM_INPUT("f-nome", "text", data?.nome || ''))}
-                    ${UI.MODAL_FORM_FIELD("Editore", UI.MODAL_FORM_SELECT("f-editore", lookup.editori, data?.editore_id))}
-                    ${UI.MODAL_FORM_FIELD("Tipo Pubblicazione", UI.MODAL_FORM_SELECT("f-tipo", lookup.tipi, data?.tipo_pubblicazione_id))}
-                    ${UI.MODAL_FORM_FIELD("Data Pubblicazione", UI.MODAL_FORM_INPUT("f-data", "date", data?.data_pubblicazione || ''))}
-                    ${UI.MODAL_FORM_FIELD("Supplemento a", UI.MODAL_FORM_SELECT("f-supplemento", lookup.albi, data?.supplemento_id))}
-                    <div class="grid grid-cols-3 gap-4">
-                        ${UI.MODAL_FORM_FIELD("Possesso", UI.MODAL_FORM_SELECT("f-possesso", [{id:'celo', nome:'CELO'}, {id:'manca', nome:'MANCA'}], data?.possesso, "UI.HANDLE_POSSESSO_CHANGE(this.value)"))}
-                        ${UI.MODAL_FORM_FIELD("Valore (€)", UI.MODAL_FORM_INPUT("f-valore", "number", data?.valore || '0.00'))}
-                        ${UI.MODAL_FORM_FIELD("Stato Conservazione", UI.MODAL_FORM_STARS(data?.condizione))}
-                    </div>
-                </div>
-            </div>
-        `;
-        let container = document.getElementById('modal-root');
-        if (!container) { container = document.createElement('div'); container.id = 'modal-root'; document.body.appendChild(container); }
-        container.innerHTML = UI.MODAL_FORM_WRAPPER(title, fields);
-        const saveBtn = document.getElementById('save-issue-btn');
-        if (saveBtn) saveBtn.onclick = () => Logic.saveIssue(data?.id || null);
     }
 };
