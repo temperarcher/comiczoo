@@ -1,48 +1,28 @@
 /**
- * VERSION: 1.3.6
- * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
- * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
+ * VERSION: 1.0.1
+ * PROTOCOLLO DI INTEGRITÀ: VIETATA LA SEMPLIFICAZIONE.
  */
-import { Render } from './render.js';
-import { supabase } from './supabase-client.js';
-import { Logic } from './logic.js';
+import { Layout } from './ui/layout-engine.js';
+import { Api } from './logic/api-orchestrator.js';
+import { State } from './logic/state.js';
 
-async function initApp() {
-    try {
-        Render.initLayout();
+async function bootstrap() {
+    // 1. Costruisce l'HTML di base nel body
+    Layout.buildBaseStructure();
 
-        const { data: publishers, error: pError } = await supabase
-            .from('codice_editore')
-            .select('*')
-            .order('nome');
-        if (pError) throw pError;
-        
-        const { data: series, error: sError } = await supabase
-            .from('serie')
-            .select('*')
-            .order('nome');
-        if (sError) throw sError;
+    // 2. Recupera i dati iniziali
+    const [series, publishers] = await Promise.all([
+        Api.Series.getAll(),
+        Api.Publishers.getAll()
+    ]);
 
-        Logic.state.allPublishers = publishers || [];
-        Logic.state.allSeries = series || [];
+    // 3. Popola lo stato
+    State.allSeries = series;
+    State.allPublishers = publishers;
 
-        window.selectCodice = Logic.selectCodice;
-        window.resetAllFilters = Logic.resetAllFilters;
-        window.selectSerie = Logic.selectSerie;
-        
-        // Esposizione per il modale dettagli come richiesto dal protocollo
-        window.selectSerieDetail = Logic.openIssueDetail;
-        window.closeModal = () => {
-            const m = document.getElementById('modal-root');
-            if(m) m.innerHTML = '';
-        };
-
-        Render.publishers(publishers || []);
-        Render.series(series || []);
-
-        console.log("Sistema v1.1.9 Pronto - Griglia Albi (Album Figurine) e Modale Dettagli Attivi.");
-    } catch (e) {
-        console.error("Errore Inizializzazione:", e.message);
-    }
+    // 4. Renderizza i componenti iniziali
+    Layout.renderPublishers(publishers);
+    Layout.renderSeries(series);
 }
-document.addEventListener('DOMContentLoaded', initApp);
+
+document.addEventListener('DOMContentLoaded', bootstrap);
