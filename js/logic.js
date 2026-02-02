@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.4.8
+ * VERSION: 1.4.9
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -27,92 +27,94 @@ export const Logic = {
                 testate: t.data || [],
                 annate: a.data || [],
                 tipi: tp.data || [],
-                albi: (alb.data || []).map(x => ({ id: x.id, nome: `${x.serie?.nome || 'Serie Ignota'} n°${x.numero}` })),
+                albi: (alb.data || []).map(x => ({ id: x.id, nome: `${x.serie?.nome} n°${x.numero}` })),
                 editori: ed.data || []
             };
         } catch (e) { console.error("Errore lookup:", e); }
     },
 
-    selectCodice: async (id) => {
+    fetchAllData: async () => {
         try {
-            const { data: editori } = await supabase.from('editore').select('id').eq('codice_editore_id', id);
-            if (!editori || editori.length === 0) return Render.series([]);
-            const editoreIds = editori.map(e => e.id);
-            const { data: issues } = await supabase.from('issue').select('serie_id').in('editore_id', editoreIds);
-            const serieIds = [...new Set(issues.map(i => i.serie_id))];
-            const filteredSeries = Logic.state.allSeries.filter(s => serieIds.includes(s.id));
-            Render.publishers(Logic.state.allPublishers, id);
-            Render.series(filteredSeries);
-        } catch (e) { console.error("Filtro Codice fallito:", e); }
+            const [s, p] = await Promise.all([
+                supabase.from('serie').select('*').order('nome'),
+                supabase.from('editore').select('*, codice_editore:codice_editore_id(nome)').order('nome')
+            ]);
+            Logic.state.allSeries = s.data || [];
+            Logic.state.allPublishers = p.data || [];
+            Render.publishers(Logic.state.allPublishers);
+            Render.series(Logic.state.allSeries);
+        } catch (e) { console.error("Errore fetch:", e); }
     },
 
-    resetAllFilters: () => {
-        Render.publishers(Logic.state.allPublishers, null);
-        Render.series(Logic.state.allSeries);
-        const mainRoot = document.getElementById('ui-main-root');
-        if(mainRoot) mainRoot.innerHTML = '';
+    filterByPublisher: (publisherId) => {
+        const filtered = publisherId 
+            ? Logic.state.allSeries.filter(s => s.editore_id === publisherId)
+            : Logic.state.allSeries;
+        Render.series(filtered);
+        Render.publishers(Logic.state.allPublishers, publisherId);
     },
 
-    selectSerie: async (id) => {
+    selectSerie: async (serieId) => {
+        const { data, error } = await supabase
+            .from('issue')
+            .select('*, serie:serie_id(nome), testata:testata_id(nome), annata:annata_id(nome), tipo:tipo_pubblicazione_id(nome), editore:editore_id(nome, immagine_url, codice_editore:codice_editore_id(nome))')
+            .eq('serie_id', serieId)
+            .order('numero');
+        if (error) console.error(error);
+        else Render.issues(data);
+    },
+
+    openIssueDetail: async (issueId) => {
         try {
-            const { data, error } = await supabase
+            const { data: issue, error } = await supabase
                 .from('issue')
-                .select(`*, serie:serie_id(nome), testata:testata_id(nome), annata:annata_id(nome)`)
-                .eq('serie_id', id)
-                .order('data_pubblicazione', { ascending: true })
-                .order('numero', { ascending: true });
+                .select('*, serie:serie_id(nome), testata:testata_id(nome), annata:annata_id(nome), tipo:tipo_pubblicazione_id(nome), editore:editore_id(nome, immagine_url, codice_editore:codice_editore_id(nome))')
+                .eq('id', issueId)
+                .single();
             if (error) throw error;
-            Render.issues(data);
-        } catch (e) { console.error("Errore griglia albi:", e); }
-    },
 
-    openIssueDetail: async (id) => {
-        try {
-            const { data: issue } = await supabase
-                .from('issue')
-                .select(`*, serie:serie_id(*), testata:testata_id(*), annata:annata_id(*), editore:editore_id(*, codice_editore:codice_editore_id(*)), tipo:tipo_pubblicazione_id(*)`)
-                .eq('id', id).single();
+            const { data: stories } = await supabase
+                .from('storie_in_issue')
+                .select('posizione, storia:storia_id(nome)')
+                .eq('issue_id', issueId)
+                .order('posizione');
 
-            const { data: storieRel } = await supabase
-                .from('storia_in_issue')
-                .select(`posizione, storia:storia_id (id, nome, personaggi:personaggio_storia (personaggio:personaggio_id (nome, immagine_url))))`)
-                .eq('issue_id', id).order('posizione');
-
-            const storiesFormatted = (storieRel || []).map(s => ({
-                posizione: s.posizione,
-                nome: s.storia.nome,
-                personaggi: s.storia.personaggi.map(p => p.personaggio)
-            }));
-
-            let supplementoStr = null;
+            let supplementoStr = "";
             if (issue.supplemento_id) {
-                const { data: supp } = await supabase.from('issue').select('numero, serie:serie_id(nome)').eq('id', issue.supplemento_id).single();
-                if (supp) supplementoStr = `${supp.serie.nome} n°${supp.numero}`;
+                const { data: supp } = await supabase
+                    .from('issue')
+                    .select('numero, serie:serie_id(nome)')
+                    .eq('id', issue.supplemento_id)
+                    .single();
+                if (supp) supplementoStr = `Supplemento a ${supp.serie?.nome} n°${supp.numero}`;
             }
-            Render.modal(issue, storiesFormatted, supplementoStr);
-        } catch (e) { console.error("Dettaglio fallito:", e); }
+
+            Render.modal(issue, stories || [], supplementoStr);
+        } catch (e) { console.error(e); }
     },
 
-    openEditForm: async (id) => {
+    openEditForm: async (issueId = null) => {
         await Logic.refreshLookups();
-        const { data: issue } = await supabase.from('issue').select('*').eq('id', id).single();
-        const { data: storieRel } = await supabase
-            .from('storia_in_issue')
-            .select(`posizione, storia:storia_id (nome)`)
-            .eq('issue_id', id).order('posizione');
+        let issueData = null;
+        let stories = [];
 
-        Render.form("Modifica Albo", issue, {
-            series: Logic.state.allSeries,
-            ...Logic.state.lookups
-        }, storieRel || []);
-    },
+        if (issueId) {
+            const { data } = await supabase.from('issue').select('*').eq('id', issueId).single();
+            issueData = data;
+            const { data: st } = await supabase.from('storie_in_issue').select('posizione, storia:storia_id(nome)').eq('issue_id', issueId).order('posizione');
+            stories = st || [];
+        }
 
-    openNewForm: async () => {
-        await Logic.refreshLookups();
-        Render.form("Nuovo Albo", null, {
-            series: Logic.state.allSeries,
-            ...Logic.state.lookups
-        }, []);
+        const lookupData = {
+            series: Logic.state.allSeries.map(s => ({ id: s.id, nome: s.nome })),
+            testate: Logic.state.lookups.testate,
+            annate: Logic.state.lookups.annate,
+            tipi: Logic.state.lookups.tipi,
+            editori: Logic.state.lookups.editori,
+            albi: Logic.state.lookups.albi
+        };
+
+        Render.form(issueId ? "Modifica Albo" : "Nuovo Albo", issueData, lookupData, stories);
     },
 
     saveIssue: async (id = null) => {
@@ -150,7 +152,7 @@ export const Logic = {
             if (payload.serie_id) Logic.selectSerie(payload.serie_id);
         } catch (e) { 
             console.error("Errore Supabase:", e);
-            alert("Errore durante il salvataggio."); 
+            alert("Errore durante il salvataggio.");
         }
     }
 };
