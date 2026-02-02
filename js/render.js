@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.4.8
+ * VERSION: 1.4.9
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -43,7 +43,6 @@ export const Render = {
         }
         const content = data.map(i => UI.ISSUES_CARD(i)).join('');
         target.innerHTML = UI.ISSUES_SECTION(content);
-        target.scrollIntoView({ behavior: 'smooth' });
     },
 
     modal: (issue, stories, supplementoStr) => {
@@ -67,7 +66,7 @@ export const Render = {
 
     form: (title, data, lookup, stories = []) => {
         const storiesHtml = stories.length > 0 
-            ? stories.map(s => UI.MODAL_FORM_STORY_ROW(s.posizione, s.storia.nome)).join('')
+            ? stories.map(s => UI.MODAL_FORM_STORY_ROW(s.posizione, s.storia?.nome || s.nome)).join('')
             : '<p class="text-[10px] text-slate-600 uppercase font-black p-4 text-center border border-dashed border-slate-800 rounded-lg">Nessuna storia caricata</p>';
 
         const fields = `
@@ -82,7 +81,7 @@ export const Render = {
                 </div>
                 <div class="space-y-4">
                     ${UI.MODAL_FORM_FIELD("Serie", UI.MODAL_FORM_SELECT("f-serie", lookup.series, data?.serie_id))}
-                    ${UI.MODAL_FORM_FIELD("Testata", UI.MODAL_FORM_SELECT("f-testate", lookup.testate, data?.testata_id))}
+                    ${UI.MODAL_FORM_FIELD("Testata", UI.MODAL_FORM_SELECT("f-testata", lookup.testate, data?.testata_id))}
                     <div class="grid grid-cols-2 gap-4">
                         ${UI.MODAL_FORM_FIELD("Numero", UI.MODAL_FORM_INPUT("f-numero", "number", data?.numero || ''))}
                         ${UI.MODAL_FORM_FIELD("Annata", UI.MODAL_FORM_SELECT("f-annata", lookup.annate, data?.annata_id))}
