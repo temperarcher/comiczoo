@@ -60,11 +60,28 @@ export const UI = {
     UPDATE_PREVIEW: (url) => {
         const img = document.getElementById('form-preview-img');
         const placeholder = document.getElementById('preview-placeholder');
-        if (img) { img.src = url; img.classList.toggle('hidden', !url); }
-        if (placeholder) placeholder.classList.toggle('hidden', !!url);
+        if (img && placeholder) {
+            if (url) {
+                img.src = url;
+                img.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+            } else {
+                img.classList.add('hidden');
+                placeholder.classList.remove('hidden');
+            }
+        }
     },
-    
+
     HANDLE_POSSESSO_CHANGE: (val) => {
-        if (val === 'manca') UI.SET_FORM_STARS(0);
+        const starsContainer = document.getElementById('stars-picker-container');
+        if (starsContainer) {
+            if (val === 'manca') {
+                starsContainer.classList.add('pointer-events-none', 'opacity-20', 'grayscale');
+                UI.SET_FORM_STARS(0);
+            } else {
+                starsContainer.classList.remove('pointer-events-none', 'opacity-20', 'grayscale');
+                UI.SET_FORM_STARS(5);
+            }
+        }
     }
 };
