@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.0.1
+ * VERSION: 1.1.0
  * PROTOCOLLO DI INTEGRITÀ: VIETATA LA SEMPLIFICAZIONE.
  */
 import { Layout } from './ui/layout-engine.js';
@@ -7,22 +7,26 @@ import { Api } from './logic/api-orchestrator.js';
 import { State } from './logic/state.js';
 
 async function bootstrap() {
-    // 1. Costruisce l'HTML di base nel body
-    Layout.buildBaseStructure();
+    // 1. Inizializza il DOM (Crea i container vuoti)
+    Layout.init();
 
-    // 2. Recupera i dati iniziali
-    const [series, publishers] = await Promise.all([
-        Api.Series.getAll(),
-        Api.Publishers.getAll()
-    ]);
+    // 2. Carica i dati necessari all'avvio
+    try {
+        const [series, publishers] = await Promise.all([
+            Api.Series.getAll(),
+            Api.Publishers.getAll()
+        ]);
 
-    // 3. Popola lo stato
-    State.allSeries = series;
-    State.allPublishers = publishers;
+        State.allSeries = series;
+        State.allPublishers = publishers;
 
-    // 4. Renderizza i componenti iniziali
-    Layout.renderPublishers(publishers);
-    Layout.renderSeries(series);
+        // 3. Renderizza i componenti base
+        Layout.renderPublishers(State.allPublishers);
+        Layout.renderSeries(State.allSeries);
+        
+    } catch (error) {
+        console.error("Bootstrap Failure:", error);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', bootstrap);
