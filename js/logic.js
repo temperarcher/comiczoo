@@ -1,5 +1,5 @@
 /**
- * VERSION: 1.5.1
+ * VERSION: 1.5.2
  * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
  * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
  */
@@ -59,10 +59,14 @@ export const Logic = {
             .from('issue')
             .select('*, serie:serie_id(nome), testata:testata_id(nome), annata:annata_id(nome), tipo:tipo_pubblicazione_id(nome), editore:editore_id(nome, immagine_url, codice_editore:codice_editore_id(nome))')
             .eq('serie_id', serieId)
-            .order('data_pubblicazione', { ascending: true })
+            .order('data_pubblicazione', { ascending: true, nullsFirst: false })
             .order('numero', { ascending: true });
-        if (error) console.error(error);
-        else Render.issues(data);
+        
+        if (error) {
+            console.error("Errore query ordinamento:", error);
+        } else {
+            Render.issues(data);
+        }
     },
 
     openIssueDetail: async (issueId) => {
