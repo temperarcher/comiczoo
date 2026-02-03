@@ -45,6 +45,7 @@ export const Logic = {
 
     saveIssue: async (id = null) => {
         try {
+            const getValue = (id) => document.getElementById(id)?.value || null;
             const possesso = document.getElementById('f-possesso').value;
             const ratingInput = document.getElementById('f-condizione').value;
 
@@ -98,7 +99,7 @@ export const Logic = {
                 annata:annata_id(nome)
             `)
             .eq('serie_id', serieId)
-            .order('numero', { ascending: true });
+            .order('data_pubblicazione', { ascending: true });
 
         if (error) console.error(error);
         Render.issues(data || []);
@@ -168,5 +169,4 @@ window.setView = (mode) => {
         listBtn.classList.add('bg-yellow-500', 'text-black');
         gridBtn.classList.remove('bg-yellow-500', 'text-black');
     }
-    // La logica di re-render effettiva dipenderà dalla implementazione specifica in Render.js
 };
