@@ -1,22 +1,21 @@
 import { renderHeader } from './components/header.js';
-import { renderSearchEditor } from './components/search-editor.js';
-import { renderSeriesSelector } from './components/series-selector.js';
-import { renderGrid } from './components/grid.js';
 
 const app = document.getElementById('app');
 
 async function init() {
+    // 1. Costruzione atomica del layout base
     app.innerHTML = `
-        <header id="header"></header>
-        <section id="search-editor"></section>
-        <section id="series-selector"></section>
-        <main id="grid-container" class="grid grid-cols-3 md:grid-cols-6 lg:grid-cols-8 gap-2 p-2"></main>
+        <header id="header-container"></header>
+        <section id="search-editor-container"></section>
+        <section id="series-selector-container"></section>
+        <main id="grid-container" class="container mx-auto p-6"></main>
+        <div id="modal-container"></div>
     `;
 
+    // 2. Iniezione dell'atomo Header
     renderHeader();
-    renderSearchEditor();
-    renderSeriesSelector();
-    renderGrid(); // Caricamento iniziale
+    
+    console.log('COMICZOO: Layout e Header inizializzati.');
 }
 
 init();
