@@ -27,105 +27,24 @@ export const Logic = {
                 testate: t.data || [],
                 annate: a.data || [],
                 tipi: tp.data || [],
-                albi: (alb.data || []).map(x => ({ id: x.id, nome: `${x.serie?.nome} n°${x.numero}` })),
+                albi: (alb.data || []).map(x => ({id: x.id, nome: `${x.serie?.nome} n°${x.numero}`})),
                 editori: ed.data || []
             };
-        } catch (e) { console.error("Errore lookup:", e); }
+        } catch (e) { console.error("Lookup Error:", e); }
     },
 
-    fetchAllData: async () => {
-        try {
-            const [s, p] = await Promise.all([
-                supabase.from('serie').select('*').order('nome'),
-                supabase.from('editore').select('*, codice_editore:codice_editore_id(nome)').order('nome')
-            ]);
-            Logic.state.allSeries = s.data || [];
-            Logic.state.allPublishers = p.data || [];
-            Render.publishers(Logic.state.allPublishers);
-            Render.series(Logic.state.allSeries);
-        } catch (e) { console.error("Errore fetch:", e); }
-    },
-
-    filterByPublisher: (publisherId) => {
-        const filtered = publisherId 
-            ? Logic.state.allSeries.filter(s => s.editore_id === publisherId)
-            : Logic.state.allSeries;
-        Render.series(filtered);
-        Render.publishers(Logic.state.allPublishers, publisherId);
-    },
-
-    selectSerie: async (serieId) => {
-        const { data, error } = await supabase
-            .from('issue')
-            .select('*, serie:serie_id(nome), testata:testata_id(nome), annata:annata_id(nome), tipo:tipo_pubblicazione_id(nome), editore:editore_id(nome, immagine_url, codice_editore:codice_editore_id(nome))')
-            .eq('serie_id', serieId)
-            .order('data_pubblicazione', { ascending: true })
-            .order('numero', { ascending: true });
-        if (error) console.error(error);
-        else Render.issues(data);
-    },
-
-    openIssueDetail: async (issueId) => {
-        try {
-            const { data: issue, error } = await supabase
-                .from('issue')
-                .select('*, serie:serie_id(nome), testata:testata_id(nome), annata:annata_id(nome), tipo:tipo_pubblicazione_id(nome), editore:editore_id(nome, immagine_url, codice_editore:codice_editore_id(nome))')
-                .eq('id', issueId)
-                .single();
-            if (error) throw error;
-
-            const { data: stories } = await supabase
-                .from('storie_in_issue')
-                .select('posizione, storia:storia_id(nome)')
-                .eq('issue_id', issueId)
-                .order('posizione');
-
-            let supplementoStr = "";
-            if (issue.supplemento_id) {
-                const { data: supp } = await supabase
-                    .from('issue')
-                    .select('numero, serie:serie_id(nome)')
-                    .eq('id', issue.supplemento_id)
-                    .single();
-                if (supp) supplementoStr = `Supplemento a ${supp.serie?.nome} n°${supp.numero}`;
-            }
-
-            // CORREZIONE CRASH: Assicuro che stories sia almeno un array vuoto
-            Render.modal(issue, stories || [], supplementoStr);
-        } catch (e) { console.error(e); }
-    },
-
-    openEditForm: async (issueId = null) => {
+    openEditForm: async (id = null) => {
         await Logic.refreshLookups();
-        let issueData = null;
-        let stories = [];
-
-        if (issueId) {
-            const { data } = await supabase.from('issue').select('*').eq('id', issueId).single();
-            issueData = data;
-            const { data: st } = await supabase.from('storie_in_issue').select('posizione, storia:storia_id(nome)').eq('issue_id', issueId).order('posizione');
-            stories = st || [];
+        let data = null;
+        if (id) {
+            const { data: issue } = await supabase.from('issue').select('*').eq('id', id).single();
+            data = issue;
         }
-
-        const lookupData = {
-            series: Logic.state.allSeries.map(s => ({ id: s.id, nome: s.nome })),
-            testate: Logic.state.lookups.testate,
-            annate: Logic.state.lookups.annate,
-            tipi: Logic.state.lookups.tipi,
-            editori: Logic.state.lookups.editori,
-            albi: Logic.state.lookups.albi
-        };
-
-        Render.form(issueId ? "Modifica Albo" : "Nuovo Albo", issueData, lookupData, stories);
+        Render.editForm(data, Logic.state.lookups);
     },
 
     saveIssue: async (id = null) => {
         try {
-            const getValue = (id) => {
-                const val = document.getElementById(id).value;
-                return val === "" ? null : val;
-            };
-
             const possesso = document.getElementById('f-possesso').value;
             const ratingInput = document.getElementById('f-condizione').value;
 
@@ -154,7 +73,100 @@ export const Logic = {
             if (payload.serie_id) Logic.selectSerie(payload.serie_id);
         } catch (e) { 
             console.error("Errore Supabase:", e);
-            alert("Errore durante il salvataggio.");
+            alert("Errore durante il salvataggio");
+        }
+    },
+
+    selectCodice: (id) => {
+        const filtered = Logic.state.allSeries.filter(s => s.editore_id === id);
+        Render.series(filtered, id);
+    },
+
+    resetAllFilters: () => {
+        Render.series(Logic.state.allSeries);
+        const mainRoot = document.getElementById('ui-main-root');
+        if(mainRoot) mainRoot.innerHTML = '';
+    },
+
+    selectSerie: async (serieId) => {
+        const { data, error } = await supabase
+            .from('issue')
+            .select(`
+                *,
+                serie:serie_id(nome),
+                testata:testata_id(nome),
+                annata:annata_id(nome)
+            `)
+            .eq('serie_id', serieId)
+            .order('numero', { ascending: true });
+
+        if (error) console.error(error);
+        Render.issues(data || []);
+    },
+
+    openIssueDetail: async (issueId) => {
+        const { data, error } = await supabase
+            .from('issue')
+            .select(`
+                *,
+                serie:serie_id(*),
+                testata:testata_id(*),
+                annata:annata_id(*),
+                editore:editore_id(*),
+                tipo:tipo_pubblicazione_id(*),
+                storie_in_issue(
+                    posizione,
+                    storie(
+                        nome,
+                        personaggi_storie(
+                            personaggi(nome, immagine_url)
+                        )
+                    )
+                )
+            `)
+            .eq('id', issueId)
+            .single();
+
+        if (error) return console.error(error);
+
+        const formattedStorie = data.storie_in_issue.map(si => ({
+            posizione: si.posizione,
+            nome: si.storie?.nome || 'Senza Titolo',
+            personaggi: si.storie?.personaggi_storie?.map(ps => ps.personaggi).filter(Boolean) || []
+        })).sort((a, b) => a.posizione - b.posizione);
+
+        Render.issueModal(data, formattedStorie);
+    }
+};
+
+// --- LOGICA DI FILTRAGGIO E RICERCA CONSOLIDATA ---
+document.addEventListener('input', (e) => {
+    if (e.target.id === 'serie-search') {
+        const query = e.target.value.toLowerCase();
+        const results = Logic.state.allSeries.filter(s => s.nome.toLowerCase().includes(query));
+        const container = document.getElementById('serie-results');
+        if (container) {
+            container.innerHTML = results.map(s => `
+                <div onclick="selectSerie('${s.id}'); document.getElementById('serie-results').innerHTML=''" class="p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700 last:border-0">
+                    <span class="text-sm font-bold text-slate-200">${s.nome}</span>
+                </div>
+            `).join('');
+            container.classList.toggle('hidden', query.length === 0);
         }
     }
+});
+
+window.setView = (mode) => {
+    const gridBtn = document.getElementById('view-grid');
+    const listBtn = document.getElementById('view-list');
+    if (!gridBtn || !listBtn) return;
+
+    if (mode === 'grid') {
+        gridBtn.classList.add('bg-yellow-500', 'text-black');
+        listBtn.classList.remove('bg-yellow-500', 'text-black');
+    } else {
+        listBtn.classList.add('bg-yellow-500', 'text-black');
+        gridBtn.classList.remove('bg-yellow-500', 'text-black');
+    }
+    // La logica di re-render effettiva dipenderà dalla implementazione specifica in Render.js
 };
