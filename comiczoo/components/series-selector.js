@@ -1,24 +1,26 @@
 import { client } from '../core/supabase.js';
 
-export async function renderSeriesSelector(editoreId = null) {
-    const container = document.getElementById('series-selector');
+export async function renderSeriesSelector(codiceEditoreId = null) {
+    const container = document.getElementById('series-selector-container');
 
-    // 1. Query atomica: Se c'è un editoreId, filtriamo le serie tramite la relazione
-    // Nota: Usiamo una join rapida o filtriamo le serie associate a quell'editore
+    // 1. Query atomica: Recupero serie filtrate o totali
     let query = client.from('serie').select('*').order('nome');
     
-    // Se vuoi filtrare le serie in base all'editore selezionato (logica blindata)
-    if (editoreId) {
-        // Supponendo che la serie sia legata all'editore tramite le testate o direttamente
-        // Qui facciamo una query semplice per ora, espandibile in base alle join
-        // query = query.eq('editore_id', editoreId); 
+    // Se è stato selezionato un codice editore, filtriamo le serie
+    // Nota: assumendo che la tabella serie abbia una relazione o che filtriamo lato DB
+    if (codiceEditoreId && codiceEditoreId !== 'all') {
+        // Logica di filtro specifica (es. tramite join se necessario)
+        // query = query.eq('codice_editore_id', codiceEditoreId); 
     }
 
     const { data: serie, error } = await query;
 
-    if (error) return console.error('Errore serie:', error);
+    if (error) {
+        console.error('Errore caricamento serie:', error);
+        return;
+    }
 
-    // 2. Rendering Struttura con lo stile incapsulato
+    // 2. Struttura Atomizzata con Style incapsulato
     container.innerHTML = `
         <style>
             #serie-showcase::-webkit-scrollbar { height: 6px; }
@@ -30,7 +32,7 @@ export async function renderSeriesSelector(editoreId = null) {
             <div class="container mx-auto px-6">
                 <div id="serie-showcase" class="flex gap-4 overflow-x-auto pb-2 items-center">
                     ${serie.map(s => `
-                        <div class="serie-showcase-item shrink-0 h-16 bg-slate-800 border border-slate-700 rounded-lg overflow-hidden cursor-pointer shadow-lg relative group transition-all hover:border-yellow-500" 
+                        <div class="serie-item shrink-0 h-16 bg-slate-800 border border-slate-700 rounded-lg overflow-hidden cursor-pointer shadow-lg relative group transition-all hover:border-yellow-500" 
                              data-id="${s.id}" data-nome="${s.nome}">
                             <div class="h-full pointer-events-none">
                                 <img src="${s.immagine_url || ''}" alt="${s.nome}" class="h-full w-auto object-contain">
@@ -39,37 +41,34 @@ export async function renderSeriesSelector(editoreId = null) {
                     `).join('')}
                 </div>
             </div>
-        </section>`;
+        </section>
+    `;
 
     attachSeriesEvents();
 }
 
 function attachSeriesEvents() {
-    const items = document.querySelectorAll('.serie-showcase-item');
+    const items = document.querySelectorAll('.serie-item');
 
     items.forEach(item => {
-        item.addEventListener('click', (e) => {
+        item.onclick = (e) => {
             const id = e.currentTarget.dataset.id;
-            const nome = e.currentTarget.dataset.nome;
+            
+            // UI Feedback atomico
+            items.forEach(el => el.classList.remove('ring-2', 'ring-yellow-500', 'border-yellow-500'));
+            e.currentTarget.classList.add('ring-2', 'ring-yellow-500', 'border-yellow-500');
 
-            // Feedback visivo atomico
-            document.querySelectorAll('.serie-showcase-item').forEach(el => el.classList.remove('ring-2', 'ring-yellow-500'));
-            e.currentTarget.classList.add('ring-2', 'ring-yellow-500');
-
-            // Notifica il sistema: Filtra la griglia degli albi per questa serie
-            window.dispatchEvent(new CustomEvent('comiczoo:filter-serie', { 
-                detail: { id, nome } 
-            }));
-        });
+            // Notifica il sistema del cambio serie
+            window.dispatchEvent(new CustomEvent('comiczoo:filter-serie', { detail: id }));
+        };
     });
 
-    // Ascolta i cambiamenti dai componenti superiori
+    // Ascolto eventi globali per reattività atomica
     window.addEventListener('comiczoo:filter-codice', (e) => {
-        // Se cambia l'editore, ricarichiamo le serie filtrate
         renderSeriesSelector(e.detail);
     });
 
-    window.addEventListener('comiczoo:reset', () => {
-        renderSeriesSelector(); // Reset totale
+    window.addEventListener('comiczoo:reset-filters', () => {
+        renderSeriesSelector();
     });
 }
