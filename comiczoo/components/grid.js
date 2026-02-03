@@ -1,4 +1,5 @@
 import { client } from '../core/supabase.js';
+import { openIssueModal } from '../modals/issue-modal.js';
 
 export async function renderGrid(filters = {}) {
     const container = document.getElementById('grid-container');
@@ -87,5 +88,8 @@ function attachGridEvents() {
 
     window.addEventListener('comiczoo:reset-filters', () => {
         renderGrid();
+    });
+    window.addEventListener('comiczoo:open-modal', (e) => {
+        openIssueModal(e.detail);
     });
 }
