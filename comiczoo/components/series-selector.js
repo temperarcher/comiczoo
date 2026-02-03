@@ -1,70 +1,75 @@
 import { client } from '../core/supabase.js';
 
-export async function renderSearchEditor() {
-    const container = document.getElementById('search-editor');
+export async function renderSeriesSelector(editoreId = null) {
+    const container = document.getElementById('series-selector');
+
+    // 1. Query atomica: Se c'è un editoreId, filtriamo le serie tramite la relazione
+    // Nota: Usiamo una join rapida o filtriamo le serie associate a quell'editore
+    let query = client.from('serie').select('*').order('nome');
     
-    // 1. Recupero dati atomico
-    const { data: codici, error } = await client
-        .from('codice_editore')
-        .select('*')
-        .order('nome');
+    // Se vuoi filtrare le serie in base all'editore selezionato (logica blindata)
+    if (editoreId) {
+        // Supponendo che la serie sia legata all'editore tramite le testate o direttamente
+        // Qui facciamo una query semplice per ora, espandibile in base alle join
+        // query = query.eq('editore_id', editoreId); 
+    }
 
-    if (error) return console.error('Errore caricamento codici:', error);
+    const { data: serie, error } = await query;
 
-    // 2. Rendering Struttura
+    if (error) return console.error('Errore serie:', error);
+
+    // 2. Rendering Struttura con lo stile incapsulato
     container.innerHTML = `
-        <section class="bg-slate-800/30 border-b border-slate-800 py-3">
+        <style>
+            #serie-showcase::-webkit-scrollbar { height: 6px; }
+            #serie-showcase::-webkit-scrollbar-track { background: transparent; }
+            #serie-showcase::-webkit-scrollbar-thumb { background: transparent; border-radius: 10px; }
+            #serie-showcase:hover::-webkit-scrollbar-thumb { background: #334155; }
+        </style>
+        <section class="bg-slate-900/50 border-b border-slate-800 py-4 overflow-hidden">
             <div class="container mx-auto px-6">
-                <div id="codici-bar" class="flex gap-3 overflow-x-auto pb-2 custom-scrollbar items-center">
-                    <button id="codice-tutti" data-id="all" class="codice-item active shrink-0 h-9 px-6 bg-slate-800 border border-slate-700 rounded-lg flex items-center justify-center text-[11px] font-black uppercase tracking-widest text-yellow-500 transition-all hover:bg-slate-700">
-                        TUTTI
-                    </button>
-                    ${codici.map(pub => `
-                        <button id="codice-${pub.id}" data-id="${pub.id}" title="${pub.nome}" class="codice-item shrink-0 w-9 h-9 bg-slate-800 border border-slate-700 rounded-lg overflow-hidden flex items-center justify-center p-0 hover:border-yellow-500 transition-all group">
-                             <img src="${pub.immagine_url || ''}" alt="${pub.nome}" class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all">
-                        </button>
+                <div id="serie-showcase" class="flex gap-4 overflow-x-auto pb-2 items-center">
+                    ${serie.map(s => `
+                        <div class="serie-showcase-item shrink-0 h-16 bg-slate-800 border border-slate-700 rounded-lg overflow-hidden cursor-pointer shadow-lg relative group transition-all hover:border-yellow-500" 
+                             data-id="${s.id}" data-nome="${s.nome}">
+                            <div class="h-full pointer-events-none">
+                                <img src="${s.immagine_url || ''}" alt="${s.nome}" class="h-full w-auto object-contain">
+                            </div>
+                        </div>
                     `).join('')}
                 </div>
             </div>
         </section>`;
 
-    attachCodiceEvents();
+    attachSeriesEvents();
 }
 
-function attachCodiceEvents() {
-    const buttons = document.querySelectorAll('.codice-item');
+function attachSeriesEvents() {
+    const items = document.querySelectorAll('.serie-showcase-item');
 
-    buttons.forEach(btn => {
-        btn.addEventListener('click', (e) => {
+    items.forEach(item => {
+        item.addEventListener('click', (e) => {
             const id = e.currentTarget.dataset.id;
+            const nome = e.currentTarget.dataset.nome;
 
-            // Logica Visiva Blindata (Single Responsibility)
-            updateActiveState(e.currentTarget);
+            // Feedback visivo atomico
+            document.querySelectorAll('.serie-showcase-item').forEach(el => el.classList.remove('ring-2', 'ring-yellow-500'));
+            e.currentTarget.classList.add('ring-2', 'ring-yellow-500');
 
-            // Logica di Business: Notifica il sistema del cambio filtro
-            if (id === 'all') {
-                window.dispatchEvent(new CustomEvent('comiczoo:reset-filters'));
-            } else {
-                window.dispatchEvent(new CustomEvent('comiczoo:filter-codice', { detail: id }));
-            }
+            // Notifica il sistema: Filtra la griglia degli albi per questa serie
+            window.dispatchEvent(new CustomEvent('comiczoo:filter-serie', { 
+                detail: { id, nome } 
+            }));
         });
     });
 
-    // Ascolta se altri componenti resettano i filtri (es. Logo nell'Header)
+    // Ascolta i cambiamenti dai componenti superiori
+    window.addEventListener('comiczoo:filter-codice', (e) => {
+        // Se cambia l'editore, ricarichiamo le serie filtrate
+        renderSeriesSelector(e.detail);
+    });
+
     window.addEventListener('comiczoo:reset', () => {
-        updateActiveState(document.getElementById('codice-tutti'));
+        renderSeriesSelector(); // Reset totale
     });
-}
-
-function updateActiveState(activeElem) {
-    document.querySelectorAll('.codice-item').forEach(el => {
-        el.classList.remove('active', 'border-yellow-500', 'ring-1', 'ring-yellow-500');
-        // Reset opacità immagini se necessario
-        const img = el.querySelector('img');
-        if (img) img.classList.add('grayscale');
-    });
-
-    activeElem.classList.add('active', 'border-yellow-500', 'ring-1', 'ring-yellow-500');
-    const activeImg = activeElem.querySelector('img');
-    if (activeImg) activeImg.classList.remove('grayscale');
 }
