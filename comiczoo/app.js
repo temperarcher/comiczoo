@@ -1,9 +1,11 @@
 import { renderHeader } from './components/header.js';
-import { renderSearchEditor } from './components/search-editor.js'; // Importa l'atomo
+import { renderSearchEditor } from './components/search-editor.js';
+import { renderSeriesSelector } from './components/series-selector.js';
 
 const app = document.getElementById('app');
 
 async function init() {
+    // Costruzione dinamica dello scheletro
     app.innerHTML = `
         <header id="header-container"></header>
         <section id="search-editor-container"></section>
@@ -11,11 +13,12 @@ async function init() {
         <main id="grid-container" class="container mx-auto p-6"></main>
     `;
 
-    // Caricamento sequenziale degli atomi
+    // Montaggio Atomi
     renderHeader();
-    await renderSearchEditor(); // Chiamata asincrona perché legge dal DB
+    await renderSearchEditor();
+    await renderSeriesSelector();
     
-    console.log('COMICZOO: Header e SearchEditor pronti.');
+    console.log('COMICZOO: Pipeline filtri completata.');
 }
 
 init();
