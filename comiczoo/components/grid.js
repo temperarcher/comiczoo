@@ -3,12 +3,14 @@ import { openIssueModal } from '../modals/issue-modal.js';
 
 export async function renderGrid(filters = {}) {
     const container = document.getElementById('grid-container');
-    
-    // Svuotiamo e mostriamo loader atomico
     container.innerHTML = `<div class="col-span-full py-20 text-center text-slate-500 animate-pulse uppercase tracking-widest text-xs">Caricamento Archivio...</div>`;
 
-    // 1. Query atomica basata sui filtri attivi
-    let query = client.from('v_collezione_profonda').select('*');
+    // 1. Query con ordinamento specifico
+    let query = client
+        .from('v_collezione_profonda')
+        .select('*')
+        // Ordine per data: ASC (ascendente) e nullsFirst: false (mette i NULL in fondo)
+        .order('data_pubblicazione', { ascending: true, nullsFirst: false });
 
     if (filters.serie_id) query = query.eq('serie_id', filters.serie_id);
     if (filters.codice_editore_id) query = query.eq('codice_editore_id', filters.codice_editore_id);
