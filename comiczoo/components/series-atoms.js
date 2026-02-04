@@ -1,28 +1,29 @@
-export const UI = {
-    // Il contenitore del campo: Label sopra, Valore sotto, Azioni in riga separata
-    FIELD: (label, value, field, table) => `
-        <div class="flex flex-col gap-1 border-l-2 border-slate-800 pl-4 py-1 hover:border-yellow-500 transition-colors group">
-            <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">${label}</span>
-            <div class="flex flex-col">
-                <span class="text-[14px] font-bold text-slate-200 truncate">${value || '---'}</span>
-                <div class="flex gap-3 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onclick="window.dispatchEvent(new CustomEvent('comiczoo:edit-field', {detail: {table: '${table}', field: '${field}'}}))" 
-                            class="text-[9px] font-black text-yellow-500 uppercase tracking-tighter hover:underline">Edit</button>
-                    <button class="text-[9px] font-black text-slate-600 uppercase tracking-tighter hover:text-white">New</button>
+export const SERIES_UI = {
+    // Contenitore dello showcase con scrollbar custom
+    CONTAINER: (content) => `
+        <style>
+            #serie-showcase::-webkit-scrollbar { height: 6px; }
+            #serie-showcase::-webkit-scrollbar-track { background: transparent; }
+            #serie-showcase::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+            #serie-showcase { scroll-behavior: smooth; }
+        </style>
+        <section class="bg-slate-900/50 border-b border-slate-800 py-4 overflow-hidden">
+            <div class="container mx-auto px-6">
+                <div id="serie-showcase" class="flex gap-4 overflow-x-auto pb-2 items-center">
+                    ${content}
                 </div>
+            </div>
+        </section>`,
+
+    // Atomo della singola Serie (pillola con immagine)
+    ITEM: (s) => `
+        <div class="serie-item shrink-0 h-16 bg-slate-800 border border-slate-700 rounded-lg overflow-hidden cursor-pointer shadow-lg relative group transition-all hover:border-yellow-500" 
+             data-id="${s.id}" data-nome="${s.nome}">
+            <div class="h-full pointer-events-none p-1">
+                <img src="${s.immagine_url || ''}" alt="${s.nome}" class="h-full w-auto object-contain transition-transform group-hover:scale-105">
             </div>
         </div>`,
 
-    // L'atomo della storia nella lista contenuti
-    STORY_ITEM: (s) => `
-        <div class="group bg-slate-800/40 border border-slate-800 p-4 rounded flex justify-between items-center">
-            <div>
-                <div class="text-[11px] font-black text-slate-200 uppercase">${s.storia_nome}</div>
-                <div class="text-[10px] text-slate-500 italic mt-0.5">${s.personaggi ? s.personaggi.join(' • ') : 'Nessun personaggio'}</div>
-            </div>
-            <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button class="text-[9px] font-black text-yellow-500 uppercase">Edit</button>
-                <button class="text-[9px] font-black text-red-500 uppercase">Delete</button>
-            </div>
-        </div>`
+    // Stato vuoto
+    EMPTY: `<p class="text-[10px] text-slate-600 uppercase tracking-widest w-full text-center py-4">Nessuna serie disponibile per questo editore</p>`
 };
