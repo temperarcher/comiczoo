@@ -33,9 +33,10 @@ export async function openIssueModal(issueId) {
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-10 mt-6">
-                        ${UI.FIELD('TITOLO ALBO', albo.issue_nome, 'nome', 'issue')}
-                        ${UI.FIELD('NUMERO', albo.numero, 'numero', 'issue')}
                         ${UI.FIELD('ANNATA', albo.annata_nome, 'annata_id', 'issue')}
+                        ${UI.FIELD('NUMERO', albo.numero, 'numero', 'issue')}
+                        ${UI.FIELD('TITOLO ALBO', albo.issue_nome, 'nome', 'issue')}
+                        
                         ${UI.FIELD('VALORE STIMATO', albo.valore + ' €', 'valore', 'issue')}
                         ${UI.FIELD('STATO CONDIZIONE', albo.condizione + '/5', 'condizione', 'issue')}
                         ${UI.FIELD('POSSESSO', albo.possesso, 'possesso', 'issue')}
