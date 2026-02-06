@@ -44,7 +44,7 @@ export async function openIssueModal(issueId) {
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
                             ${UI.FIELD('DATA PUBBLICAZIONE', dataDisp, 'data_pubblicazione', 'issue')}
-                            ${UI.FIELD('TIPO PUBBLICAZIONE', albo.tipo_pubblicazione_nome, 'tipo_pubblicazione_id', 'issue')}
+                            ${UI.FIELD('EDITORE', albo.editore_nome, 'editore_id', 'issue')}
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
@@ -52,7 +52,7 @@ export async function openIssueModal(issueId) {
                                 ${UI.FIELD('SUPPLEMENTO A', albo.supplemento_info, 'supplemento_id', 'issue')}
                             </div>
                             <div class="md:col-span-1">
-                                ${UI.FIELD('EDITORE', albo.editore_nome, 'editore_id', 'issue')}
+                                ${UI.FIELD('TIPO PUBBLICAZIONE', albo.tipo_pubblicazione_nome, 'tipo_pubblicazione_id', 'issue')}
                             </div>
                         </div>
 
