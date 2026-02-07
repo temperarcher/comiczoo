@@ -13,41 +13,40 @@ export async function openIssueModal(issueId) {
 
     if (error) return;
 
-    // Formattazione data per display
     const dataDisp = albo.data_pubblicazione 
         ? new Date(albo.data_pubblicazione).toLocaleDateString('it-IT') 
         : '---';
 
     container.innerHTML = `
-        <div id="modal-backdrop" class="fixed inset-0 bg-black/95 z-[100] flex items-center justify-center p-4 backdrop-blur-md">
-            <div class="bg-slate-900 border border-slate-800 w-full max-w-6xl h-[85vh] overflow-hidden rounded shadow-2xl flex flex-col md:flex-row">
+        <div id="modal-backdrop" class="fixed inset-0 bg-black/95 z-[100] flex items-center justify-center p-2 md:p-4 backdrop-blur-md">
+            <div class="bg-slate-900 border border-slate-800 w-full max-w-6xl max-h-[95vh] overflow-y-auto rounded shadow-2xl flex flex-col md:flex-row custom-scrollbar">
                 
-                <div class="w-full md:w-[400px] bg-slate-950 flex flex-col border-b md:border-b-0 md:border-r border-slate-800">
-                    <div class="p-8 flex-grow flex items-center justify-center">
-                        <img src="${albo.immagine_url || ''}" class="w-full h-auto shadow-[0_0_40px_rgba(0,0,0,0.7)] border border-slate-800 rounded">
+                <div class="w-full md:w-[400px] md:min-w-[400px] bg-slate-950 flex flex-col border-b md:border-b-0 md:border-r border-slate-800 shrink-0">
+                    <div class="p-6 md:p-8 flex items-center justify-center">
+                        <img src="${albo.immagine_url || ''}" class="w-full max-w-[300px] md:max-w-full h-auto shadow-[0_0_40px_rgba(0,0,0,0.7)] border border-slate-800 rounded">
                     </div>
                 </div>
 
-                <div class="flex-1 p-12 overflow-y-auto custom-scrollbar">
+                <div class="flex-1 p-6 md:p-12">
                     <div class="flex justify-between items-start">
                         ${UI.HEADER(albo.testata_nome, albo.serie_nome)}
-                        <button id="close-modal-btn" class="text-slate-600 hover:text-white text-5xl font-light leading-none mt-[-15px] transition-colors">&times;</button>
+                        <button id="close-modal-btn" class="text-slate-600 hover:text-white text-4xl md:text-5xl font-light leading-none mt-[-10px] md:mt-[-15px] transition-colors p-2">&times;</button>
                     </div>
 
-                    <div class="flex flex-col gap-10 mt-6">
+                    <div class="flex flex-col gap-8 md:gap-10 mt-6">
                         
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-12">
                             ${UI.FIELD('ANNATA', albo.annata_nome, 'annata_id', 'issue')}
                             ${UI.FIELD('NUMERO', albo.numero, 'numero', 'issue')}
                             ${UI.FIELD('TITOLO ALBO', albo.issue_nome, 'nome', 'issue')}
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12">
                             ${UI.FIELD('DATA PUBBLICAZIONE', dataDisp, 'data_pubblicazione', 'issue')}
                             ${UI.FIELD('EDITORE', albo.editore_nome, 'editore_id', 'issue')}
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-12">
                             <div class="md:col-span-2">
                                 ${UI.FIELD('SUPPLEMENTO A', albo.supplemento_info, 'supplemento_id', 'issue')}
                             </div>
@@ -56,21 +55,20 @@ export async function openIssueModal(issueId) {
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
-                            ${UI.FIELD('VALORE STIMATO', albo.valore + ' €', 'valore', 'issue')}
-                            ${UI.FIELD('STATO CONDIZIONE', albo.condizione + '/5', 'condizione', 'issue')}
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-12">
+                            ${UI.FIELD('VALORE STIMATO', (albo.valore || '0') + ' €', 'valore', 'issue')}
+                            ${UI.FIELD('STATO CONDIZIONE', (albo.condizione || '-') + '/5', 'condizione', 'issue')}
                             ${UI.FIELD('POSSESSO', albo.possesso, 'possesso', 'issue')}
                         </div>
 
                     </div>
 
-                    <div class="mt-16 pt-8 border-t border-slate-800">
+                    <div class="mt-12 md:mt-16 pt-8 border-t border-slate-800">
                         <div class="flex justify-between items-center mb-6">
                             <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Sommario Contenuti</h3>
                             <button class="text-[9px] font-black text-yellow-500 border border-yellow-500/20 px-3 py-1 rounded uppercase hover:bg-yellow-500 hover:text-black transition-all">New Storia</button>
                         </div>
-                        <div class="space-y-3">
-                            ${albo.contenuti_storie ? albo.contenuti_storie.map(s => UI.STORY_ITEM(s)).join('') : ''}
+                        <div class="space-y-3 pb-8"> ${albo.contenuti_storie ? albo.contenuti_storie.map(s => UI.STORY_ITEM(s)).join('') : ''}
                         </div>
                     </div>
                 </div>
