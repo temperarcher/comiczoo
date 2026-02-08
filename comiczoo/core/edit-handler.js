@@ -1,34 +1,38 @@
 import { client } from './supabase.js';
-import { openIssueModal } from '../modals/issue-modal.js';
+import { UI } from '../components/issue-atoms.js';
 
 export function initEditSystem() {
     window.addEventListener('comiczoo:edit-field', async (e) => {
-        const { table, field, currentIssue } = e.detail;
+        const { field, currentId } = e.detail;
+        const infoPanel = document.querySelector('.flex-1.p-6.md\\:p-12'); // Il pannello destro del modale
+        if (!infoPanel) return;
+
+        // Recuperiamo i dati filtrati dal DB
+        const options = await getFilteredData(field);
         
-        // 1. Identifichiamo il tipo di campo
-        if (isRelational(field)) {
-            openRelationalSelector(field, currentIssue);
-        } else {
-            openInlineInput(field, currentIssue);
-        }
+        // Inseriamo l'overlay atomizzato
+        const title = `SELEZIONA ${field.replace('_id', '').replace('_', ' ').toUpperCase()}`;
+        infoPanel.insertAdjacentHTML('beforeend', UI.SELECTOR_OVERLAY(title, options));
     });
 }
 
-// Funzione che decide cosa mostrare in base ai dati già presenti
-async function getFilteredOptions(field, currentIssue) {
-    let query = client.from(getTargetTable(field)).select('*');
+async function getFilteredData(field) {
+    // Determiniamo la tabella di destinazione in base al campo
+    const tableMap = {
+        'testata_id': 'testata',
+        'serie_id': 'serie',
+        'editore_id': 'editore',
+        'annata_id': 'annata',
+        'tipo_pubblicazione_id': 'tipo_pubblicazione',
+        'supplemento_id': 'issue' // Per il supplemento cerchiamo altri albi
+    };
 
-    // ESEMPIO DI FILTRO A CASCATA:
-    if (field === 'testata_id' && currentIssue.editore_id) {
-        // Se sto scegliendo la testata e ho già l'editore, filtra!
-        query = query.eq('editore_id', currentIssue.editore_id);
-    }
+    const targetTable = tableMap[field];
+    if (!targetTable) return [];
+
+    let query = client.from(targetTable).select('id, nome' + (targetTable === 'editore' ? ', immagine_url' : ''));
     
-    if (field === 'serie_id' && currentIssue.testata_id) {
-        // Se sto scegliendo la serie e ho la testata...
-        query = query.eq('testata_id', currentIssue.testata_id);
-    }
-
+    // Filtro alfabetico per default
     const { data } = await query.order('nome');
-    return data;
+    return data || [];
 }
