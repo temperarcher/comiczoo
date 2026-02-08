@@ -78,7 +78,7 @@ export const UI = {
                 <button class="text-[9px] font-black text-yellow-500 uppercase">Edit</button>
                 <button class="text-[9px] font-black text-red-500 uppercase">Delete</button>
             </div>
-        </div>`
+        </div>`,
     // Atomo per la scelta dei campi relazionali (Overlay)
     SELECTOR_OVERLAY: (title, options, onSelect) => {
         // Genera la lista delle opzioni
