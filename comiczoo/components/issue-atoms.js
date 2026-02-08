@@ -19,7 +19,16 @@ export const UI = {
                 </div>
             </div>
         </div>`,
-
+// Nuovo Atomo: Campo con Thumbnail (per Editore, Serie, ecc.)
+    FIELD_WITH_ICON: (label, value, field, table, imgUrl) => `
+        <div class="flex items-center gap-4 group">
+            <div class="shrink-0 w-12 h-12 bg-slate-800 border border-slate-700 rounded overflow-hidden flex items-center justify-center p-1 shadow-lg group-hover:border-yellow-500 transition-colors">
+                <img src="${imgUrl || ''}" class="w-full h-full object-contain" onerror="this.style.display='none'">
+            </div>
+            <div class="flex-1">
+                ${UI.FIELD(label, value, field, table)}
+            </div>
+        </div>`,
     // L'atomo della storia (che era sparito)
     STORY_ITEM: (s) => `
         <div class="group bg-slate-800/40 border border-slate-800 p-4 rounded flex justify-between items-center transition-all hover:border-slate-700">
