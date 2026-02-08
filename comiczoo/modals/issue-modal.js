@@ -5,8 +5,13 @@ export async function openIssueModal(issueId) {
     let container = document.getElementById('modal-container');
     if (!container) return;
 
-    // Se issueId è null o 'new', carichiamo un oggetto vuoto
-    let albo = {};
+    // Gestione Albo Nuovo o Esistente
+    let albo = { 
+        valore: 0, 
+        condizione: 0, 
+        contenuti_storie: [] 
+    };
+
     if (issueId && issueId !== 'new') {
         const { data, error } = await client
             .from('v_collezione_profonda')
@@ -66,8 +71,14 @@ export async function openIssueModal(issueId) {
                     </div>
 
                     <div class="mt-12 md:mt-16 pt-8 border-t border-slate-800">
-                        <div class="flex justify-between items-center mb-6 text-slate-500 italic text-[10px]">
-                            Sezione storie (editabile in fase 2)
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Sommario Contenuti</h3>
+                            <button class="text-[9px] font-black text-yellow-500 border border-yellow-500/20 px-3 py-1 rounded uppercase hover:bg-yellow-500 hover:text-black transition-all">New Storia</button>
+                        </div>
+                        <div class="space-y-3 pb-8">
+                            ${albo.contenuti_storie && albo.contenuti_storie.length > 0 
+                                ? albo.contenuti_storie.map(s => UI.STORY_ITEM(s)).join('') 
+                                : '<div class="text-center p-8 border border-dashed border-slate-800 text-slate-600 text-[10px] uppercase tracking-widest">Nessuna storia collegata</div>'}
                         </div>
                     </div>
                 </div>
