@@ -1,11 +1,22 @@
 export const UI = {
-    // Header: Testata (piccola) sopra, Serie (grande) sotto
-    HEADER: (testata, serie) => `
+    // HEADER AGGIORNATO: Ora accetta ID e ha i trigger per l'edit
+    HEADER: (testataNome, serieNome, testataId, serieId) => `
         <div class="flex flex-col mb-8">
-            <span class="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em] mb-1">${testata || 'TESTATA NON DEFINITA'}</span>
-            <h2 class="text-4xl font-black text-white italic uppercase tracking-tighter leading-[0.8]">${serie || 'SERIE'}</h2>
+            <div class="flex items-center gap-3 group/h h-4">
+                <span class="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em]">
+                    ${testataNome || 'Testata non definita'}
+                </span>
+                <button onclick="window.dispatchEvent(new CustomEvent('comiczoo:edit-field', {detail: {field: 'testata_id', current: '${testataId}'}}))" 
+                        class="opacity-0 group-hover/h:opacity-100 text-[9px] text-yellow-500 font-bold uppercase transition-opacity">Edit</button>
+            </div>
+            <div class="flex items-center gap-4 group/s mt-1">
+                <h2 class="text-4xl font-black text-white italic uppercase tracking-tighter leading-none">
+                    ${serieNome || 'Nuova Serie'}
+                </h2>
+                <button onclick="window.dispatchEvent(new CustomEvent('comiczoo:edit-field', {detail: {field: 'serie_id', current: '${serieId}'}}))" 
+                        class="opacity-0 group-hover/s:opacity-100 text-[9px] text-yellow-500 font-bold uppercase mt-2 transition-opacity">Edit</button>
+            </div>
         </div>`,
-
     // Il campo atomizzato: Label, Valore, Azioni Edit/New
     FIELD: (label, value, field, table) => `
         <div class="flex flex-col gap-1 border-l-2 border-slate-800 pl-4 py-1 hover:border-yellow-500 transition-colors group">
