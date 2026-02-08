@@ -29,6 +29,33 @@ export const UI = {
                 ${UI.FIELD(label, value, field, table)}
             </div>
         </div>`,
+		// Atomo per la Condizione (Stelle Oro/Slate)
+    FIELD_RATING: (label, rating, field, table) => {
+        const maxStars = 5;
+        const starIcon = (filled) => `
+            <span class="${filled ? 'text-yellow-500' : 'text-slate-700'} text-sm">
+                ★
+            </span>`;
+        
+        let starsHtml = '';
+        for (let i = 1; i <= maxStars; i++) {
+            starsHtml += starIcon(i <= rating);
+        }
+
+        return `
+            <div class="flex flex-col gap-1 border-l-2 border-slate-800 pl-4 py-1 hover:border-yellow-500 transition-colors group">
+                <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">${label}</span>
+                <div class="flex flex-col">
+                    <div class="flex items-center gap-0.5 h-[21px]"> ${starsHtml}
+                        <span class="text-[10px] font-bold text-slate-500 ml-2 italic">${rating}/5</span>
+                    </div>
+                    <div class="flex gap-3 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onclick="window.dispatchEvent(new CustomEvent('comiczoo:edit-field', {detail: {table: '${table}', field: '${field}'}}))" 
+                                class="text-[9px] font-black text-yellow-500 uppercase tracking-tighter hover:underline">Edit</button>
+                    </div>
+                </div>
+            </div>`;
+    },
     // L'atomo della storia (che era sparito)
     STORY_ITEM: (s) => `
         <div class="group bg-slate-800/40 border border-slate-800 p-4 rounded flex justify-between items-center transition-all hover:border-slate-700">
