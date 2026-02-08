@@ -5,13 +5,17 @@ export async function openIssueModal(issueId) {
     let container = document.getElementById('modal-container');
     if (!container) return;
 
-    const { data: albo, error } = await client
-        .from('v_collezione_profonda')
-        .select('*')
-        .eq('issue_id', issueId)
-        .single();
-
-    if (error) return;
+    // Se issueId è null o 'new', carichiamo un oggetto vuoto
+    let albo = {};
+    if (issueId && issueId !== 'new') {
+        const { data, error } = await client
+            .from('v_collezione_profonda')
+            .select('*')
+            .eq('issue_id', issueId)
+            .single();
+        if (error) return;
+        albo = data;
+    }
 
     const dataDisp = albo.data_pubblicazione 
         ? new Date(albo.data_pubblicazione).toLocaleDateString('it-IT') 
@@ -29,12 +33,11 @@ export async function openIssueModal(issueId) {
 
                 <div class="flex-1 p-6 md:p-12">
                     <div class="flex justify-between items-start">
-                        ${UI.HEADER(albo.testata_nome, albo.serie_nome)}
-                        <button id="close-modal-btn" class="text-slate-600 hover:text-white text-4xl md:text-5xl font-light leading-none mt-[-10px] md:mt-[-15px] transition-colors p-2">&times;</button>
+                        ${UI.HEADER(albo.testata_nome, albo.serie_nome, albo.testata_id, albo.serie_id)}
+                        <button id="close-modal-btn" class="text-slate-600 hover:text-white text-4xl md:text-5xl font-light p-2 transition-colors">&times;</button>
                     </div>
 
                     <div class="flex flex-col gap-8 md:gap-10 mt-6">
-                        
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-12">
                             ${UI.FIELD('ANNATA', albo.annata_nome, 'annata_id', 'issue')}
                             ${UI.FIELD('NUMERO', albo.numero, 'numero', 'issue')}
@@ -43,15 +46,9 @@ export async function openIssueModal(issueId) {
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12">
                             ${UI.FIELD('DATA PUBBLICAZIONE', dataDisp, 'data_pubblicazione', 'issue')}
-                            
-                            ${UI.FIELD_WITH_ICON(
-                                'EDITORE', 
-                                albo.editore_nome, 
-                                'editore_id', 
-                                'issue', 
-                                albo.editore_immagine_url
-                            )}
+                            ${UI.FIELD_WITH_ICON('EDITORE', albo.editore_nome, 'editore_id', 'issue', albo.editore_immagine_url)}
                         </div>
+
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-12">
                             <div class="md:col-span-2">
                                 ${UI.FIELD('SUPPLEMENTO A', albo.supplemento_info, 'supplemento_id', 'issue')}
@@ -63,20 +60,14 @@ export async function openIssueModal(issueId) {
 
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-12">
                             ${UI.FIELD('VALORE STIMATO', (albo.valore || '0') + ' €', 'valore', 'issue')}
-                            
                             ${UI.FIELD_RATING('STATO CONDIZIONE', albo.condizione || 0, 'condizione', 'issue')}
-                            
                             ${UI.FIELD('POSSESSO', albo.possesso, 'possesso', 'issue')}
                         </div>
-
                     </div>
 
                     <div class="mt-12 md:mt-16 pt-8 border-t border-slate-800">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Sommario Contenuti</h3>
-                            <button class="text-[9px] font-black text-yellow-500 border border-yellow-500/20 px-3 py-1 rounded uppercase hover:bg-yellow-500 hover:text-black transition-all">New Storia</button>
-                        </div>
-                        <div class="space-y-3 pb-8"> ${albo.contenuti_storie ? albo.contenuti_storie.map(s => UI.STORY_ITEM(s)).join('') : ''}
+                        <div class="flex justify-between items-center mb-6 text-slate-500 italic text-[10px]">
+                            Sezione storie (editabile in fase 2)
                         </div>
                     </div>
                 </div>
