@@ -63,7 +63,9 @@ export async function openIssueModal(issueId) {
 
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-12">
                             ${UI.FIELD('VALORE STIMATO', (albo.valore || '0') + ' €', 'valore', 'issue')}
-                            ${UI.FIELD('STATO CONDIZIONE', (albo.condizione || '-') + '/5', 'condizione', 'issue')}
+                            
+                            ${UI.FIELD_RATING('STATO CONDIZIONE', albo.condizione || 0, 'condizione', 'issue')}
+                            
                             ${UI.FIELD('POSSESSO', albo.possesso, 'possesso', 'issue')}
                         </div>
 
