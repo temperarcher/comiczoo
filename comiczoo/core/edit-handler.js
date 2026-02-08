@@ -1,11 +1,34 @@
-/**
- * VERSION: 1.3.6
- * PROTOCOLLO DI INTEGRITÀ: È FATTO DIVIETO DI OTTIMIZZARE O SEMPLIFICARE PARTI CONSOLIDATE.
- * IN CASO DI MODIFICHE NON INTERESSATE DAL TASK, COPIARE E INCOLLARE INTEGRALMENTE IL CODICE PRECEDENTE.
- */
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+import { client } from './supabase.js';
+import { openIssueModal } from '../modals/issue-modal.js';
 
-const SUPABASE_URL = 'https://ljylddlredinveheaagd.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_KkV7wImbPxzJfQkroc_ciA_HkbZiAKB';
+export function initEditSystem() {
+    window.addEventListener('comiczoo:edit-field', async (e) => {
+        const { table, field, currentIssue } = e.detail;
+        
+        // 1. Identifichiamo il tipo di campo
+        if (isRelational(field)) {
+            openRelationalSelector(field, currentIssue);
+        } else {
+            openInlineInput(field, currentIssue);
+        }
+    });
+}
 
-export const client = createClient(SUPABASE_URL, SUPABASE_KEY);
+// Funzione che decide cosa mostrare in base ai dati già presenti
+async function getFilteredOptions(field, currentIssue) {
+    let query = client.from(getTargetTable(field)).select('*');
+
+    // ESEMPIO DI FILTRO A CASCATA:
+    if (field === 'testata_id' && currentIssue.editore_id) {
+        // Se sto scegliendo la testata e ho già l'editore, filtra!
+        query = query.eq('editore_id', currentIssue.editore_id);
+    }
+    
+    if (field === 'serie_id' && currentIssue.testata_id) {
+        // Se sto scegliendo la serie e ho la testata...
+        query = query.eq('testata_id', currentIssue.testata_id);
+    }
+
+    const { data } = await query.order('nome');
+    return data;
+}
