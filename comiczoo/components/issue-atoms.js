@@ -79,4 +79,31 @@ export const UI = {
                 <button class="text-[9px] font-black text-red-500 uppercase">Delete</button>
             </div>
         </div>`
+    // Atomo per la scelta dei campi relazionali (Overlay)
+    SELECTOR_OVERLAY: (title, options, onSelect) => {
+        // Genera la lista delle opzioni
+        const itemsHtml = options.map(opt => `
+            <div onclick="window.dispatchEvent(new CustomEvent('comiczoo:apply-edit', {detail: {id: '${opt.id}', label: '${opt.nome.replace(/'/g, "\\'")}'}}))"
+                 class="flex items-center gap-4 p-3 hover:bg-slate-800 cursor-pointer border-b border-slate-800/50 group/opt transition-all">
+                ${opt.immagine_url ? `<img src="${opt.immagine_url}" class="w-8 h-8 object-contain bg-slate-900 p-1 rounded">` : ''}
+                <span class="text-[11px] font-bold text-slate-300 group-hover/opt:text-yellow-500 uppercase tracking-wider">${opt.nome}</span>
+            </div>
+        `).join('');
+
+        return `
+            <div id="selector-overlay" class="absolute inset-0 bg-slate-900/95 z-[110] flex flex-col p-12 backdrop-blur-sm animate-in fade-in duration-200">
+                <div class="flex justify-between items-center mb-8">
+                    <h3 class="text-[10px] font-black text-yellow-500 uppercase tracking-[0.4em]">${title}</h3>
+                    <button onclick="document.getElementById('selector-overlay').remove()" class="text-slate-500 hover:text-white text-3xl font-light">&times;</button>
+                </div>
+                
+                <input type="text" placeholder="Cerca..." 
+                       class="bg-slate-950 border border-slate-800 p-4 mb-6 text-white text-xs uppercase tracking-widest focus:border-yellow-500 outline-none transition-all"
+                       onkeyup="const val = this.value.toLowerCase(); document.querySelectorAll('.group\\/opt').forEach(el => el.style.display = el.innerText.toLowerCase().includes(val) ? 'flex' : 'none')">
+
+                <div class="flex-1 overflow-y-auto custom-scrollbar border border-slate-800 bg-slate-950/50 rounded">
+                    ${itemsHtml || '<div class="p-8 text-center text-[10px] text-slate-600 uppercase">Nessuna opzione trovata</div>'}
+                </div>
+            </div>`;
+    }
 };
