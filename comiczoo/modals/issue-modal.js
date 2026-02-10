@@ -38,7 +38,7 @@ export async function openIssueModal(issueId) {
 
                 <div class="flex-1 p-6 md:p-12">
                     <div class="flex justify-between items-start">
-                        ${UI.HEADER(albo.testata_nome, albo.serie_nome, albo.testata_id, albo.serie_id)}
+                        ${UI.HEADER(albo.testata_nome, albo.serie_nome, albo.testata_id, albo.serie_id, issueId)}
                         <button id="close-modal-btn" class="text-slate-600 hover:text-white text-4xl md:text-5xl font-light p-2 transition-colors">&times;</button>
                     </div>
 
