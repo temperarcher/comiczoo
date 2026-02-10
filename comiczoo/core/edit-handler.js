@@ -9,57 +9,62 @@ export function initEditSystem() {
         const infoPanel = document.querySelector('.flex-1.p-6.md\\:p-12');
         if (!infoPanel) return;
 
-        // Recuperiamo gli ID attuali dai pulsanti edit nel modale per filtrare
-        const context = {
-            serie_id: document.querySelector('button[data-field="serie_id"]')?.dataset.id,
-            testata_id: document.querySelector('button[data-field="testata_id"]')?.dataset.id,
-            editore_id: document.querySelector('button[data-field="editore_id"]')?.dataset.id
-        };
-
-        const options = await getFilteredData(field, context);
         const displayTitle = field.replace('_id', '').replace('_', ' ').toUpperCase();
-
         const oldOverlay = document.getElementById('selector-overlay');
         if (oldOverlay) oldOverlay.remove();
 
-        infoPanel.insertAdjacentHTML('beforeend', UI.SELECTOR_OVERLAY(`SELEZIONA ${displayTitle}`, options));
+        // --- LOGICA CHIRURGICA: RELAZIONALE VS SEMPLICE ---
+        if (field.endsWith('_id') || field === 'supplemento_id') {
+            // CAMPO RELAZIONALE (ID): Mostra la lista dal DB
+            const context = {
+                serie_id: document.querySelector('button[data-field="serie_id"]')?.dataset.id,
+                testata_id: document.querySelector('button[data-field="testata_id"]')?.dataset.id,
+                editore_id: document.querySelector('button[data-field="editore_id"]')?.dataset.id
+            };
+
+            const options = await getFilteredData(field, context);
+            infoPanel.insertAdjacentHTML('beforeend', UI.SELECTOR_OVERLAY(`SELEZIONA ${displayTitle}`, options));
+        } else {
+            // CAMPO SEMPLICE (Testo/Numero): Mostra un prompt o un input
+            const newValue = prompt(`Inserisci nuovo valore per ${displayTitle}:`);
+            if (newValue !== null) {
+                // Se l'utente scrive qualcosa, simuliamo l'evento apply-edit
+                window.dispatchEvent(new CustomEvent('comiczoo:apply-edit', { 
+                    detail: { id: newValue } 
+                }));
+                // Creiamo un overlay fittizio per far leggere il targetField al listener sotto
+                const dummy = document.createElement('div');
+                dummy.id = 'selector-overlay';
+                dummy.dataset.targetField = field;
+                document.body.appendChild(dummy);
+            }
+            return; // Esci, non serve altro
+        }
+
         document.getElementById('selector-overlay').dataset.targetField = field;
     });
 
-    // ASCOLTATORE 2: Applicazione della scelta e Salvataggio
     window.addEventListener('comiczoo:apply-edit', async (e) => {
-        const { id, label } = e.detail;
+        const { id } = e.detail;
         const overlay = document.getElementById('selector-overlay');
-        const field = overlay.dataset.targetField;
+        if (!overlay) return;
         
-        // Recuperiamo l'ID dell'albo dal modale (cercando l'attributo data-issue-id)
+        const field = overlay.dataset.targetField;
         const currentIssueElement = document.querySelector('[data-issue-id]');
         const currentIssueId = currentIssueElement ? currentIssueElement.dataset.issueId : null;
 
-        if (!currentIssueId) {
-            console.error("Errore: ID Albo non trovato");
-            return;
-        }
+        if (!currentIssueId) return;
 
-        // 1. Salvataggio su Supabase
         const { error } = await client
             .from('issue')
             .update({ [field]: id })
             .eq('id', currentIssueId);
 
-        if (error) {
-            alert("Errore durante il salvataggio: " + error.message);
-            return;
+        if (!error) {
+            overlay.remove();
+            await openIssueModal(currentIssueId);
+            renderGrid();
         }
-
-        // 2. Feedback Visivo: Chiudiamo l'overlay
-        overlay.remove();
-
-        // 3. Refresh Atomico: Ricarichiamo il modale con i nuovi dati
-        await openIssueModal(currentIssueId);
-
-        // 4. Refresh Sottofondo: Aggiorniamo la griglia principale
-        renderGrid();
     });
 }
 
@@ -74,12 +79,13 @@ async function getFilteredData(field, context) {
     };
 
     const targetTable = tableMap[field];
+    if (!targetTable) return []; // Sicurezza contro nomi tabella vuoti
+
     let query = client.from(targetTable).select('id, nome' + (targetTable === 'editore' || targetTable === 'serie' ? ', immagine_url' : ''));
 
     if (field === 'testata_id' && context.serie_id) {
         query = query.eq('serie_id', context.serie_id);
     }
-
     if (field === 'annata_id' && context.serie_id) {
         query = query.eq('serie_id', context.serie_id);
     }
