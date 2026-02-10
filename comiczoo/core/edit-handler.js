@@ -1,5 +1,7 @@
 import { client } from './supabase.js';
 import { UI } from '../components/issue-atoms.js';
+import { openIssueModal } from '../modals/issue-modal.js';
+import { renderGrid } from '../components/grid.js';
 
 export function initEditSystem() {
     window.addEventListener('comiczoo:edit-field', async (e) => {
@@ -24,7 +26,40 @@ export function initEditSystem() {
         document.getElementById('selector-overlay').dataset.targetField = field;
     });
 
-    // ... (listener apply-edit seguirà al punto 4)
+    // ASCOLTATORE 2: Applicazione della scelta e Salvataggio (PUNTO 4)
+    window.addEventListener('comiczoo:apply-edit', async (e) => {
+        const { id, label } = e.detail;
+        const overlay = document.getElementById('selector-overlay');
+        const field = overlay.dataset.targetField;
+        
+        // Recuperiamo l'ID dell'albo dal modale
+        const currentIssueId = document.querySelector('button[data-issue-id]')?.dataset.issueId;
+
+        if (!currentIssueId) {
+            console.error("Errore: ID Albo non trovato");
+            return;
+        }
+
+        // 1. Salvataggio su Supabase
+        const { error } = await client
+            .from('issue')
+            .update({ [field]: id })
+            .eq('id', currentIssueId);
+
+        if (error) {
+            alert("Errore durante il salvataggio: " + error.message);
+            return;
+        }
+
+        // 2. Feedback Visivo: Chiudiamo l'overlay
+        overlay.remove();
+
+        // 3. Refresh Atomico
+        await openIssueModal(currentIssueId);
+
+        // 4. Refresh Griglia
+        renderGrid();
+    });
 }
 
 async function getFilteredData(field, context) {
@@ -40,20 +75,13 @@ async function getFilteredData(field, context) {
     const targetTable = tableMap[field];
     let query = client.from(targetTable).select('id, nome' + (targetTable === 'editore' || targetTable === 'serie' ? ', immagine_url' : ''));
 
-    // --- FILTRI A CASCATA BASATI SULLO SCHEMA ---
-    
-    // Se scelgo la TESTATA, mostro solo quelle legate alla SERIE già scelta
     if (field === 'testata_id' && context.serie_id) {
         query = query.eq('serie_id', context.serie_id);
     }
 
-    // Se scelgo l'ANNATA, mostro solo quelle legate alla SERIE già scelta
     if (field === 'annata_id' && context.serie_id) {
         query = query.eq('serie_id', context.serie_id);
     }
-
-    // Per l'EDITORE, nello schema non c'è legame con serie/testata, 
-    // quindi mostriamo tutti gli editori (o potremmo filtrare per codice_editore se necessario)
 
     const { data } = await query.order('nome');
     return data || [];
