@@ -82,6 +82,28 @@ export function initEditSystem() {
             renderGrid();
         }
     });
+
+    // --- AGGIUNTA CHIRURGICA: ASCOLTATORE TOGGLE POSSESSO ---
+    window.addEventListener('comiczoo:toggle-possesso', async (e) => {
+        const { field, current, id } = e.detail;
+        
+        // Invertiamo il valore: se è 'celo' diventa 'manca' e viceversa
+        const newValue = (current === 'celo') ? 'manca' : 'celo';
+
+        // Salvataggio immediato su Supabase
+        const { error } = await client
+            .from('issue')
+            .update({ [field]: newValue })
+            .eq('id', id);
+
+        if (!error) {
+            // Refresh atomico del modale e della griglia
+            await openIssueModal(id);
+            renderGrid();
+        } else {
+            console.error("Errore toggle possesso:", error.message);
+        }
+    });
 }
 
 async function getFilteredData(field, context) {
