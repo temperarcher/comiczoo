@@ -26,14 +26,15 @@ export function initEditSystem() {
         document.getElementById('selector-overlay').dataset.targetField = field;
     });
 
-    // ASCOLTATORE 2: Applicazione della scelta e Salvataggio (PUNTO 4)
+    // ASCOLTATORE 2: Applicazione della scelta e Salvataggio
     window.addEventListener('comiczoo:apply-edit', async (e) => {
         const { id, label } = e.detail;
         const overlay = document.getElementById('selector-overlay');
         const field = overlay.dataset.targetField;
         
-        // Recuperiamo l'ID dell'albo dal modale
-        const currentIssueId = document.querySelector('button[data-issue-id]')?.dataset.issueId;
+        // Recuperiamo l'ID dell'albo dal modale (cercando l'attributo data-issue-id)
+        const currentIssueElement = document.querySelector('[data-issue-id]');
+        const currentIssueId = currentIssueElement ? currentIssueElement.dataset.issueId : null;
 
         if (!currentIssueId) {
             console.error("Errore: ID Albo non trovato");
@@ -54,10 +55,10 @@ export function initEditSystem() {
         // 2. Feedback Visivo: Chiudiamo l'overlay
         overlay.remove();
 
-        // 3. Refresh Atomico
+        // 3. Refresh Atomico: Ricarichiamo il modale con i nuovi dati
         await openIssueModal(currentIssueId);
 
-        // 4. Refresh Griglia
+        // 4. Refresh Sottofondo: Aggiorniamo la griglia principale
         renderGrid();
     });
 }
