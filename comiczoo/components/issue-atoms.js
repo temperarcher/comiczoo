@@ -32,6 +32,26 @@ HEADER: (testataNome, serieNome, testataId, serieId, issueId) => `
                 </div>
             </div>
         </div>`,
+
+    // NUOVO ATOMO: Toggle per il possesso (Celo/Manca)
+    FIELD_TOGGLE: (label, value, field, issueId) => {
+        const isCelo = value === 'celo';
+        return `
+        <div class="flex flex-col gap-2 border-l-2 border-slate-800 pl-4 py-1 transition-colors">
+            <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">${label}</span>
+            <div 
+                onclick="window.dispatchEvent(new CustomEvent('comiczoo:toggle-possesso', {detail: {field: '${field}', current: '${value}', id: '${issueId}'}}))"
+                class="relative w-20 h-6 bg-slate-800 rounded-full cursor-pointer p-1 transition-all duration-300 ${isCelo ? 'bg-green-900/30' : 'bg-red-900/30'}"
+            >
+                <div class="absolute top-1 left-1 w-4 h-4 rounded-full transition-all duration-300 flex items-center justify-center ${isCelo ? 'translate-x-14 bg-green-500' : 'bg-red-500'}">
+                </div>
+                <span class="absolute inset-0 flex items-center justify-center text-[8px] font-black uppercase tracking-tighter ${isCelo ? 'pr-6 text-green-500' : 'pl-6 text-red-500'}">
+                    ${value}
+                </span>
+            </div>
+        </div>`;
+    },
+
 // Nuovo Atomo: Campo con Thumbnail (per Editore, Serie, ecc.)
     FIELD_WITH_ICON: (label, value, field, table, imgUrl) => `
         <div class="flex items-center gap-4 group">
