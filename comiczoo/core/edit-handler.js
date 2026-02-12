@@ -16,17 +16,14 @@ export function initEditSystem() {
             const newValue = prompt(`Inserisci nuovo valore per ${displayTitle}:`);
             
             if (newValue !== null && newValue.trim() !== "") {
-                // Recuperiamo l'ID dell'albo
                 const currentIssueId = document.querySelector('[data-issue-id]')?.dataset.issueId;
                 if (!currentIssueId) return;
 
-                // Prepariamo il valore (se è numero o valore, lo convertiamo)
                 let finalValue = newValue;
                 if (field === 'numero' || field === 'valore' || field === 'condizione') {
                     finalValue = parseFloat(newValue.replace(',', '.'));
                 }
 
-                // Salvataggio DIRETTO per i campi semplici
                 const { error } = await client
                     .from('issue')
                     .update({ [field]: finalValue })
@@ -49,18 +46,16 @@ export function initEditSystem() {
         const context = {
             serie_id: document.querySelector('button[data-field="serie_id"]')?.dataset.id,
             testata_id: document.querySelector('button[data-field="testata_id"]')?.dataset.id,
-            editore_id: document.querySelector('button[data-field="editore_id"]')?.dataset.id
+            codice_editore: document.querySelector('button[data-field="editore_id"]')?.dataset.codice // Usiamo il codice_editore per il filtro business
         };
 
         const options = await getFilteredData(field, context);
         infoPanel.insertAdjacentHTML('beforeend', UI.SELECTOR_OVERLAY(`SELEZIONA ${displayTitle}`, options));
         
-        // Colleghiamo il target all'overlay per il listener apply-edit
         const overlay = document.getElementById('selector-overlay');
         if (overlay) overlay.dataset.targetField = field;
     });
 
-    // ASCOLTATORE PER CAMPI RELAZIONALI (L'evento scatta quando clicchi nell'overlay)
     window.addEventListener('comiczoo:apply-edit', async (e) => {
         const { id } = e.detail;
         const overlay = document.getElementById('selector-overlay');
@@ -83,25 +78,17 @@ export function initEditSystem() {
         }
     });
 
-    // --- AGGIUNTA CHIRURGICA: ASCOLTATORE TOGGLE POSSESSO ---
     window.addEventListener('comiczoo:toggle-possesso', async (e) => {
         const { field, current, id } = e.detail;
-        
-        // Invertiamo il valore: se è 'celo' diventa 'manca' e viceversa
         const newValue = (current === 'celo') ? 'manca' : 'celo';
-
-        // Salvataggio immediato su Supabase
         const { error } = await client
             .from('issue')
             .update({ [field]: newValue })
             .eq('id', id);
 
         if (!error) {
-            // Refresh atomico del modale e della griglia
             await openIssueModal(id);
             renderGrid();
-        } else {
-            console.error("Errore toggle possesso:", error.message);
         }
     });
 }
@@ -113,21 +100,44 @@ async function getFilteredData(field, context) {
         'annata_id': 'annata',
         'editore_id': 'editore',
         'tipo_pubblicazione_id': 'tipo_pubblicazione',
-        'supplemento_id': 'issue'
+        'supplemento_id': 'v_collezione_profonda'
     };
 
     const targetTable = tableMap[field];
     if (!targetTable) return [];
 
-    let query = client.from(targetTable).select('id, nome' + (targetTable === 'editore' || targetTable === 'serie' ? ', immagine_url' : ''));
+    let query;
 
-    if (field === 'testata_id' && context.serie_id) {
-        query = query.eq('serie_id', context.serie_id);
-    }
-    if (field === 'annata_id' && context.serie_id) {
-        query = query.eq('serie_id', context.serie_id);
+    if (field === 'supplemento_id') {
+        // Logica Supplemento: Query sulla vista con filtro business codice_editore
+        query = client
+            .from('v_collezione_profonda')
+            .select('id:issue_id, nome:titolo, numero, serie_nome, data_pubblicazione, codice_editore');
+
+        if (context.codice_editore) {
+            query = query.eq('codice_editore', context.codice_editore);
+        }
+    } else {
+        // Logica Standard
+        query = client.from(targetTable).select('id, nome' + (targetTable === 'editore' || targetTable === 'serie' ? ', immagine_url' : ''));
     }
 
-    const { data } = await query.order('nome');
+    if (field === 'testata_id' && context.serie_id) query = query.eq('serie_id', context.serie_id);
+    if (field === 'annata_id' && context.serie_id) query = query.eq('serie_id', context.serie_id);
+
+    const { data } = await query.order(field === 'supplemento_id' ? 'serie_nome' : 'nome');
+    
+    if (field === 'supplemento_id' && data) {
+        // Formattazione per evitare il bug del 'replace' su null e mostrare Serie #Num del Data
+        return data.map(albo => {
+            const dataStr = albo.data_pubblicazione ? new Date(albo.data_pubblicazione).toLocaleDateString('it-IT') : '---';
+            const label = `${albo.serie_nome || 'Serie n.d.'} #${albo.numero || '?'} del ${dataStr}`;
+            return {
+                id: albo.id,
+                nome: label // Passiamo la stringa completa come 'nome' per SELECTOR_OVERLAY
+            };
+        });
+    }
+
     return data || [];
 }
