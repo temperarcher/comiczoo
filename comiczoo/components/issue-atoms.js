@@ -103,14 +103,19 @@ HEADER: (testataNome, serieNome, testataId, serieId, issueId) => `
         </div>`,
     // Atomo per la scelta dei campi relazionali (Overlay)
     SELECTOR_OVERLAY: (title, options, onSelect) => {
-        // Genera la lista delle opzioni
-        const itemsHtml = options.map(opt => `
-            <div onclick="window.dispatchEvent(new CustomEvent('comiczoo:apply-edit', {detail: {id: '${opt.id}', label: '${opt.nome.replace(/'/g, "\\'")}'}}))"
-                 class="flex items-center gap-4 p-3 hover:bg-slate-800 cursor-pointer border-b border-slate-800/50 group/opt transition-all">
-                ${opt.immagine_url ? `<img src="${opt.immagine_url}" class="w-8 h-8 object-contain bg-slate-900 p-1 rounded">` : ''}
-                <span class="text-[11px] font-bold text-slate-300 group-hover/opt:text-yellow-500 uppercase tracking-wider">${opt.nome}</span>
-            </div>
-        `).join('');
+        // Genera la lista delle opzioni con gestione sicura dei nomi nulli
+        const itemsHtml = options.map(opt => {
+            const safeLabel = (opt.display_label || opt.nome || '').replace(/'/g, "\\'");
+            const displayTitle = opt.display_label || opt.nome || `ALBO #${opt.id.substring(0,4)}`;
+
+            return `
+                <div onclick="window.dispatchEvent(new CustomEvent('comiczoo:apply-edit', {detail: {id: '${opt.id}', label: '${safeLabel}'}}))"
+                     class="flex items-center gap-4 p-3 hover:bg-slate-800 cursor-pointer border-b border-slate-800/50 group/opt transition-all">
+                    ${opt.immagine_url ? `<img src="${opt.immagine_url}" class="w-8 h-8 object-contain bg-slate-900 p-1 rounded">` : ''}
+                    <span class="text-[11px] font-bold text-slate-300 group-hover/opt:text-yellow-500 uppercase tracking-wider">${displayTitle}</span>
+                </div>
+            `;
+        }).join('');
 
         return `
             <div id="selector-overlay" class="absolute inset-0 bg-slate-900/95 z-[110] flex flex-col p-12 backdrop-blur-sm animate-in fade-in duration-200">
