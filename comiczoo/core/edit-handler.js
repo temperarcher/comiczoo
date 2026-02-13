@@ -11,6 +11,7 @@ export function initEditSystem() {
 
         const displayTitle = field.replace('_id', '').replace('_', ' ').toUpperCase();
         
+        // 1. GESTIONE CAMPI SEMPLICI (Testo/Numero)
         if (!field.endsWith('_id') && field !== 'supplemento_id') {
             const newValue = prompt(`Inserisci nuovo valore per ${displayTitle}:`);
             
@@ -38,12 +39,14 @@ export function initEditSystem() {
             return; 
         }
 
+        // 2. GESTIONE CAMPI RELAZIONALI (ID)
         const oldOverlay = document.getElementById('selector-overlay');
         if (oldOverlay) oldOverlay.remove();
 
         const context = {
             serie_id: document.querySelector('button[data-field="serie_id"]')?.dataset.id,
             testata_id: document.querySelector('button[data-field="testata_id"]')?.dataset.id,
+            // Recuperiamo il codice editore dal bottone Editore per il filtro business
             codice_editore: document.querySelector('button[data-field="editore_id"]')?.dataset.codice 
         };
 
@@ -107,10 +110,11 @@ async function getFilteredData(field, context) {
     let query;
 
     if (field === 'supplemento_id') {
-        // Seleziono solo colonne che esistono sicuramente nella vista
+        // Query semplificata per evitare errori 400 su alias complessi
+        // Prendiamo i nomi colonne standard della tua vista
         query = client
             .from('v_collezione_profonda')
-            .select('issue_id, numero, serie_nome, data_pubblicazione, codice_editore');
+            .select('*'); 
 
         if (context.codice_editore) {
             query = query.eq('codice_editore', context.codice_editore);
@@ -122,7 +126,7 @@ async function getFilteredData(field, context) {
     if (field === 'testata_id' && context.serie_id) query = query.eq('serie_id', context.serie_id);
     if (field === 'annata_id' && context.serie_id) query = query.eq('serie_id', context.serie_id);
 
-    // Ritorno all'ordinamento per nome/serie_nome come richiesto (rimosso data_pubblicazione che rompeva)
+    // Ordiniamo in base alla tabella
     const { data, error } = await query.order(field === 'supplemento_id' ? 'serie_nome' : 'nome');
     
     if (error) {
@@ -133,6 +137,7 @@ async function getFilteredData(field, context) {
     if (field === 'supplemento_id' && data) {
         return data.map(albo => {
             const d = albo.data_pubblicazione ? new Date(albo.data_pubblicazione).toLocaleDateString('it-IT') : '---';
+            // Costruiamo la label usando i nomi esatti della vista (issue_id e serie_nome)
             return {
                 id: albo.issue_id, 
                 nome: `${albo.serie_nome || 'Senza Serie'} #${albo.numero || '?'} del ${d}`
