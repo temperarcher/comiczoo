@@ -46,7 +46,8 @@ export function initEditSystem() {
         const context = {
             serie_id: document.querySelector('button[data-field="serie_id"]')?.dataset.id,
             testata_id: document.querySelector('button[data-field="testata_id"]')?.dataset.id,
-            codice_editore: document.querySelector('button[data-field="editore_id"]')?.dataset.codice // Usiamo il codice_editore per il filtro business
+            // Recuperiamo il codice editore dal bottone Editore per il filtro business
+            codice_editore: document.querySelector('button[data-field="editore_id"]')?.dataset.codice 
         };
 
         const options = await getFilteredData(field, context);
@@ -109,32 +110,37 @@ async function getFilteredData(field, context) {
     let query;
 
     if (field === 'supplemento_id') {
-        // Logica Supplemento: Query sulla vista con filtro business codice_editore
+        // Query semplificata per evitare errori 400 su alias complessi
+        // Prendiamo i nomi colonne standard della tua vista
         query = client
             .from('v_collezione_profonda')
-            .select('id:issue_id, nome:titolo, numero, serie_nome, data_pubblicazione, codice_editore');
+            .select('*'); 
 
         if (context.codice_editore) {
             query = query.eq('codice_editore', context.codice_editore);
         }
     } else {
-        // Logica Standard
         query = client.from(targetTable).select('id, nome' + (targetTable === 'editore' || targetTable === 'serie' ? ', immagine_url' : ''));
     }
 
     if (field === 'testata_id' && context.serie_id) query = query.eq('serie_id', context.serie_id);
     if (field === 'annata_id' && context.serie_id) query = query.eq('serie_id', context.serie_id);
 
-    const { data } = await query.order(field === 'supplemento_id' ? 'serie_nome' : 'nome');
+    // Ordiniamo in base alla tabella
+    const { data, error } = await query.order(field === 'supplemento_id' ? 'serie_nome' : 'nome');
     
+    if (error) {
+        console.error("Errore fetch dati:", error);
+        return [];
+    }
+
     if (field === 'supplemento_id' && data) {
-        // Formattazione per evitare il bug del 'replace' su null e mostrare Serie #Num del Data
         return data.map(albo => {
-            const dataStr = albo.data_pubblicazione ? new Date(albo.data_pubblicazione).toLocaleDateString('it-IT') : '---';
-            const label = `${albo.serie_nome || 'Serie n.d.'} #${albo.numero || '?'} del ${dataStr}`;
+            const d = albo.data_pubblicazione ? new Date(albo.data_pubblicazione).toLocaleDateString('it-IT') : '---';
+            // Costruiamo la label usando i nomi esatti della vista (issue_id e serie_nome)
             return {
-                id: albo.id,
-                nome: label // Passiamo la stringa completa come 'nome' per SELECTOR_OVERLAY
+                id: albo.issue_id, 
+                nome: `${albo.serie_nome || 'Senza Serie'} #${albo.numero || '?'} del ${d}`
             };
         });
     }
