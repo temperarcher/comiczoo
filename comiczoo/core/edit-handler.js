@@ -11,7 +11,6 @@ export function initEditSystem() {
 
         const displayTitle = field.replace('_id', '').replace('_', ' ').toUpperCase();
         
-        // 1. GESTIONE CAMPI SEMPLICI (Testo/Numero)
         if (!field.endsWith('_id') && field !== 'supplemento_id') {
             const newValue = prompt(`Inserisci nuovo valore per ${displayTitle}:`);
             
@@ -39,7 +38,6 @@ export function initEditSystem() {
             return; 
         }
 
-        // 2. GESTIONE CAMPI RELAZIONALI (ID)
         const oldOverlay = document.getElementById('selector-overlay');
         if (oldOverlay) oldOverlay.remove();
 
@@ -109,9 +107,10 @@ async function getFilteredData(field, context) {
     let query;
 
     if (field === 'supplemento_id') {
+        // Seleziono solo colonne che esistono sicuramente nella vista
         query = client
             .from('v_collezione_profonda')
-            .select('issue_id, titolo, numero, serie_nome, data_pubblicazione, codice_editore');
+            .select('issue_id, numero, serie_nome, data_pubblicazione, codice_editore');
 
         if (context.codice_editore) {
             query = query.eq('codice_editore', context.codice_editore);
@@ -123,8 +122,8 @@ async function getFilteredData(field, context) {
     if (field === 'testata_id' && context.serie_id) query = query.eq('serie_id', context.serie_id);
     if (field === 'annata_id' && context.serie_id) query = query.eq('serie_id', context.serie_id);
 
-    const orderByField = field === 'supplemento_id' ? 'data_pubblicazione' : 'nome';
-    const { data, error } = await query.order(orderByField, { ascending: true });
+    // Ritorno all'ordinamento per nome/serie_nome come richiesto (rimosso data_pubblicazione che rompeva)
+    const { data, error } = await query.order(field === 'supplemento_id' ? 'serie_nome' : 'nome');
     
     if (error) {
         console.error("Errore fetch dati:", error);
