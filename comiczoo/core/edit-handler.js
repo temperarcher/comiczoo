@@ -68,7 +68,7 @@ export function initEditSystem() {
 
         const { error } = await client
             .from('issue')
-            .update({ [field]: id })\
+            .update({ [field]: id })
             .eq('id', currentIssueId);
 
         if (!error) {
@@ -123,9 +123,8 @@ async function getFilteredData(field, context) {
     if (field === 'testata_id' && context.serie_id) query = query.eq('serie_id', context.serie_id);
     if (field === 'annata_id' && context.serie_id) query = query.eq('serie_id', context.serie_id);
 
-    // MODIFICA CHIRURGICA: Ordinamento per data_pubblicazione ASC per i supplementi
-    const orderBy = field === 'supplemento_id' ? 'data_pubblicazione' : 'nome';
-    const { data, error } = await query.order(orderBy, { ascending: true });
+    const orderByField = field === 'supplemento_id' ? 'data_pubblicazione' : 'nome';
+    const { data, error } = await query.order(orderByField, { ascending: true });
     
     if (error) {
         console.error("Errore fetch dati:", error);
