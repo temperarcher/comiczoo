@@ -127,7 +127,7 @@ async function getFilteredData(field, context) {
     if (field === 'annata_id' && context.serie_id) query = query.eq('serie_id', context.serie_id);
 
     // Ordiniamo in base alla tabella
-    const { data, error } = await query.order(field === 'supplemento_id' ? 'serie_nome' : 'nome');
+    const { data, error } = await query.order(field === 'supplemento_id' ? 'data_pubblicazione' : 'nome');
     
     if (error) {
         console.error("Errore fetch dati:", error);
