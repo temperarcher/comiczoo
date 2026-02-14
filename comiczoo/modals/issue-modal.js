@@ -51,7 +51,7 @@ export async function openIssueModal(issueId) {
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12">
                             ${UI.FIELD('DATA PUBBLICAZIONE', dataDisp, 'data_pubblicazione', 'issue')}
-                            ${UI.FIELD_WITH_ICON('EDITORE', albo.editore_nome, 'editore_id', 'issue', albo.editore_immagine_url)}
+                            ${UI.FIELD_WITH_ICON('EDITORE', albo.editore_nome, 'editore_id', 'issue', albo.editore_immagine_url, albo.codice_editore_id)}
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-12">
