@@ -46,8 +46,8 @@ export function initEditSystem() {
         const context = {
             serie_id: document.querySelector('button[data-field="serie_id"]')?.dataset.id,
             testata_id: document.querySelector('button[data-field="testata_id"]')?.dataset.id,
-            // Recuperiamo il codice editore dal bottone Editore per il filtro business
-            codice_editore: document.querySelector('button[data-field="editore_id"]')?.dataset.codice 
+            // Recuperiamo il codice_editore_id dal bottone editore (deve essere presente come data-codice)
+            codice_editore_id: document.querySelector('button[data-field="editore_id"]')?.dataset.codice 
         };
 
         const options = await getFilteredData(field, context);
@@ -110,14 +110,13 @@ async function getFilteredData(field, context) {
     let query;
 
     if (field === 'supplemento_id') {
-        // Query semplificata per evitare errori 400 su alias complessi
-        // Prendiamo i nomi colonne standard della tua vista
         query = client
             .from('v_collezione_profonda')
             .select('*'); 
 
-        if (context.codice_editore) {
-            query = query.eq('codice_editore', context.codice_editore);
+        // FILTRO DI PROFONDITÀ: Filtriamo per il codice_editore_id del gruppo
+        if (context.codice_editore_id) {
+            query = query.eq('codice_editore_id', context.codice_editore_id);
         }
     } else {
         query = client.from(targetTable).select('id, nome' + (targetTable === 'editore' || targetTable === 'serie' ? ', immagine_url' : ''));
@@ -126,11 +125,11 @@ async function getFilteredData(field, context) {
     if (field === 'testata_id' && context.serie_id) query = query.eq('serie_id', context.serie_id);
     if (field === 'annata_id' && context.serie_id) query = query.eq('serie_id', context.serie_id);
 
-    // MODIFICA CHIRURGICA: Ordiniamo per serie e poi per data per i supplementi
+    // ORDINAMENTO: Serie ASC, Data Pubblicazione ASC
     if (field === 'supplemento_id') {
         query = query.order('serie_nome', { ascending: true }).order('data_pubblicazione', { ascending: true });
     } else {
-        query = query.order('nome');
+        query = query.order('nome', { ascending: true });
     }
 
     const { data, error } = await query;
@@ -143,7 +142,6 @@ async function getFilteredData(field, context) {
     if (field === 'supplemento_id' && data) {
         return data.map(albo => {
             const d = albo.data_pubblicazione ? new Date(albo.data_pubblicazione).toLocaleDateString('it-IT') : '---';
-            // Costruiamo la label usando i nomi esatti della vista (issue_id e serie_nome)
             return {
                 id: albo.issue_id, 
                 nome: `${albo.serie_nome || 'Senza Serie'} #${albo.numero || '?'} del ${d}`
