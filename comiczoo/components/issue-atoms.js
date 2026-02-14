@@ -53,15 +53,15 @@ HEADER: (testataNome, serieNome, testataId, serieId, issueId) => `
     },
 
 // Nuovo Atomo: Campo con Thumbnail (per Editore, Serie, ecc.)
-    FIELD_WITH_ICON: (label, value, field, table, imgUrl) => `
-        <div class="flex items-center gap-4 group">
-            <div class="shrink-0 w-12 h-12 bg-slate-800 border border-slate-700 rounded overflow-hidden flex items-center justify-center p-1 shadow-lg group-hover:border-yellow-500 transition-colors">
-                <img src="${imgUrl || ''}" class="w-full h-full object-contain" onerror="this.style.display='none'">
-            </div>
-            <div class="flex-1">
-                ${UI.FIELD(label, value, field, table)}
-            </div>
-        </div>`,
+FIELD_WITH_ICON: (label, value, field, table, imgUrl, codiceId) => `
+    <div class="flex items-center gap-4 group">
+        <div class="shrink-0 w-12 h-12 bg-slate-800 border border-slate-700 rounded overflow-hidden flex items-center justify-center p-1 shadow-lg group-hover:border-yellow-500 transition-colors">
+            <img src="${imgUrl || ''}" class="w-full h-full object-contain" onerror="this.style.display='none'">
+        </div>
+        <div class="flex-1" data-codice-container="${codiceId || ''}">
+            ${UI.FIELD(label, value, field, table, codiceId)}
+        </div>
+    </div>`,
 		// Atomo per la Condizione (Stelle Oro/Slate)
     FIELD_RATING: (label, rating, field, table) => {
         const maxStars = 5;
