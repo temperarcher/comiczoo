@@ -39,41 +39,42 @@ export async function openIssueModal(issueId) {
 
     container.innerHTML = `
         <div id="modal-backdrop" class="fixed inset-0 bg-black/95 z-[100] flex items-center justify-center p-2 md:p-4 backdrop-blur-md">
-            <div class="bg-slate-900 border border-slate-800 w-full max-w-6xl max-h-[95vh] overflow-y-auto rounded shadow-2xl flex flex-col md:flex-row relative" data-issue-id="${issueId}">
+            <div class="bg-slate-900 border border-slate-800 w-full max-w-6xl max-h-[95vh] overflow-y-auto rounded shadow-2xl flex flex-col md:flex-row custom-scrollbar" data-issue-id="${issueId}">
                 
-                <button onclick="document.getElementById('modal-container').innerHTML=''" class="absolute top-6 right-6 z-[110] text-slate-500 hover:text-white transition-colors">
-                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
-
-                <div class="w-full md:w-2/5 bg-slate-800/50 flex items-center justify-center p-8 border-b md:border-b-0 md:border-r border-slate-800 min-h-[400px]">
-                    <img src="${albo.issue_immagine_url || ''}" class="w-full h-full object-contain shadow-2xl rounded" onerror="this.src='https://via.placeholder.com/400x600?text=No+Cover'">
+                <div class="w-full md:w-[400px] md:min-w-[400px] bg-slate-950 flex flex-col border-b md:border-b-0 md:border-r border-slate-800 shrink-0">
+                    <div class="p-6 md:p-8 flex items-center justify-center">
+                        <img src="${albo.immagine_url || ''}" class="w-full max-w-[300px] md:max-w-full h-auto shadow-[0_0_40px_rgba(0,0,0,0.7)] border border-slate-800 rounded" onerror="this.src='https://via.placeholder.com/400x600?text=No+Cover'">
+                    </div>
                 </div>
 
                 <div class="flex-1 p-6 md:p-12">
-                    <div class="mb-10">
-                        <div class="flex items-center gap-3 mb-4">
-                            <span class="bg-yellow-500 text-black text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-tighter">Issue #${albo.numero || '?'}</span>
-                            <span class="text-slate-500 text-[10px] font-bold uppercase tracking-widest">${dataDisp}</span>
-                        </div>
-                        <h2 class="text-4xl md:text-5xl font-black text-white tracking-tighter uppercase italic leading-none mb-2">${albo.issue_nome || 'SENZA TITOLO'}</h2>
-                        <p class="text-slate-400 text-lg font-medium tracking-tight">${albo.serie_nome || 'Serie non definita'}</p>
+                    <div class="flex justify-between items-start">
+                        ${UI.HEADER(albo.testata_nome, albo.serie_nome, albo.testata_id, albo.serie_id, issueId)}
+                        <button id="close-modal-btn" class="text-slate-600 hover:text-white text-4xl md:text-5xl font-light p-2 transition-colors">&times;</button>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-8 gap-x-12">
-                        <div class="space-y-6">
-                            ${UI.FIELD_WITH_ICON('EDITORE', albo.editore_nome, 'editore_id', 'issue', albo.editore_immagine_url, albo.codice_editore_id)}
-                            ${UI.FIELD_WITH_ICON('SERIE', albo.serie_nome, 'serie_id', 'issue', albo.serie_immagine_url)}
-                            ${UI.FIELD_WITH_ICON('TESTATA', albo.testata_nome, 'testata_id', 'issue')}
-                        </div>
-                        <div class="space-y-6">
+                    <div class="flex flex-col gap-8 md:gap-10 mt-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-12">
                             ${UI.FIELD('ANNATA', albo.annata_nome, 'annata_id', 'issue')}
-                            ${UI.FIELD('TIPO PUBBLICAZIONE', albo.tipo_nome, 'tipo_pubblicazione_id', 'issue')}
-                            ${UI.FIELD('SUPPLEMENTO A', albo.supplemento_nome, 'supplemento_id', 'issue')}
+                            ${UI.FIELD('NUMERO', albo.numero, 'numero', 'issue')}
+                            ${UI.FIELD('TITOLO ALBO', albo.issue_nome, 'nome', 'issue')}
                         </div>
-                    </div>
 
-                    <div class="mt-12 pt-8 border-t border-slate-800">
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-8">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12">
+                            ${UI.FIELD('DATA PUBBLICAZIONE', dataDisp, 'data_pubblicazione', 'issue')}
+                            ${UI.FIELD_WITH_ICON('EDITORE', albo.editore_nome, 'editore_id', 'issue', albo.editore_immagine_url, albo.codice_editore_id)}
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-12">
+                            <div class="md:col-span-2">
+                                ${UI.FIELD('SUPPLEMENTO A', albo.supplemento_info, 'supplemento_id', 'issue')}
+                            </div>
+                            <div class="md:col-span-1">
+                                ${UI.FIELD('TIPO PUBBLICAZIONE', albo.tipo_pubblicazione_nome, 'tipo_pubblicazione_id', 'issue')}
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-12">
                             ${UI.FIELD('VALORE STIMATO', (albo.valore || '0') + ' €', 'valore', 'issue')}
                             ${UI.FIELD_RATING('STATO CONDIZIONE', albo.condizione || 0, 'condizione', 'issue')}
                             ${UI.FIELD_TOGGLE('POSSESSO', albo.possesso, 'possesso', issueId)}
@@ -96,7 +97,5 @@ export async function openIssueModal(issueId) {
         </div>
     `;
 
-    document.getElementById('modal-backdrop').onclick = (e) => {
-        if (e.target.id === 'modal-backdrop') container.innerHTML = '';
-    };
+    document.getElementById('close-modal-btn').onclick = () => { container.innerHTML = ''; };
 }
