@@ -46,7 +46,7 @@ export function initEditSystem() {
         const context = {
             serie_id: document.querySelector('button[data-field="serie_id"]')?.dataset.id,
             testata_id: document.querySelector('button[data-field="testata_id"]')?.dataset.id,
-            // Recuperiamo il codice_editore_id dal bottone editore (deve essere presente come data-codice)
+            // Recuperiamo il codice_editore_id dal sesto parametro del FIELD_WITH_ICON (che finisce nel dataset codice)
             codice_editore_id: document.querySelector('button[data-field="editore_id"]')?.dataset.codice 
         };
 
@@ -114,7 +114,7 @@ async function getFilteredData(field, context) {
             .from('v_collezione_profonda')
             .select('*'); 
 
-        // FILTRO DI PROFONDITÀ: Filtriamo per il codice_editore_id del gruppo
+        // FILTRO BUSINESS CHIRURGICO:
         if (context.codice_editore_id) {
             query = query.eq('codice_editore_id', context.codice_editore_id);
         }
@@ -125,7 +125,7 @@ async function getFilteredData(field, context) {
     if (field === 'testata_id' && context.serie_id) query = query.eq('serie_id', context.serie_id);
     if (field === 'annata_id' && context.serie_id) query = query.eq('serie_id', context.serie_id);
 
-    // ORDINAMENTO: Serie ASC, Data Pubblicazione ASC
+    // ORDINAMENTO CHIRURGICO: Serie e poi Data
     if (field === 'supplemento_id') {
         query = query.order('serie_nome', { ascending: true }).order('data_pubblicazione', { ascending: true });
     } else {
