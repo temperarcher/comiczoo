@@ -126,8 +126,14 @@ async function getFilteredData(field, context) {
     if (field === 'testata_id' && context.serie_id) query = query.eq('serie_id', context.serie_id);
     if (field === 'annata_id' && context.serie_id) query = query.eq('serie_id', context.serie_id);
 
-    // Ordiniamo in base alla tabella
-    const { data, error } = await query.order(field === 'supplemento_id' ? 'serie_nome' : 'nome');
+    // MODIFICA CHIRURGICA: Ordiniamo per serie e poi per data per i supplementi
+    if (field === 'supplemento_id') {
+        query = query.order('serie_nome', { ascending: true }).order('data_pubblicazione', { ascending: true });
+    } else {
+        query = query.order('nome');
+    }
+
+    const { data, error } = await query;
     
     if (error) {
         console.error("Errore fetch dati:", error);
