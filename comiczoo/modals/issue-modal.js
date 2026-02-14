@@ -19,7 +19,7 @@ export async function openIssueModal(issueId) {
             .eq('issue_id', issueId)
             .single();
         
-        // CHIRURGICO: Fallback se la vista non ha ancora il record (nuovo inserimento)
+        // CHIRURGICO: Fallback se il record è appena creato e non ancora nella vista
         if (error || !data) {
             albo = { 
                 issue_id: issueId, 
@@ -82,7 +82,7 @@ export async function openIssueModal(issueId) {
 
                     <div class="mt-12 md:mt-16 pt-8 border-t border-slate-800">
                         <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]\">Sommario Contenuti</h3>
+                            <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Sommario Contenuti</h3>
                             <button class="text-[9px] font-black text-yellow-500 border border-yellow-500/20 px-3 py-1 rounded uppercase hover:bg-yellow-500 hover:text-black transition-all">New Storia</button>
                         </div>
                         <div class="space-y-3 pb-8">
