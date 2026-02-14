@@ -116,7 +116,6 @@ async function getFilteredData(field, context) {
             .from('v_collezione_profonda')
             .select('*'); 
 
-        // FILTRO BUSINESS: Applichiamo il filtro per codice_editore se presente nel context
         if (context.codice_editore) {
             query = query.eq('codice_editore', context.codice_editore);
         }
