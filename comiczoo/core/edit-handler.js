@@ -116,6 +116,7 @@ async function getFilteredData(field, context) {
             .from('v_collezione_profonda')
             .select('*'); 
 
+        // FILTRO BUSINESS: Applichiamo il filtro per codice_editore se presente nel context
         if (context.codice_editore) {
             query = query.eq('codice_editore', context.codice_editore);
         }
@@ -126,10 +127,8 @@ async function getFilteredData(field, context) {
     if (field === 'testata_id' && context.serie_id) query = query.eq('serie_id', context.serie_id);
     if (field === 'annata_id' && context.serie_id) query = query.eq('serie_id', context.serie_id);
 
-    // Ordiniamo in base alla tabella: per il supplemento ordiniamo prima per serie e poi per data
-    const { data, error } = await (field === 'supplemento_id' 
-        ? query.order('serie_nome').order('data_pubblicazione') 
-        : query.order('nome'));
+    // Ordiniamo in base alla tabella
+    const { data, error } = await query.order(field === 'supplemento_id' ? 'serie_nome' : 'nome');
     
     if (error) {
         console.error("Errore fetch dati:", error);
