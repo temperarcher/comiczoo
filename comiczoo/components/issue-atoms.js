@@ -19,14 +19,15 @@ HEADER: (testataNome, serieNome, testataId, serieId, issueId) => `
                     class="opacity-0 group-hover/s:opacity-100 text-[9px] text-yellow-500 font-bold uppercase mt-2 transition-opacity">Edit</button>
         </div>
     </div>`,
-    // Il campo atomizzato: Label, Valore, Azioni Edit/New
-    FIELD: (label, value, field, table) => `
+// Il campo atomizzato: Label, Valore, Azioni Edit/New
+    FIELD: (label, value, field, table, codiceId) => `
         <div class="flex flex-col gap-1 border-l-2 border-slate-800 pl-4 py-1 hover:border-yellow-500 transition-colors group">
             <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">${label}</span>
             <div class="flex flex-col">
                 <span class="text-[14px] font-bold text-slate-200 truncate">${value || 'NON DEFINITO'}</span>
                 <div class="flex gap-3 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onclick="window.dispatchEvent(new CustomEvent('comiczoo:edit-field', {detail: {table: '${table}', field: '${field}'}}))" 
+                    <button data-field="${field}" data-codice="${codiceId || ''}" 
+                            onclick="window.dispatchEvent(new CustomEvent('comiczoo:edit-field', {detail: {table: '${table}', field: '${field}'}}))" 
                             class="text-[9px] font-black text-yellow-500 uppercase tracking-tighter hover:underline">Edit</button>
                     <button class="text-[9px] font-black text-slate-600 uppercase tracking-tighter hover:text-white">New</button>
                 </div>
