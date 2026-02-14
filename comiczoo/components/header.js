@@ -27,6 +27,21 @@ export function renderHeader() {
 
     // Eventi delegati
     document.getElementById('logo').onclick = () => location.reload();
+
+    // CHIRURGICO: Gestione creazione nuovo albo
+    document.getElementById('btn-new-issue').onclick = async () => {
+        const { data, error } = await client
+            .from('issue')
+            .insert([{ nome: 'NUOVO ALBO' }])
+            .select()
+            .single();
+
+        if (!error && data) {
+            window.dispatchEvent(new CustomEvent('comiczoo:open-modal', { detail: data.id }));
+        } else {
+            console.error("Errore creazione albo:", error);
+        }
+    };
     
     const searchInput = document.getElementById('serie-search');
     const resultsDiv = document.getElementById('serie-results');
@@ -39,10 +54,9 @@ export function renderHeader() {
         
         resultsDiv.classList.remove('hidden');
         resultsDiv.innerHTML = data.map(s => `
-            <div class="p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700 last:border-0 text-sm" 
-                 onclick="window.dispatchEvent(new CustomEvent('comiczoo:filter-serie', {detail: '${s.id}'}))">
-                ${s.nome}
+            <div class="p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700 last:border-0" onclick="window.location.hash = 'serie/${s.id}'">
+                <span class="text-white font-bold">${s.nome}</span>
             </div>
-        `).join('');
+        `).join('') || '<div class="p-3 text-slate-500">Nessun risultato</div>';
     };
 }
