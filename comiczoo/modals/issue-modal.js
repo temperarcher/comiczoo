@@ -43,7 +43,7 @@ export async function openIssueModal(issueId) {
                 
                 <div class="w-full md:w-[400px] md:min-w-[400px] bg-slate-950 flex flex-col border-b md:border-b-0 md:border-r border-slate-800 shrink-0">
                     <div class="p-6 md:p-8 flex items-center justify-center">
-                        <img src="${albo.immagine_url || ''}" class="w-full max-w-[300px] md:max-w-full h-auto shadow-[0_0_40px_rgba(0,0,0,0.7)] border border-slate-800 rounded" onerror="this.src='https://via.placeholder.com/400x600?text=No+Cover'">
+                        <img src="${albo.immagine_url || ''}" class="w-full max-w-[300px] md:max-w-full h-auto shadow-[0_0_40px_rgba(0,0,0,0.7)] border border-slate-800 rounded" onerror="this.src='https://placehold.co/400x600/0f172a/e2e8f0?text=No+Cover'">
                     </div>
                 </div>
 
