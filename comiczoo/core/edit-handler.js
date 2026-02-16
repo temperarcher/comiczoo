@@ -4,6 +4,46 @@ import { openIssueModal } from '../modals/issue-modal.js';
 import { renderGrid } from '../components/grid.js';
 
 export function initEditSystem() {
+    // GESTIONE CREAZIONE NUOVI RECORD (NEW BUTTON)
+    window.addEventListener('comiczoo:new-record', async (e) => {
+        const { field } = e.detail;
+        
+        let subContainer = document.getElementById('submodal-container');
+        if (!subContainer) {
+            subContainer = document.createElement('div');
+            subContainer.id = 'submodal-container';
+            document.body.appendChild(subContainer);
+        }
+
+        if (field === 'serie_id') {
+            subContainer.innerHTML = UI.MODAL_NEW_SERIE();
+            
+            document.getElementById('btn-save-new-serie').onclick = async () => {
+                const nome = document.getElementById('new-serie-nome').value.trim();
+                const url = document.getElementById('new-serie-url').value.trim();
+
+                if (!nome) return alert("Inserisci almeno il nome della serie");
+
+                const { data, error } = await client
+                    .from('serie')
+                    .insert([{ nome: nome, immagine_url: url }])
+                    .select()
+                    .single();
+
+                if (!error && data) {
+                    const currentIssueId = document.querySelector('[data-issue-id]').dataset.issueId;
+                    await client.from('issue').update({ serie_id: data.id }).eq('id', currentIssueId);
+                    
+                    subContainer.innerHTML = '';
+                    await openIssueModal(currentIssueId);
+                    renderGrid();
+                } else {
+                    console.error("Errore creazione serie:", error);
+                }
+            };
+        }
+    });
+
     window.addEventListener('comiczoo:edit-field', async (e) => {
         const { field } = e.detail;
         const infoPanel = document.querySelector('.flex-1.p-6.md\\:p-12');
@@ -46,7 +86,6 @@ export function initEditSystem() {
         const context = {
             serie_id: document.querySelector('button[data-field="serie_id"]')?.dataset.id,
             testata_id: document.querySelector('button[data-field="testata_id"]')?.dataset.id,
-            // Recuperiamo il codice_editore_id dal sesto parametro del FIELD_WITH_ICON (che finisce nel dataset codice)
             codice_editore_id: document.querySelector('button[data-field="editore_id"]')?.dataset.codice 
         };
 
@@ -114,7 +153,6 @@ async function getFilteredData(field, context) {
             .from('v_collezione_profonda')
             .select('*'); 
 
-        // FILTRO BUSINESS CHIRURGICO:
         if (context.codice_editore_id) {
             query = query.eq('codice_editore_id', context.codice_editore_id);
         }
@@ -125,7 +163,6 @@ async function getFilteredData(field, context) {
     if (field === 'testata_id' && context.serie_id) query = query.eq('serie_id', context.serie_id);
     if (field === 'annata_id' && context.serie_id) query = query.eq('serie_id', context.serie_id);
 
-    // ORDINAMENTO CHIRURGICO: Serie e poi Data
     if (field === 'supplemento_id') {
         query = query.order('serie_nome', { ascending: true }).order('data_pubblicazione', { ascending: true });
     } else {
