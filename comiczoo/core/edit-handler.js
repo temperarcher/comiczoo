@@ -86,7 +86,7 @@ export function initEditSystem() {
         const context = {
             serie_id: document.querySelector('button[data-field="serie_id"]')?.dataset.id,
             testata_id: document.querySelector('button[data-field="testata_id"]')?.dataset.id,
-            codice_editore_id: document.querySelector('button[data-field="editore_id"]')?.dataset.codice 
+            codice_editore_id: document.querySelector('[data-codice-container]')?.dataset.codiceContainer 
         };
 
         const options = await getFilteredData(field, context);
@@ -147,6 +147,23 @@ async function getFilteredData(field, context) {
     if (!targetTable) return [];
 
     let query;
+
+    // CHIRURGICO: Logica di filtraggio Serie basata su Codice Editore
+    if (field === 'serie_id' && context.codice_editore_id) {
+        const { data, error } = await client
+            .from('v_collezione_profonda')
+            .select('serie_id, serie_nome, serie_immagine_url')
+            .eq('codice_editore_id', context.codice_editore_id);
+            
+        if (error) return [];
+        
+        const uniqueSeries = Array.from(new Map(data.map(item => [item.serie_id, item])).values());
+        return uniqueSeries.map(s => ({
+            id: s.serie_id,
+            nome: s.serie_nome,
+            immagine_url: s.serie_immagine_url
+        })).sort((a, b) => a.nome.localeCompare(b.nome));
+    }
 
     if (field === 'supplemento_id') {
         query = client
