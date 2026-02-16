@@ -3,7 +3,7 @@ import { Auth } from './core/auth.js';
 import { AUTH_UI } from './ui/auth-ui.js';
 import { CZ_EVENTS } from './core/events.js';
 
-// Importiamo solo i componenti "Nuovi" che abbiamo già codificato
+// Importiamo solo i componenti "Nuovi" che abbiamo già codificato 
 import { Topbar } from './components/topbar.js';
 
 const app = document.getElementById('app');
