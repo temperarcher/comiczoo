@@ -6,25 +6,31 @@ export const Auth = {
     user: null,
 
     async init() {
-        // Controlla se c'è già una sessione attiva al caricamento
+        // Recupera la sessione persistente (se esiste)
         const { data: { session } } = await client.auth.getSession();
         this.user = session?.user ?? null;
 
-        // Ascolta cambiamenti (login/logout) in tempo reale
+        // Listener per i cambi di stato (Login/Logout)
         client.auth.onAuthStateChange((_event, session) => {
             this.user = session?.user ?? null;
             window.dispatchEvent(new CustomEvent(CZ_EVENTS.AUTH_CHANGED, { detail: this.user }));
         });
     },
 
-    async login(email, password) {
-        const { error } = await client.auth.signInWithPassword({ email, password });
+    async loginWithGoogle() {
+        const { error } = await client.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                // Supabase gestirà il redirect automaticamente
+                redirectTo: window.location.origin 
+            }
+        });
         if (error) throw error;
     },
 
     async logout() {
         await client.auth.signOut();
-        location.reload(); // Reset totale per sicurezza
+        location.reload(); 
     },
 
     isLoggedIn() {
