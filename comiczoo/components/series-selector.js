@@ -6,7 +6,7 @@ export async function renderSeriesSelector(codiceEditoreId = null) {
     const container = document.getElementById('series-selector-container');
     if (!container) return;
 
-    // --- RIPRISTINO LOGICA DI ASCOLTO (Quella che mancava) ---
+    // --- LOGICA DI ASCOLTO (Quella che era sparita) ---
     if (!window.seriesListenerInitialized) {
         window.addEventListener('comiczoo:codice-changed', (e) => {
             renderSeriesSelector(e.detail);
@@ -47,6 +47,7 @@ function attachSeriesEvents() {
             const id = e.currentTarget.dataset.id;
             items.forEach(i => i.classList.remove('border-yellow-500', 'bg-slate-700'));
             e.currentTarget.classList.add('border-yellow-500', 'bg-slate-700');
+            // Passiamo l'ID alla griglia per non farla tremare/resettare
             renderGrid({ serie_id: id });
         };
     });
