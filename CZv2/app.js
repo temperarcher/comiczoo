@@ -3,14 +3,24 @@ import { Auth } from './core/auth.js';
 import { AUTH_UI } from './ui/auth-ui.js';
 import { CZ_EVENTS } from './core/events.js';
 
+// Import componenti
+import { Topbar } from './components/topbar.js'; // Sostituisce renderSearchEditor per la gestione atomica
+import { renderHeader } from './components/header.js';
+import { renderSeriesSelector } from './components/series-selector.js';
+import { renderGrid } from './components/grid.js';
+import { openIssueModal } from './modals/issue-modal.js';
+import { initEditSystem } from './core/edit-handler.js'; 
+
+const app = document.getElementById('app');
+
 async function bootstrap() {
     // 1. Ascolta i cambiamenti di autenticazione (Login/Logout)
     window.addEventListener(CZ_EVENTS.AUTH_CHANGED, (e) => {
         const user = e.detail;
         if (user) {
-            startApp(); // Se l'utente c'è, avvia l'app
+            initMainApp(); // Se loggato, costruisci l'app
         } else {
-            showLogin(); // Altrimenti mostra il login
+            showLoginScreen(); // Altrimenti, resta al login
         }
     });
 
@@ -18,9 +28,8 @@ async function bootstrap() {
     await Auth.init();
 }
 
-function showLogin() {
-    const appContainer = document.getElementById('app');
-    appContainer.innerHTML = AUTH_UI.LOGIN_FORM;
+function showLoginScreen() {
+    app.innerHTML = AUTH_UI.LOGIN_FORM;
     
     const btn = document.getElementById('btn-login');
     btn.onclick = async () => {
@@ -32,8 +41,6 @@ function showLogin() {
             btn.innerText = "VERIFICA IN CORSO...";
             btn.disabled = true;
             await Auth.login(email, pass);
-            // Non serve fare altro qui, Auth.init() rileverà il cambio 
-            // e scatenerà l'evento che chiama startApp()
         } catch (err) {
             errorDiv.innerText = "ERRORE: CREDENZIALI NON VALIDE";
             btn.innerText = "ENTRA NEL DATABASE";
@@ -42,34 +49,37 @@ function showLogin() {
     };
 }
 
-function startApp() {
-    const appContainer = document.getElementById('app');
-    // Qui puliamo tutto e carichiamo l'interfaccia reale
-    appContainer.innerHTML = `
-        <div class="min-h-screen bg-slate-950 text-white p-8">
-            <header class="flex justify-between items-center border-b border-slate-800 pb-4 mb-6">
-                <div>
-                    <h1 class="text-2xl font-black italic text-yellow-500 uppercase">ComicZoo v2</h1>
-                    <p class="text-[10px] text-slate-500 tracking-widest uppercase">Logged as: ${Auth.user.email}</p>
-                </div>
-                <button id="btn-logout" class="text-[10px] bg-slate-900 hover:bg-red-900/20 text-slate-400 hover:text-red-500 border border-slate-800 px-4 py-2 rounded transition-all uppercase tracking-tighter">
-                    Logout
-                </button>
-            </header>
-            
-            <div id="topbar-container" class="mb-8"></div>
-
-            <div class="flex gap-6">
-                <aside id="sidebar-container" class="w-64 shrink-0"></aside>
-                <main id="grid-container" class="flex-1"></main>
-            </div>
-        </div>
+async function initMainApp() {
+    // 1. Iniezione Atomica dello Scheletro
+    app.innerHTML = `
+        <header id="header-container"></header>
+        <section id="topbar-container" class="px-4 py-2 bg-slate-900/50"></section>
+        <section id="series-selector-container"></section>
+        <main id="grid-container"></main>
+        <div id="modal-container"></div> 
     `;
-    
-    document.getElementById('btn-logout').onclick = () => Auth.logout();
 
-    // Inizializziamo il primo componente atomico: La Topbar
-    // Topbar.render(); 
+    // 2. Registrazione Eventi Globali
+    window.addEventListener('comiczoo:open-modal', (e) => {
+        openIssueModal(e.detail);
+    });
+
+    // Logout rapido (opzionale, se non è già nell'header)
+    window.addEventListener('cz:request-logout', () => Auth.logout());
+
+    // Inizializzazione Sistema di Editing
+    initEditSystem();
+
+    // 3. Montaggio componenti
+    renderHeader();
+    
+    // Carichiamo la Topbar (ex SearchEditor) che gestisce gli Editori
+    await Topbar.render();
+    
+    // Poi i dati dinamici
+    await renderSeriesSelector();
+    await renderGrid();
 }
 
+// Avvio del Bootloader
 bootstrap();
