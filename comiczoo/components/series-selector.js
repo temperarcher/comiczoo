@@ -6,16 +6,13 @@ export async function renderSeriesSelector(codiceEditoreId = null) {
     const container = document.getElementById('series-selector-container');
     if (!container) return;
 
-    // Listener per il cambio editore dalla barra superiore
-    window.addEventListener('comiczoo:codice-changed', (e) => {
-        renderSeriesSelector(e.detail);
-        renderGrid({ codice_editore_id: e.detail });
-    });
-
-    // Listener per rinfresco dopo creazione nuova serie
-    window.addEventListener('comiczoo:serie-updated', () => {
-        renderSeriesSelector(codiceEditoreId);
-    });
+    // --- RIPRISTINO LOGICA DI ASCOLTO (Quella che mancava) ---
+    if (!window.seriesListenerInitialized) {
+        window.addEventListener('comiczoo:codice-changed', (e) => {
+            renderSeriesSelector(e.detail);
+        });
+        window.seriesListenerInitialized = true;
+    }
 
     const query = client.from('serie').select(`
         *,
@@ -50,8 +47,6 @@ function attachSeriesEvents() {
             const id = e.currentTarget.dataset.id;
             items.forEach(i => i.classList.remove('border-yellow-500', 'bg-slate-700'));
             e.currentTarget.classList.add('border-yellow-500', 'bg-slate-700');
-
-            // Filtra la griglia per serie
             renderGrid({ serie_id: id });
         };
     });
