@@ -6,17 +6,26 @@ HEADER: (testataNome, serieNome, testataId, serieId, issueId) => `
             <span class="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em]">
                 ${testataNome || 'Testata non definita'}
             </span>
-            <button data-field="testata_id" data-id="${testataId || ''}" 
-                    onclick="window.dispatchEvent(new CustomEvent('comiczoo:edit-field', {detail: {field: 'testata_id'}}))" 
-                    class="opacity-0 group-hover/h:opacity-100 text-[9px] text-yellow-500 font-bold uppercase transition-opacity">Edit</button>
+            <div class="flex gap-2 opacity-0 group-hover/h:opacity-100 transition-opacity">
+                <button data-field="testata_id" data-id="${testataId || ''}" 
+                        onclick="window.dispatchEvent(new CustomEvent('comiczoo:edit-field', {detail: {field: 'testata_id'}}))" 
+                        class="text-[9px] text-yellow-500 font-bold uppercase hover:underline">Edit</button>
+                <button onclick="window.dispatchEvent(new CustomEvent('comiczoo:new-record', {detail: {field: 'testata_id'}}))"
+                        class="text-[9px] text-slate-600 font-bold uppercase hover:text-white">New</button>
+            </div>
         </div>
+
         <div class="flex items-center gap-4 group/s mt-1">
             <h2 class="text-4xl font-black text-white italic uppercase tracking-tighter leading-none">
                 ${serieNome || 'Nuova Serie'}
             </h2>
-            <button data-field="serie_id" data-id="${serieId || ''}" 
-                    onclick="window.dispatchEvent(new CustomEvent('comiczoo:edit-field', {detail: {field: 'serie_id'}}))" 
-                    class="opacity-0 group-hover/s:opacity-100 text-[9px] text-yellow-500 font-bold uppercase mt-2 transition-opacity">Edit</button>
+            <div class="flex gap-2 opacity-0 group-hover/s:opacity-100 transition-opacity mt-2">
+                <button data-field="serie_id" data-id="${serieId || ''}" 
+                        onclick="window.dispatchEvent(new CustomEvent('comiczoo:edit-field', {detail: {field: 'serie_id'}}))" 
+                        class="text-[9px] text-yellow-500 font-bold uppercase hover:underline">Edit</button>
+                <button onclick="window.dispatchEvent(new CustomEvent('comiczoo:new-record', {detail: {field: 'serie_id'}}))"
+                        class="text-[9px] text-slate-600 font-bold uppercase hover:text-white">New</button>
+            </div>
         </div>
     </div>`,
 // Il campo atomizzato: Label, Valore, Azioni Edit/New
