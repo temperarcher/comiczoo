@@ -29,7 +29,8 @@ HEADER: (testataNome, serieNome, testataId, serieId, issueId) => `
                     <button data-field="${field}" data-codice="${codiceId || ''}" 
                             onclick="window.dispatchEvent(new CustomEvent('comiczoo:edit-field', {detail: {table: '${table}', field: '${field}'}}))" 
                             class="text-[9px] font-black text-yellow-500 uppercase tracking-tighter hover:underline">Edit</button>
-                    <button class="text-[9px] font-black text-slate-600 uppercase tracking-tighter hover:text-white">New</button>
+                    <button onclick="window.dispatchEvent(new CustomEvent('comiczoo:new-record', {detail: {table: '${table}', field: '${field}'}}))"
+                            class="text-[9px] font-black text-slate-600 uppercase tracking-tighter hover:text-white">New</button>
                 </div>
             </div>
         </div>`,
@@ -133,5 +134,44 @@ FIELD_WITH_ICON: (label, value, field, table, imgUrl, codiceId) => `
                     ${itemsHtml || '<div class="p-8 text-center text-[10px] text-slate-600 uppercase">Nessuna opzione trovata</div>'}
                 </div>
             </div>`;
-    }
+    },
+
+    // MODALE PER CREAZIONE NUOVA SERIE
+    MODAL_NEW_SERIE: () => `
+        <div id="submodal-backdrop" class="fixed inset-0 bg-black/80 z-[200] flex items-center justify-center p-4 backdrop-blur-sm">
+            <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-xl shadow-2xl overflow-hidden shadow-yellow-500/10">
+                <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+                    <h3 class="text-xl font-black text-white uppercase tracking-tighter italic">Crea Nuova Serie</h3>
+                    <button onclick="document.getElementById('submodal-container').innerHTML=''" class="text-slate-500 hover:text-white text-3xl font-light">&times;</button>
+                </div>
+                
+                <div class="p-6 space-y-6">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Nome Serie</label>
+                        <input type="text" id="new-serie-nome" class="w-full bg-slate-950 border border-slate-800 p-3 rounded text-white focus:ring-1 focus:ring-yellow-500 outline-none transition-all" placeholder="Esempio: Topolino">
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">URL Immagine Copertina</label>
+                        <input type="text" id="new-serie-url" 
+                            oninput="document.getElementById('preview-new-serie').src = this.value" 
+                            class="w-full bg-slate-950 border border-slate-800 p-3 rounded text-white focus:ring-1 focus:ring-yellow-500 outline-none transition-all" 
+                            placeholder="https://...">
+                    </div>
+
+                    <div class="flex flex-col items-center gap-2">
+                        <span class="text-[9px] font-black text-slate-600 uppercase tracking-widest">Anteprima</span>
+                        <div class="w-32 h-44 bg-slate-950 border border-slate-800 rounded flex items-center justify-center overflow-hidden shadow-inner">
+                            <img id="preview-new-serie" src="https://placehold.co/400x600/0f172a/e2e8f0?text=Preview" 
+                                 class="w-full h-full object-contain" 
+                                 onerror="this.src='https://placehold.co/400x600/0f172a/e2e8f0?text=No+Image'">
+                        </div>
+                    </div>
+
+                    <button id="btn-save-new-serie" class="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-black uppercase py-4 rounded transition-all shadow-lg text-xs tracking-[0.2em] mt-2">
+                        Salva Serie
+                    </button>
+                </div>
+            </div>
+        </div>`
 };
