@@ -51,7 +51,6 @@ export function initEditSystem() {
 
         const displayTitle = field.replace('_id', '').replace('_', ' ').toUpperCase();
         
-        // 1. GESTIONE CAMPI SEMPLICI (Testo/Numero)
         if (!field.endsWith('_id') && field !== 'supplemento_id') {
             const newValue = prompt(`Inserisci nuovo valore per ${displayTitle}:`);
             
@@ -72,21 +71,20 @@ export function initEditSystem() {
                 if (!error) {
                     await openIssueModal(currentIssueId);
                     renderGrid();
-                } else {
-                    console.error("Errore salvataggio semplice:", error);
                 }
             }
             return; 
         }
 
-        // 2. GESTIONE CAMPI RELAZIONALI (ID)
         const oldOverlay = document.getElementById('selector-overlay');
         if (oldOverlay) oldOverlay.remove();
 
+        // RECUPERO CONTESTO STABILE
         const context = {
             serie_id: document.querySelector('button[data-field="serie_id"]')?.dataset.id,
             testata_id: document.querySelector('button[data-field="testata_id"]')?.dataset.id,
-            codice_editore_id: document.querySelector('[data-codice-container]')?.dataset.codiceContainer 
+            // Cerchiamo l'attributo nel contenitore che abbiamo definito in FIELD_WITH_ICON
+            codice_editore_id: document.querySelector('[data-codice-container]')?.getAttribute('data-codice-container')
         };
 
         const options = await getFilteredData(field, context);
@@ -146,9 +144,7 @@ async function getFilteredData(field, context) {
     const targetTable = tableMap[field];
     if (!targetTable) return [];
 
-    let query;
-
-    // CHIRURGICO: Logica di filtraggio Serie basata su Codice Editore
+    // CHIRURGICO: Se stiamo filtrando le serie e abbiamo un codice editore
     if (field === 'serie_id' && context.codice_editore_id) {
         const { data, error } = await client
             .from('v_collezione_profonda')
@@ -157,51 +153,23 @@ async function getFilteredData(field, context) {
             
         if (error) return [];
         
-        const uniqueSeries = Array.from(new Map(data.map(item => [item.serie_id, item])).values());
-        return uniqueSeries.map(s => ({
-            id: s.serie_id,
-            nome: s.serie_nome,
-            immagine_url: s.serie_immagine_url
-        })).sort((a, b) => a.nome.localeCompare(b.nome));
+        // Uniquize per serie_id
+        const unique = {};
+        data.forEach(item => {
+            if (item.serie_id) unique[item.serie_id] = {
+                id: item.serie_id,
+                nome: item.serie_nome,
+                immagine_url: item.serie_immagine_url
+            };
+        });
+        return Object.values(unique).sort((a, b) => a.nome.localeCompare(b.nome));
     }
 
-    if (field === 'supplemento_id') {
-        query = client
-            .from('v_collezione_profonda')
-            .select('*'); 
-
-        if (context.codice_editore_id) {
-            query = query.eq('codice_editore_id', context.codice_editore_id);
-        }
-    } else {
-        query = client.from(targetTable).select('id, nome' + (targetTable === 'editore' || targetTable === 'serie' ? ', immagine_url' : ''));
-    }
+    let query = client.from(targetTable).select('id, nome' + (targetTable === 'editore' || targetTable === 'serie' ? ', immagine_url' : ''));
 
     if (field === 'testata_id' && context.serie_id) query = query.eq('serie_id', context.serie_id);
     if (field === 'annata_id' && context.serie_id) query = query.eq('serie_id', context.serie_id);
 
-    if (field === 'supplemento_id') {
-        query = query.order('serie_nome', { ascending: true }).order('data_pubblicazione', { ascending: true });
-    } else {
-        query = query.order('nome', { ascending: true });
-    }
-
-    const { data, error } = await query;
-    
-    if (error) {
-        console.error("Errore fetch dati:", error);
-        return [];
-    }
-
-    if (field === 'supplemento_id' && data) {
-        return data.map(albo => {
-            const d = albo.data_pubblicazione ? new Date(albo.data_pubblicazione).toLocaleDateString('it-IT') : '---';
-            return {
-                id: albo.issue_id, 
-                nome: `${albo.serie_nome || 'Senza Serie'} #${albo.numero || '?'} del ${d}`
-            };
-        });
-    }
-
-    return data || [];
+    const { data, error } = await query.order('nome', { ascending: true });
+    return error ? [] : data;
 }
