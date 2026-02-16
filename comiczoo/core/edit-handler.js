@@ -4,7 +4,7 @@ import { openIssueModal } from '../modals/issue-modal.js';
 import { renderGrid } from '../components/grid.js';
 
 export function initEditSystem() {
-    // 1. GESTIONE NEW RECORD (AGGIUNTA CHIRURGICA)
+    // 1. GESTIONE NEW RECORD
     window.addEventListener('comiczoo:new-record', async (e) => {
         const { field } = e.detail;
         if (field === 'serie_id') {
@@ -26,61 +26,53 @@ export function initEditSystem() {
                     const currentIssueId = document.querySelector('[data-issue-id]').dataset.issueId;
                     await client.from('issue').update({ serie_id: data.id }).eq('id', currentIssueId);
                     subContainer.innerHTML = '';
-                    // Refresh coordinato per evitare tremolii
                     await openIssueModal(currentIssueId);
-                    renderGrid();
+                    // Notifica il cambiamento per aggiornare le sidebar serie
+                    window.dispatchEvent(new CustomEvent('comiczoo:serie-updated'));
+                    renderGrid(); 
                 }
             };
         }
     });
 
-    // 2. GESTIONE EDIT FIELD (RIPRISTINO LOGICA ORIGINALE)
+    // 2. GESTIONE EDIT FIELD
     window.addEventListener('comiczoo:edit-field', async (e) => {
         const { field } = e.detail;
         const infoPanel = document.querySelector('.flex-1.p-6.md\\:p-12');
         if (!infoPanel) return;
 
-        const displayTitle = field.replace('_id', '').replace('_', ' ').toUpperCase();
-        
-        // RECUPERO CONTESTO (Fondamentale per i filtri del selettore)
         const context = {
             serie_id: document.querySelector('button[data-field="serie_id"]')?.dataset.id,
-            testata_id: document.querySelector('button[data-field="testata_id"]')?.dataset.id,
             codice_editore_id: document.querySelector('[data-codice-container]')?.dataset.codiceContainer
         };
 
         if (!field.endsWith('_id') && field !== 'supplemento_id') {
-            const newValue = prompt(`Inserisci nuovo valore per ${displayTitle}:`);
-            if (newValue !== null && newValue.trim() !== "") {
+            const newValue = prompt(`Nuovo valore:`);
+            if (newValue !== null) {
                 const currentIssueId = document.querySelector('[data-issue-id]')?.dataset.issueId;
                 let finalValue = (field === 'numero' || field === 'valore' || field === 'condizione') 
                     ? parseFloat(newValue.replace(',', '.')) : newValue;
 
-                const { error } = await client.from('issue').update({ [field]: finalValue }).eq('id', currentIssueId);
-                if (!error) {
-                    await openIssueModal(currentIssueId);
-                    renderGrid();
-                }
+                await client.from('issue').update({ [field]: finalValue }).eq('id', currentIssueId);
+                await openIssueModal(currentIssueId);
+                renderGrid();
             }
             return; 
         }
 
+        const options = await getFilteredData(field, context);
         const oldOverlay = document.getElementById('selector-overlay');
         if (oldOverlay) oldOverlay.remove();
 
-        const options = await getFilteredData(field, context);
-        infoPanel.insertAdjacentHTML('beforeend', UI.SELECTOR_OVERLAY(`SELEZIONA ${displayTitle}`, options));
-        
-        const overlay = document.getElementById('selector-overlay');
-        if (overlay) overlay.dataset.targetField = field;
+        infoPanel.insertAdjacentHTML('beforeend', UI.SELECTOR_OVERLAY(`SELEZIONA ${field.replace('_id','').toUpperCase()}`, options));
+        document.getElementById('selector-overlay').dataset.targetField = field;
     });
 
-    // 3. APPLY EDIT (Senza interferenze con la sidebar)
+    // 3. APPLY EDIT
     window.addEventListener('comiczoo:apply-edit', async (e) => {
         const { id } = e.detail;
         const overlay = document.getElementById('selector-overlay');
         if (!overlay) return;
-        
         const field = overlay.dataset.targetField;
         const currentIssueId = document.querySelector('[data-issue-id]').dataset.issueId;
 
@@ -92,19 +84,16 @@ export function initEditSystem() {
         }
     });
 
-    // 4. TOGGLE POSSESSO (Semplificato per evitare tremolii)
+    // 4. TOGGLE POSSESSO
     window.addEventListener('comiczoo:toggle-possesso', async (e) => {
         const { field, current, id } = e.detail;
         const newValue = (current === 'celo') ? 'manca' : 'celo';
-        const { error } = await client.from('issue').update({ [field]: newValue }).eq('id', id);
-        if (!error) {
-            await openIssueModal(id);
-            renderGrid();
-        }
+        await client.from('issue').update({ [field]: newValue }).eq('id', id);
+        await openIssueModal(id);
+        renderGrid();
     });
 }
 
-// 5. FUNZIONE DATI FILTRATI (RIPRISTINO COMPLETO)
 async function getFilteredData(field, context) {
     const tableMap = {
         'serie_id': 'serie',
@@ -114,29 +103,22 @@ async function getFilteredData(field, context) {
         'tipo_pubblicazione_id': 'tipo_pubblicazione',
         'supplemento_id': 'v_collezione_profonda'
     };
-
     const targetTable = tableMap[field];
     if (!targetTable) return [];
 
-    let query;
+    let query = client.from(targetTable).select('id, nome' + (targetTable === 'editore' || targetTable === 'serie' ? ', immagine_url' : ''));
+
     if (field === 'supplemento_id') {
         query = client.from('v_collezione_profonda').select('*'); 
         if (context.codice_editore_id) query = query.eq('codice_editore_id', context.codice_editore_id);
-    } else {
-        query = client.from(targetTable).select('id, nome' + (targetTable === 'editore' || targetTable === 'serie' ? ', immagine_url' : ''));
     }
-
     if (field === 'testata_id' && context.serie_id) query = query.eq('serie_id', context.serie_id);
     if (field === 'annata_id' && context.serie_id) query = query.eq('serie_id', context.serie_id);
 
-    const { data, error } = await query.order('nome', { ascending: true });
-    if (error) return [];
-
+    const { data } = await query.order(field === 'supplemento_id' ? 'serie_nome' : 'nome');
+    
     if (field === 'supplemento_id') {
-        return data.map(albo => ({
-            id: albo.issue_id, 
-            nome: `${albo.serie_nome} #${albo.numero} (${albo.data_pubblicazione || '---'})`
-        }));
+        return data.map(albo => ({ id: albo.issue_id, nome: `${albo.serie_nome} #${albo.numero}` }));
     }
     return data || [];
 }
