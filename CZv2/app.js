@@ -3,35 +3,30 @@ import { Auth } from './core/auth.js';
 import { AUTH_UI } from './ui/auth-ui.js';
 import { CZ_EVENTS } from './core/events.js';
 
-// Import componenti
-import { Topbar } from './components/topbar.js'; // Sostituisce renderSearchEditor per la gestione atomica
-import { renderHeader } from './components/header.js';
-import { renderSeriesSelector } from './components/series-selector.js';
-import { renderGrid } from './components/grid.js';
-import { openIssueModal } from './modals/issue-modal.js';
-import { initEditSystem } from './core/edit-handler.js'; 
+// Importiamo solo i componenti "Nuovi" che abbiamo già codificato
+import { Topbar } from './components/topbar.js';
 
 const app = document.getElementById('app');
 
 async function bootstrap() {
-    // 1. Ascolta i cambiamenti di autenticazione (Login/Logout)
+    // 1. Gestore dell'autenticazione
     window.addEventListener(CZ_EVENTS.AUTH_CHANGED, (e) => {
         const user = e.detail;
         if (user) {
-            initMainApp(); // Se loggato, costruisci l'app
+            initMainApp(); 
         } else {
-            showLoginScreen(); // Altrimenti, resta al login
+            app.innerHTML = AUTH_UI.LOGIN_FORM;
+            attachLoginEvents();
         }
     });
 
-    // 2. Inizializza Auth (questo scatenerà il primo AUTH_CHANGED)
     await Auth.init();
 }
 
-function showLoginScreen() {
-    app.innerHTML = AUTH_UI.LOGIN_FORM;
-    
+function attachLoginEvents() {
     const btn = document.getElementById('btn-login');
+    if(!btn) return;
+    
     btn.onclick = async () => {
         const email = document.getElementById('auth-email').value;
         const pass = document.getElementById('auth-password').value;
@@ -50,36 +45,33 @@ function showLoginScreen() {
 }
 
 async function initMainApp() {
-    // 1. Iniezione Atomica dello Scheletro
+    // 2. Costruiamo lo scheletro HTML pulito
     app.innerHTML = `
-        <header id="header-container"></header>
-        <section id="topbar-container" class="px-4 py-2 bg-slate-900/50"></section>
-        <section id="series-selector-container"></section>
-        <main id="grid-container"></main>
-        <div id="modal-container"></div> 
+        <div class="min-h-screen bg-slate-950 text-white font-sans">
+            <header class="p-6 border-b border-slate-900 flex justify-between items-center">
+                <h1 class="text-2xl font-black italic text-yellow-500 uppercase tracking-tighter">ComicZoo v2</h1>
+                <button id="btn-logout" class="text-[10px] text-slate-500 hover:text-white uppercase tracking-widest underline">Logout</button>
+            </header>
+
+            <section id="topbar-container" class="p-6 bg-slate-900/30"></section>
+
+            <div class="flex p-6 gap-8">
+                <aside id="series-selector-container" class="w-72 shrink-0 border border-slate-900 rounded-2xl p-4 bg-slate-900/10">
+                    <p class="text-[10px] text-slate-700 uppercase tracking-widest text-center py-10">Seleziona un editore per vedere le serie</p>
+                </aside>
+
+                <main id="grid-container" class="flex-1 border border-slate-900 rounded-2xl p-4 bg-slate-900/5">
+                    <p class="text-[10px] text-slate-700 uppercase tracking-widest text-center py-10">Area Albi</p>
+                </main>
+            </div>
+        </div>
     `;
 
-    // 2. Registrazione Eventi Globali
-    window.addEventListener('comiczoo:open-modal', (e) => {
-        openIssueModal(e.detail);
-    });
+    document.getElementById('btn-logout').onclick = () => Auth.logout();
 
-    // Logout rapido (opzionale, se non è già nell'header)
-    window.addEventListener('cz:request-logout', () => Auth.logout());
-
-    // Inizializzazione Sistema di Editing
-    initEditSystem();
-
-    // 3. Montaggio componenti
-    renderHeader();
-    
-    // Carichiamo la Topbar (ex SearchEditor) che gestisce gli Editori
+    // 3. Avviamo i componenti pronti
+    // La Topbar ora funzionerà perché abbiamo creato il suo Fetcher e il suo Atomo
     await Topbar.render();
-    
-    // Poi i dati dinamici
-    await renderSeriesSelector();
-    await renderGrid();
 }
 
-// Avvio del Bootloader
 bootstrap();
