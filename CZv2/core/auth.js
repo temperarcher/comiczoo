@@ -6,26 +6,22 @@ export const Auth = {
     user: null,
 
     async init() {
-        // Recupera la sessione persistente (se esiste)
+        // Al caricamento, chiediamo a Supabase se c'è una sessione attiva
         const { data: { session } } = await client.auth.getSession();
         this.user = session?.user ?? null;
 
-        // Listener per i cambi di stato (Login/Logout)
+        // Monitoriamo i cambi di stato (Login/Logout)
         client.auth.onAuthStateChange((_event, session) => {
             this.user = session?.user ?? null;
+            // Lanciamo un evento per avvisare l'app
             window.dispatchEvent(new CustomEvent(CZ_EVENTS.AUTH_CHANGED, { detail: this.user }));
         });
     },
 
-    async loginWithGoogle() {
-        const { error } = await client.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-                // Supabase gestirà il redirect automaticamente
-                redirectTo: window.location.origin 
-            }
-        });
+    async login(email, password) {
+        const { data, error } = await client.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        return data;
     },
 
     async logout() {
