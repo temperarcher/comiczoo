@@ -15,4 +15,34 @@ export const Fetcher = {
         }
         return data;
     }
+	async getSerieByCodiceEditore(codiceEditoreId) {
+        // Prepariamo la query base
+        let query = client
+            .from('serie')
+            .select(`
+                id, 
+                nome, 
+                immagine_url,
+                issue!inner (
+                    editore!inner (
+                        codice_editore_id
+                    )
+                )
+            `);
+
+        // Se non è "TUTTI", filtriamo per il codice selezionato
+        if (codiceEditoreId && codiceEditoreId !== 'all') {
+            query.eq('issue.editore.codice_editore_id', codiceEditoreId);
+        }
+
+        const { data, error } = await query.order('nome');
+        
+        if (error) throw error;
+
+        // Deduplicazione: poiché una serie ha tante issue, la query restituisce 
+        // la stessa serie più volte. La puliamo qui.
+        const uniqueSerie = Array.from(new Map(data.map(item => [item.id, item])).values());
+        
+        return uniqueSerie;
+    }
 };
