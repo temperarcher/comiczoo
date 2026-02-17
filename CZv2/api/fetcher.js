@@ -14,7 +14,7 @@ export const Fetcher = {
             throw error;
         }
         return data;
-    }
+    },
 	async getSerieByCodiceEditore(codiceEditoreId) {
         // Prepariamo la query base
         let query = client
