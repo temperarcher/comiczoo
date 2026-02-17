@@ -72,6 +72,9 @@ async function initMainApp() {
     // 3. Avviamo i componenti pronti
     // La Topbar ora funzionerà perché abbiamo creato il suo Fetcher e il suo Atomo
     await Topbar.render();
+	// Avvia la Sidebar (che si aggancia agli eventi della Topbar)
+    await SeriesSelector.init();
+	
 }
 
 bootstrap();
