@@ -15,7 +15,8 @@ export const Fetcher = {
         }
         return data;
     },
-	async getSerieByCodiceEditore(codiceEditoreId) {
+
+    async getSerieByCodiceEditore(codiceEditoreId) {
         // Prepariamo la query base
         let query = client
             .from('serie')
@@ -44,5 +45,28 @@ export const Fetcher = {
         const uniqueSerie = Array.from(new Map(data.map(item => [item.id, item])).values());
         
         return uniqueSerie;
+    },
+
+    async getIssuesBySerie(serieId) {
+        const { data, error } = await client
+            .from('issue')
+            .select(`
+                id,
+                numero,
+                immagine_url,
+                possesso,
+                valore,
+                condizione,
+                editore ( nome ),
+                annata ( nome )
+            `)
+            .eq('serie_id', serieId)
+            .order('numero', { ascending: true });
+
+        if (error) {
+            console.error("Errore Fetcher (Issues):", error);
+            throw error;
+        }
+        return data;
     }
 };
