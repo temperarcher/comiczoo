@@ -6,6 +6,7 @@ import { CZ_EVENTS } from './core/events.js';
 // Import dei componenti atomici
 import { Topbar } from './components/topbar.js';
 import { SeriesSelector } from './components/series-selector.js';
+import { Grid } from './components/grid.js'; // <--- AGGIUNTO
 
 const app = document.getElementById('app');
 
@@ -89,6 +90,9 @@ async function initMainApp() {
     
     // SeriesSelector si inizializza e si mette in ascolto dei cambi nella Topbar
     await SeriesSelector.init();
+
+    // Grid si inizializza e si mette in ascolto dei cambi nella Sidebar
+    await Grid.init(); // <--- AGGIUNTO
 }
 
 // Esecuzione del processo di boot
