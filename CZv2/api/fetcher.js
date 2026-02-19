@@ -57,11 +57,12 @@ export const Fetcher = {
                 possesso,
                 valore,
                 condizione,
+                data_pubblicazione,
                 editore ( nome ),
                 annata ( nome )
             `)
             .eq('serie_id', serieId)
-            .order('numero', { ascending: true });
+            .order('data_pubblicazione', { ascending: true, nullsFirst: false });
 
         if (error) {
             console.error("Errore Fetcher (Issues):", error);
