@@ -60,8 +60,8 @@ function showLoginScreen() {
  * Inizializza l'interfaccia principale e i componenti reattivi
  */
 async function initMainApp() {
-    // 1. Iniezione dello scheletro HTML basato su Tailwind
-    app.innerHTML = LAYOUT.MAIN_STRUCTURE; // <--- AGGIORNATO CHIRURGICAMENTE
+    // 1. Iniezione dello scheletro HTML atomizzato (Layout verticale di Febbraio)
+    app.innerHTML = LAYOUT.MAIN_STRUCTURE;
 
     // Aggancio evento logout manuale
     document.getElementById('btn-logout').onclick = () => Auth.logout();
