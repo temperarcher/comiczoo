@@ -7,7 +7,7 @@ export const LAYOUT = {
                 <button id="btn-logout" class="text-[10px] text-slate-500 hover:text-white uppercase tracking-widest underline transition-colors">Logout</button>
             </header>
 
-            <section id="topbar-container" class="border-b border-slate-800"></section>
+            <section id="topbar-container"></section>
 
             <section id="series-selector-container" class="bg-slate-900/20 border-b border-slate-900 py-4"></section>
 
