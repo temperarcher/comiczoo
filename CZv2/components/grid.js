@@ -14,8 +14,8 @@ export const Grid = {
         // Se cambia l'editore, svuotiamo la griglia in attesa di una nuova serie
         window.addEventListener(CZ_EVENTS.EDITORE_CHANGED, () => {
             document.getElementById('grid-container').innerHTML = `
-                <div class="h-full flex items-center justify-center text-slate-700 text-[10px] uppercase tracking-[0.3em]">
-                    Seleziona una serie dalla sidebar
+                <div class="h-full flex items-center justify-center text-slate-700 text-[10px] uppercase tracking-[0.3em] py-20">
+                    Seleziona una serie dalla barra superiore
                 </div>
             `;
         });
@@ -38,8 +38,9 @@ export const Grid = {
                 return;
             }
 
+            // Ottimizzato per layout a tutta larghezza (più colonne)
             container.innerHTML = `
-                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-6">
                     ${issues.map(issue => ISSUE_CARD.RENDER(issue)).join('')}
                 </div>
             `;
