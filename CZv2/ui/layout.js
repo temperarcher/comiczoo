@@ -7,17 +7,11 @@ export const LAYOUT = {
                 <button id="btn-logout" class="text-[10px] text-slate-500 hover:text-white uppercase tracking-widest underline transition-colors">Logout</button>
             </header>
 
-            <section id="topbar-container" class="p-6 bg-slate-900/30 border-b border-slate-900"></section>
+            <section id="topbar-container" class="border-b border-slate-800"></section>
 
-            <div class="flex p-6 gap-8">
-                <aside id="series-selector-container" class="w-72 shrink-0 border border-slate-900 rounded-2xl p-4 bg-slate-900/10 min-h-[500px]">
-                    <p class="text-[10px] text-slate-700 uppercase tracking-widest text-center py-20">Caricamento...</p>
-                </aside>
+            <section id="series-selector-container" class="bg-slate-900/20 border-b border-slate-900 py-4"></section>
 
-                <main id="grid-container" class="flex-1 border border-slate-900 rounded-2xl p-4 bg-slate-900/5 min-h-[500px]">
-                    <p class="text-[10px] text-slate-700 uppercase tracking-widest text-center py-20">Area Albi</p>
-                </main>
-            </div>
+            <main id="grid-container" class="p-6"></main>
         </div>
     `
 };
