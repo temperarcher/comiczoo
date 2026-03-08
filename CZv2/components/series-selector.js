@@ -3,9 +3,13 @@ import { Fetcher } from '../api/fetcher.js';
 import { AppState } from '../core/state.js';
 import { CZ_EVENTS } from '../core/events.js';
 import { SERIES_PILL } from '../ui/atoms/series-pill.js';
+import { TOGGLE_FILTER } from '../ui/atoms/toggle-filter.js'; // <--- NUOVO
 
 export const SeriesSelector = {
     async init() {
+        // Inizializziamo lo stato del filtro se non esiste
+        if (!AppState.current.filter) AppState.set('filter', 'all');
+
         window.addEventListener(CZ_EVENTS.EDITORE_CHANGED, () => {
             AppState.set('serie_id', null);
             this.render();
@@ -20,21 +24,14 @@ export const SeriesSelector = {
         try {
             const codiceId = AppState.current.codice_editore_id;
             const serieList = await Fetcher.getSerieByCodiceEditore(codiceId);
-
-            if (serieList.length === 0) {
-                container.innerHTML = `
-                    <div class="container mx-auto px-6 py-4 text-[10px] text-slate-600 uppercase tracking-widest italic font-bold">
-                        Nessuna serie per questo editore
-                    </div>`;
-                return;
-            }
+            const currentFilter = AppState.current.filter || 'all';
 
             container.innerHTML = `
                 <div class="container mx-auto px-6">
-                    <div class="flex gap-4 overflow-x-auto py-4 no-scrollbar items-center">
-                        <div class="flex flex-col justify-center mr-2 shrink-0 border-r border-slate-800 pr-4">
-                            <span class="text-[8px] font-black text-slate-500 uppercase tracking-[0.4em]">Seleziona</span>
-                            <span class="text-[10px] font-black text-white uppercase tracking-widest">Serie</span>
+                    <div class="flex gap-6 overflow-x-auto py-4 no-scrollbar items-center">
+                        
+                        <div class="shrink-0 flex items-center gap-3 border-r border-slate-800 pr-6">
+                            ${TOGGLE_FILTER.RENDER(currentFilter)}
                         </div>
                         
                         <div class="flex gap-6 items-center">
@@ -51,12 +48,23 @@ export const SeriesSelector = {
     },
 
     attachEvents() {
-        const pills = document.querySelectorAll('.cz-series-pill');
-        pills.forEach(p => {
+        // Eventi per le Serie
+        document.querySelectorAll('.cz-series-pill').forEach(p => {
             p.onclick = () => {
-                const id = p.dataset.id;
-                AppState.set('serie_id', id);
-                window.dispatchEvent(new CustomEvent(CZ_EVENTS.SERIE_CHANGED, { detail: id }));
+                AppState.set('serie_id', p.dataset.id);
+                window.dispatchEvent(new CustomEvent(CZ_EVENTS.SERIE_CHANGED, { detail: p.dataset.id }));
+                this.render();
+            };
+        });
+
+        // Eventi per il Filtro Toggle
+        document.querySelectorAll('.cz-filter-btn').forEach(btn => {
+            btn.onclick = () => {
+                const newFilter = btn.dataset.filter;
+                AppState.set('filter', newFilter);
+                
+                // Notifichiamo la Grid che deve rifiltrare i dati
+                window.dispatchEvent(new CustomEvent(CZ_EVENTS.SERIE_CHANGED)); 
                 this.render();
             };
         });
