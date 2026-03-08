@@ -1,16 +1,24 @@
-// CZv2/ui/atoms/series-pill.js
-export const SERIES_PILL = {
-    RENDER: (item, isActive) => `
-        <div data-id="${item.id}" 
-            class="cz-series-pill shrink-0 h-28 rounded-xl border-2 overflow-hidden flex items-center justify-center cursor-pointer transition-all duration-300 group
-            ${isActive 
-                ? 'border-yellow-500 shadow-[0_0_20px_rgba(234,179,8,0.3)] scale-105 z-10' 
-                : 'border-slate-800 opacity-50 hover:opacity-100 hover:border-slate-600 shadow-xl'}">
-            
-            <img src="${item.immagine_url || 'https://via.placeholder.com/150?text=?'}" 
-                 class="h-full w-auto object-contain transition-transform duration-500 group-hover:scale-110"
-                 title="${item.nome}"
-                 alt="${item.nome}">
-        </div>
-    `
+// CZv2/ui/atoms/toggle-filter.js
+export const TOGGLE_FILTER = {
+    RENDER: (currentFilter) => {
+        const options = [
+            { id: 'all', label: 'TUTTO' },
+            { id: 'celo', label: 'CELO' },
+            { id: 'manca', label: 'MANCA' }
+        ];
+
+        return `
+            <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800 shrink-0">
+                ${options.map(opt => `
+                    <button data-filter="${opt.id}" 
+                        class="cz-filter-btn px-3 py-1.5 rounded-lg text-[9px] font-black transition-all duration-300
+                        ${currentFilter === opt.id 
+                            ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/20' 
+                            : 'text-slate-500 hover:text-white'}">
+                        ${opt.label}
+                    </button>
+                `).join('')}
+            </div>
+        `;
+    }
 };
