@@ -26,6 +26,8 @@ export const Grid = {
         if (!container) return;
 
         const serieId = AppState.current.serie_id;
+        const currentFilter = AppState.current.filter || 'all'; // <--- Recupera il filtro attivo
+
         if (!serieId) return;
 
         container.innerHTML = `
@@ -35,10 +37,17 @@ export const Grid = {
         `;
 
         try {
-            const issues = await Fetcher.getIssuesBySerie(serieId);
+            let issues = await Fetcher.getIssuesBySerie(serieId);
+
+            // LOGICA DI FILTRAGGIO CHIRURGICA
+            if (currentFilter === 'celo') {
+                issues = issues.filter(i => i.possesso === 'celo');
+            } else if (currentFilter === 'manca') {
+                issues = issues.filter(i => i.possesso === 'manca');
+            }
 
             if (issues.length === 0) {
-                container.innerHTML = `<p class="text-center py-20 text-slate-500 text-[10px] uppercase tracking-widest">Nessuna figurina trovata</p>`;
+                container.innerHTML = `<p class="text-center py-20 text-slate-500 text-[10px] uppercase tracking-widest">Nessuna figurina trovata con questo filtro</p>`;
                 return;
             }
 
