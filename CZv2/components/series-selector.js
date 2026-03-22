@@ -22,7 +22,7 @@ export const SeriesSelector = {
             const serieList = await Fetcher.getSerieByCodiceEditore(codiceId);
 
             if (serieList.length === 0) {
-                container.innerHTML = ``; // Nascondi se vuoto
+                container.innerHTML = ``; 
                 return;
             }
 
@@ -35,21 +35,22 @@ export const SeriesSelector = {
                         <div class="flex gap-6 overflow-x-auto py-5 items-center bg-slate-950 
                                     [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                             
-                            <div class="flex flex-col justify-center mr-2 shrink-0 border-r border-slate-800 pr-4">
-                                <span class="text-[8px] font-black text-slate-500 uppercase tracking-[0.4em]">Catalogo</span>
-                                <span class="text-[10px] font-black text-white uppercase tracking-widest">Serie</span>
-                            </div>
-
                             <div class="flex gap-6 items-center pr-20">
                                 ${serieList.map(s => SERIES_PILL.RENDER(s, AppState.current.serie_id === s.id)).join('')}
                             </div>
                         </div>
                     </div>
+
+                    <div class="absolute bottom-1 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
+                        <span class="text-[7px] text-slate-700 uppercase tracking-[0.4em]">Shift + Scroll per esplorare</span>
+                    </div>
                 </div>
             `;
 
             this.attachEvents();
-        } catch (err) { console.error(err); }
+        } catch (err) { 
+            console.error("Errore SeriesSelector:", err); 
+        }
     },
 
     attachEvents() {
