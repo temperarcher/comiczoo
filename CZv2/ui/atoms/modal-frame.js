@@ -1,24 +1,12 @@
-// CZv2/ui/atoms/toggle-filter.js
-export const TOGGLE_FILTER = {
-    RENDER: (currentFilter) => {
-        const options = [
-            { id: 'all', label: 'TUTTO' },
-            { id: 'celo', label: 'CELO' },
-            { id: 'manca', label: 'MANCA' }
-        ];
-
-        return `
-            <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800 shrink-0">
-                ${options.map(opt => `
-                    <button data-filter="${opt.id}" 
-                        class="cz-filter-btn px-3 py-1.5 rounded-lg text-[9px] font-black transition-all duration-300
-                        ${currentFilter === opt.id 
-                            ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/20' 
-                            : 'text-slate-500 hover:text-white'}">
-                        ${opt.label}
-                    </button>
-                `).join('')}
+// CZv2/ui/atoms/modal-frame.js
+export const MODAL_FRAME = {
+    RENDER: (content) => `
+        <div id="modal-overlay" class="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-300">
+            <div class="absolute inset-0 bg-slate-950/90 backdrop-blur-xl"></div>
+            
+            <div id="modal-content" class="relative bg-slate-900 w-full max-w-6xl max-h-[90vh] rounded-2xl border border-white/10 shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
+                ${content}
             </div>
-        `;
-    }
+        </div>
+    `
 };
