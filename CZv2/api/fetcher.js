@@ -69,5 +69,38 @@ export const Fetcher = {
             throw error;
         }
         return data;
+    },
+
+    /**
+     * Recupera i dettagli profondi di un singolo albo per il Modale
+     * Include relazioni con storie e personaggi
+     */
+    async getIssueDetails(issueId) {
+        const { data, error } = await client
+            .from('issue')
+            .select(`
+                *,
+                serie (*),
+                annata (*),
+                editore (*),
+                storia_in_issue (
+                    posizione,
+                    storia (
+                        id, 
+                        nome,
+                        personaggio_storia (
+                            personaggio (*)
+                        )
+                    )
+                )
+            `)
+            .eq('id', issueId)
+            .single();
+
+        if (error) {
+            console.error("Errore Fetcher (Dettagli Issue):", error);
+            throw error;
+        }
+        return data;
     }
 };
