@@ -1,4 +1,5 @@
 // CZv2/components/grid.js
+
 import { Fetcher } from '../api/fetcher.js';
 import { ISSUE_CARD } from '../ui/atoms/issue-card.js';
 import { AppState } from '../core/state.js';
