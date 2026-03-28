@@ -3,6 +3,7 @@ import { Fetcher } from '../api/fetcher.js';
 import { ISSUE_CARD } from '../ui/atoms/issue-card.js';
 import { AppState } from '../core/state.js';
 import { CZ_EVENTS } from '../core/events.js';
+import { ModalController } from './modal-controller.js'; // <--- AGGIUNTO
 
 export const Grid = {
     async init() {
@@ -26,7 +27,7 @@ export const Grid = {
         if (!container) return;
 
         const serieId = AppState.current.serie_id;
-        const currentFilter = AppState.current.filter || 'all'; // <--- Recupera il filtro attivo
+        const currentFilter = AppState.current.filter || 'all';
 
         if (!serieId) return;
 
@@ -39,7 +40,6 @@ export const Grid = {
         try {
             let issues = await Fetcher.getIssuesBySerie(serieId);
 
-            // LOGICA DI FILTRAGGIO CHIRURGICA
             if (currentFilter === 'celo') {
                 issues = issues.filter(i => i.possesso === 'celo');
             } else if (currentFilter === 'manca') {
@@ -51,15 +51,31 @@ export const Grid = {
                 return;
             }
 
-            // Layout a griglia densa (Album style)
             container.innerHTML = `
                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-x-6 gap-y-10">
-                    ${issues.map(issue => ISSUE_CARD.RENDER(issue)).join('')}
+                    ${issues.map(issue => `
+                        <div class="issue-card-trigger cursor-pointer" data-id="${issue.id}">
+                            ${ISSUE_CARD.RENDER(issue)}
+                        </div>
+                    `).join('')}
                 </div>
             `;
+
+            this.attachEvents(); // <--- ATTIVAZIONE EVENTI
+
         } catch (err) {
             console.error(err);
             container.innerHTML = `<p class="text-center py-20 text-red-800 text-[10px] uppercase">Errore nel caricamento album</p>`;
         }
+    },
+
+    attachEvents() {
+        // Aggancia l'apertura del modale a ogni card renderizzata
+        document.querySelectorAll('.issue-card-trigger').forEach(card => {
+            card.onclick = () => {
+                const issueId = card.dataset.id;
+                ModalController.open(issueId);
+            };
+        });
     }
 };
