@@ -1,4 +1,5 @@
 // CZv2/api/fetcher.js
+
 import { client } from '../core/supabase.js';
 
 export const Fetcher = {
