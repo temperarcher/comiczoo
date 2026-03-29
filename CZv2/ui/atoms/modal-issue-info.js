@@ -12,7 +12,7 @@ export const MODAL_ISSUE_INFO = {
             </div>
         `;
 
-        // Logica raffinata per il testo del supplemento (analogamente all'header)
+        // Logica per il testo del supplemento
         let supplementoText = 'Nessuno';
         if (issue.supplemento) {
             const s = issue.supplemento;
@@ -40,6 +40,11 @@ export const MODAL_ISSUE_INFO = {
                 <div class="flex gap-4">
                     ${renderBlock('Valore stimato', issue.valore ? issue.valore + ' €' : '0 €', 'valore', 'number')}
                     ${renderBlock('Condizione (1-5)', issue.condizione ? issue.condizione + ' / 5' : '-', 'condizione', 'number')}
+                </div>
+
+                <div class="flex gap-4">
+                    ${renderBlock('Editore', issue.editore?.nome, 'editore_id', 'select')}
+                    ${renderBlock('Tipo Pubblicazione', issue.tipo_pubblicazione?.nome, 'tipo_pubblicazione_id', 'select')}
                 </div>
 
             </div>
