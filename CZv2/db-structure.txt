@@ -1,0 +1,94 @@
+
+
+CREATE TABLE public.annata (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  nome text NOT NULL,
+  serie_id uuid,
+  CONSTRAINT annata_pkey PRIMARY KEY (id),
+  CONSTRAINT annata_serie_id_fkey FOREIGN KEY (serie_id) REFERENCES public.serie(id)
+);
+CREATE TABLE public.codice_editore (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  nome text NOT NULL,
+  immagine_url text,
+  CONSTRAINT codice_editore_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.editore (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  nome text NOT NULL,
+  codice_editore_id uuid,
+  immagine_url text,
+  CONSTRAINT editore_pkey PRIMARY KEY (id),
+  CONSTRAINT editore_codice_editore_id_fkey FOREIGN KEY (codice_editore_id) REFERENCES public.codice_editore(id)
+);
+CREATE TABLE public.issue (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  nome text,
+  numero integer,
+  editore_id uuid,
+  testata_id uuid,
+  annata_id uuid,
+  immagine_url text,
+  possesso text DEFAULT 'manca'::text CHECK (possesso = ANY (ARRAY['celo'::text, 'manca'::text])),
+  data_pubblicazione date,
+  supplemento_id uuid,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  valore numeric DEFAULT 0.00,
+  serie_id uuid,
+  condizione integer CHECK (condizione >= 1 AND condizione <= 5),
+  tipo_pubblicazione_id uuid,
+  CONSTRAINT issue_pkey PRIMARY KEY (id),
+  CONSTRAINT issue_editore_id_fkey FOREIGN KEY (editore_id) REFERENCES public.editore(id),
+  CONSTRAINT issue_testata_id_fkey FOREIGN KEY (testata_id) REFERENCES public.testata(id),
+  CONSTRAINT issue_annata_id_fkey FOREIGN KEY (annata_id) REFERENCES public.annata(id),
+  CONSTRAINT issue_supplemento_id_fkey FOREIGN KEY (supplemento_id) REFERENCES public.issue(id),
+  CONSTRAINT issue_serie_id_fkey FOREIGN KEY (serie_id) REFERENCES public.serie(id),
+  CONSTRAINT issue_tipo_pubblicazione_id_fkey FOREIGN KEY (tipo_pubblicazione_id) REFERENCES public.tipo_pubblicazione(id)
+);
+CREATE TABLE public.personaggio (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  nome text NOT NULL UNIQUE,
+  nome_originale text,
+  immagine_url text,
+  CONSTRAINT personaggio_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.personaggio_storia (
+  storia_id uuid NOT NULL,
+  personaggio_id uuid NOT NULL,
+  CONSTRAINT personaggio_storia_pkey PRIMARY KEY (storia_id, personaggio_id),
+  CONSTRAINT personaggio_storia_personaggio_id_fkey FOREIGN KEY (personaggio_id) REFERENCES public.personaggio(id),
+  CONSTRAINT personaggio_storia_storia_id_fkey FOREIGN KEY (storia_id) REFERENCES public.storia(id)
+);
+CREATE TABLE public.serie (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  nome text NOT NULL,
+  immagine_url text,
+  CONSTRAINT serie_pkey PRIMARY KEY (id),
+);
+CREATE TABLE public.storia (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  nome text NOT NULL,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT storia_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.storia_in_issue (
+  issue_id uuid NOT NULL,
+  storia_id uuid NOT NULL,
+  posizione integer DEFAULT 1,
+  CONSTRAINT storia_in_issue_pkey PRIMARY KEY (issue_id, storia_id),
+  CONSTRAINT storia_in_issue_issue_id_fkey FOREIGN KEY (issue_id) REFERENCES public.issue(id),
+  CONSTRAINT storia_in_issue_storia_id_fkey FOREIGN KEY (storia_id) REFERENCES public.storia(id)
+);
+CREATE TABLE public.testata (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  nome text NOT NULL,
+  serie_id uuid,
+  CONSTRAINT testata_pkey PRIMARY KEY (id),
+  CONSTRAINT testata_serie_id_fkey FOREIGN KEY (serie_id) REFERENCES public.serie(id)
+);
+CREATE TABLE public.tipo_pubblicazione (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  nome text NOT NULL UNIQUE,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT tipo_pubblicazione_pkey PRIMARY KEY (id)
+);
