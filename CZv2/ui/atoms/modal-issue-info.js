@@ -12,10 +12,17 @@ export const MODAL_ISSUE_INFO = {
             </div>
         `;
 
-        // Logica per il testo del supplemento (se presente)
-        const supplementoText = issue.supplemento 
-            ? `${issue.supplemento.serie?.nome} #${issue.supplemento.numero}` 
-            : 'Nessuno';
+        // Logica raffinata per il testo del supplemento (analogamente all'header)
+        let supplementoText = 'Nessuno';
+        if (issue.supplemento) {
+            const s = issue.supplemento;
+            const annataStr = s.annata?.nome ? `${s.annata.nome} ` : '';
+            const dataStr = s.data_pubblicazione 
+                ? ` del ${new Date(s.data_pubblicazione).toLocaleDateString('it-IT')}` 
+                : '';
+            
+            supplementoText = `${s.serie?.nome} ${annataStr}#${s.numero}${dataStr}`;
+        }
 
         return `
             <div class="flex flex-col gap-4">
