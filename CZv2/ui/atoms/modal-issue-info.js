@@ -1,7 +1,7 @@
 // CZv2/ui/atoms/modal-issue-info.js
 export const MODAL_ISSUE_INFO = {
     RENDER: (issue, isAdmin = false) => {
-        // Funzione helper per renderizzare i blocchi di dati
+        // Helper per i blocchi di dati
         const renderBlock = (label, value, key, type) => `
             <div class="flex-1 bg-slate-800/30 p-3 rounded-lg border border-white/5 transition-colors hover:border-white/10">
                 <p class="text-[8px] uppercase text-slate-500 font-black tracking-widest mb-1">${label}</p>
@@ -12,7 +12,7 @@ export const MODAL_ISSUE_INFO = {
             </div>
         `;
 
-        // Logica per il testo del supplemento
+        // Logica Supplemento (Header style)
         let supplementoText = 'Nessuno';
         if (issue.supplemento) {
             const s = issue.supplemento;
@@ -20,7 +20,6 @@ export const MODAL_ISSUE_INFO = {
             const dataStr = s.data_pubblicazione 
                 ? ` del ${new Date(s.data_pubblicazione).toLocaleDateString('it-IT')}` 
                 : '';
-            
             supplementoText = `${s.serie?.nome} ${annataStr}#${s.numero}${dataStr}`;
         }
 
