@@ -73,7 +73,7 @@ export const Fetcher = {
 
     /**
      * Recupera i dettagli profondi di un singolo albo per il Modale
-     * Include relazioni con storie, personaggi e supplementi
+     * Include relazioni con storie, personaggi, supplementi e tipo pubblicazione
      */
     async getIssueDetails(issueId) {
         const { data, error } = await client
@@ -84,11 +84,13 @@ export const Fetcher = {
                 annata (*),
                 editore (*),
                 testata (*),
+                tipo_pubblicazione (*),
                 supplemento:supplemento_id (
                     id,
                     numero,
                     data_pubblicazione,
-                    serie ( nome )
+                    serie ( nome ),
+                    annata ( nome )
                 ),
                 storia_in_issue (
                     posizione,
