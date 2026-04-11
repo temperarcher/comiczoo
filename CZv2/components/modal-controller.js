@@ -11,16 +11,10 @@ export const ModalController = {
     isAdminMode: false,
 
     async open(issueId) {
-        this.isAdminMode = false; // Reset sempre in modalità visione
-        
-        // 1. Mostra caricamento immediato
+        this.isAdminMode = false;
         this.renderLoading();
-
         try {
-            // 2. Recupero dati profondi (Storie -> Personaggi)
-            // Nota: Useremo un metodo specifico del fetcher che fa il join delle tabelle
             this.currentIssue = await Fetcher.getIssueDetails(issueId);
-            
             this.render();
         } catch (err) {
             console.error("Errore caricamento dettagli:", err);
@@ -32,7 +26,6 @@ export const ModalController = {
         const app = document.getElementById('app');
         const issue = this.currentIssue;
 
-        // Composizione del contenuto del modale (Opzione A)
         const content = `
             ${MODAL_HEADER.RENDER(issue, this.isAdminMode)}
             
@@ -41,18 +34,12 @@ export const ModalController = {
                     
                     <div class="lg:col-span-4 flex flex-col gap-6">
                         <div class="relative group aspect-[2/3] rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-slate-800">
-                            <img src="${issue.immagine_url}" class="w-full h-full object-cover shadow-glow">
-                            
-                            <div class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
-                                <span class="text-[10px] font-black uppercase tracking-widest ${issue.possesso === 'celo' ? 'text-yellow-500' : 'text-slate-500'}">
-                                    ${issue.possesso}
-                                </span>
-                            </div>
+                            <img src="${issue.immagine_url}" class="w-full h-full object-cover shadow-glow transition-transform duration-700 group-hover:scale-105">
                         </div>
                     </div>
 
                     <div class="lg:col-span-8 flex flex-col gap-8">
-                        ${MODAL_SERIE_INFO.RENDER(issue.serie, this.isAdminMode)}
+                        ${MODAL_SERIE_INFO.RENDER(issue.serie, issue.possesso, this.isAdminMode)}
                         ${MODAL_ISSUE_INFO.RENDER(issue, this.isAdminMode)}
                         ${MODAL_STORIES.RENDER(issue.storia_in_issue, this.isAdminMode)}
                     </div>
@@ -68,10 +55,7 @@ export const ModalController = {
             ` : ''}
         `;
 
-        // Iniezione nel Frame
         const modalHTML = MODAL_FRAME.RENDER(content);
-        
-        // Se il modale esiste già lo aggiorniamo, altrimenti lo creiamo
         let overlay = document.getElementById('modal-overlay');
         if (!overlay) {
             app.insertAdjacentHTML('beforeend', modalHTML);
@@ -83,29 +67,21 @@ export const ModalController = {
     },
 
     attachEvents() {
-        // Chiusura
         document.getElementById('close-modal').onclick = () => this.close();
         
-        // Toggle Admin Mode
         const toggle = document.getElementById('admin-mode-toggle');
         if (toggle) {
             toggle.onchange = (e) => {
                 this.isAdminMode = e.target.checked;
-                this.render(); // Re-renderizza con i campi input
+                this.render();
             };
         }
 
-        // Click fuori dal modale per chiudere
         const overlay = document.getElementById('modal-overlay');
-        overlay.onclick = (e) => {
-            if (e.target.id === 'modal-overlay') this.close();
-        };
+        overlay.onclick = (e) => { if (e.target.id === 'modal-overlay') this.close(); };
 
-        // Logica di salvataggio (Placeholder per ora)
         const saveBtn = document.getElementById('btn-save-issue');
-        if (saveBtn) {
-            saveBtn.onclick = () => this.handleSave();
-        }
+        if (saveBtn) saveBtn.onclick = () => this.handleSave();
     },
 
     renderLoading() {
@@ -125,8 +101,6 @@ export const ModalController = {
     },
 
     async handleSave() {
-        console.log("Salvataggio dati su Supabase...");
-        // Qui integreremo la chiamata a Editor.upsertIssue()
         this.isAdminMode = false;
         this.render();
     }
